@@ -1,0 +1,19 @@
+<package>
+  <description brief="OctoMap -  A  probabilistic, flexible, and compact 3D mapping library for robotic systems.">
+
+     <p>The <a href="http://octomap.sourceforge.net/">OctoMap library</a> implements a 3D occupancy grid mapping approach, p
+     roviding data structures and mapping algorithms. The map implementation is based on an octree.</p>
+     <p>More details are available at <a href="http://octomap.sourceforge.net/">http://octomap.sourceforge.net/</a>.</p>
+
+  </description>
+  <author>Kai M. Wurm and Armin Hornung. ROS package by Armin Hornung.</author>
+  <license>GPL</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://www.ros.org/wiki/octomap</url>
+  <export>
+  	<cpp cflags="-I${prefix}/../../src" lflags="-L${prefix}/../../lib -loctomath -loctomap -Wl,-rpath,${prefix}/../../lib" />
+  </export>
+
+</package>
+
+
