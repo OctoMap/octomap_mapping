@@ -1,11 +1,34 @@
-all: octomap
 
-SOURCE_DIR  = ../../src
-BUILD_DIR  = ../../build
+INSTALL_DIR = octomap
 
-octomap: 
-	cd $(BUILD_DIR) && cmake ../src
-	cd $(BUILD_DIR) && make
+all: installed
+
+SVN_DIR = build/octomap-svn
+SVN_URL = https://octomap.svn.sourceforge.net/svnroot/octomap/trunk
+#SVN_REVISION = -r2739
+#SVN_PATCH = pythontest.patch
+include $(shell rospack find mk)/svn_checkout.mk
+
+CMAKE = cmake 
+CMAKE_ARGS = -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=`rospack find octomap`/$(INSTALL_DIR) 
+
+
+
+installed: wiped $(SVN_DIR)
+	mkdir -p $(SVN_DIR)/build
+	cd $(SVN_DIR)/build && $(CMAKE) $(CMAKE_ARGS) ../src
+	cd $(SVN_DIR)/build && make $(ROS_PARALLEL_JOBS) && make install
+	touch installed
 
 clean:
-	cd $(BUILD_DIR) && make clean
+	-cd $(SVN_DIR)/build && make clean
+	rm -rf $(INSTALL_DIR) installed
+
+wiped: Makefile
+	rm -rf build patched
+	touch wiped
+
+wipe: clean
+	rm -rf build patched
+
+.PHONY : clean download
