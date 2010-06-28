@@ -5,8 +5,8 @@ all: installed
 
 SVN_DIR = build/octomap-svn
 SVN_URL = https://octomap.svn.sourceforge.net/svnroot/octomap/trunk
-#SVN_REVISION = -r2739
-#SVN_PATCH = pythontest.patch
+SVN_REVISION = 
+SVN_PATCH = 
 include $(shell rospack find mk)/svn_checkout.mk
 
 CMAKE = cmake 
