@@ -6,7 +6,7 @@
 
   </description>
   <author>Armin Hornung</author>
-  <license>GPL</license>
+  <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://www.ros.org/wiki/octomap_server</url>
   
@@ -16,6 +16,7 @@
   
   <depend package="octomap"/>
   <depend package="visualization_msgs"/>
+  <depend package="std_msgs"/>
 </package>
 
 
