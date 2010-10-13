@@ -146,18 +146,16 @@ void OctomapServer::readMap(const std::string& filename){
 		cubeCenter.y = it->first.y();
 		cubeCenter.z = it->first.z();
 
-		//if (it->first.z() > 0.01)
+		//if (it->first.z() > -0.01)
 		{
 			m_occupiedCellsVis.markers[idx].points.push_back(cubeCenter);
-			/**
-			 * This only works in CTurtle:
 			if (m_useHeightMap){
 				double h = (1.0 - std::min(std::max((it->first.z()-minZ)/ (maxZ - minZ), 0.0), 1.0)) *m_colorFactor;
 				m_occupiedCellsVis.markers[idx].colors.push_back(heightMapColor(h));
 			}
 			numVoxels++;
 
-			**/
+
 
 		}
 	}

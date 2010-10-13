@@ -16,6 +16,10 @@
   </export>
   
   <versioncontrol type="svn" url="https://octomap.svn.sourceforge.net/svnroot/octomap/trunk"/>
+  
+  <rosdep name="qt4" />
+  <rosdep name="doxygen" />
+  <rosdep name="qglviewer-qt4" />
 
 </package>
 
