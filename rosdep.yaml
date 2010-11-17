@@ -1,3 +1,10 @@
+
+qt4-opengl:
+  ubuntu:
+    '10.10': libqt4-opengl libqt4-opengl-dev
+    '10.04': libqt4-opengl libqt4-opengl-dev
+    '9.10': libqt4-opengl libqt4-opengl-dev
+
 qglviewer-qt4:
   ubuntu:
     '10.10': libqglviewer-qt4-2 libqglviewer-qt4-dev
