@@ -9,6 +9,7 @@ based on an octree. This stack contains the actual OctoMap package and additiona
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/octomap_mapping</url>
   <depend stack="ros" /> <!-- std_msgs -->
-  <depend stack="visualization_common" /> <!-- visualization_msgs -->
+  <depend stack="visualization_common" /> <!-- visualization_msgs in cturtle -->
+  <depend stack="common_msgs" /> <!-- visualization_msgs in diamondback -->
 
 </stack>

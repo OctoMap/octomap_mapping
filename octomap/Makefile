@@ -19,6 +19,7 @@ installed: wiped $(SVN_DIR)
 	mkdir -p $(SVN_DIR)/build
 	cd $(SVN_DIR)/build && $(CMAKE) $(CMAKE_ARGS) ../src
 	cd $(SVN_DIR)/build && make $(ROS_PARALLEL_JOBS) && make install
+	cp $(SVN_DIR)/src/doxygen.h $(INSTALL_DIR)/include/doxygen.h
 	touch installed
 
 clean:
