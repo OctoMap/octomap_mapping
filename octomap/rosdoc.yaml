@@ -2,3 +2,5 @@
  - builder: doxygen
    file_patterns: '*.c *.cpp *.h *.hxx *.dox'
    exclude_patterns: '*/.svn/* */extern/* */octovis/*'
+   javadoc_autobrief: YES
+   tab_size: 2
