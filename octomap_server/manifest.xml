@@ -11,7 +11,7 @@
   <url>http://www.ros.org/wiki/octomap_server</url>
   
   <export>
-    <cpp cflags="-I${prefix}/include -I${prefix}/msg/cpp -I${prefix}/srv/cpp"/>
+    <cpp cflags="-I${prefix}/include"/>
   </export>
   
   <depend package="octomap"/>
