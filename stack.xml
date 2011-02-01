@@ -4,7 +4,7 @@
 providing data structures and mapping algorithms. The map implementation is
 based on an octree. This stack contains the actual OctoMap package and additional code.
   </description>
-  <author>Maintained by Armin Hornung</author>
+  <author>Maintained by Kai M. Wurm and Armin Hornung</author>
   <license>GPL,BSD</license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/octomap_mapping</url>
