@@ -1,0 +1,16 @@
+<package>
+  <description brief="octomap_ros">
+
+     octomap_ros
+
+  </description>
+  <author>Armin Hornung</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/octomap_ros</url>
+  <depend package="octomap"/>
+  <depend package="roscpp"/>
+
+</package>
+
+

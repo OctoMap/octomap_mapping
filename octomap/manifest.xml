@@ -7,7 +7,7 @@
      <p>More details are available at <a href="http://octomap.sourceforge.net/">http://octomap.sourceforge.net/</a>.</p>
 
   </description>
-  <author>Kai M. Wurm and Armin Hornung. ROS package maintained by Armin Hornung.</author>
+  <author>Kai M. Wurm and Armin Hornung</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://www.ros.org/wiki/octomap</url>
@@ -21,9 +21,6 @@
   <rosdep name="qt4" />
   <rosdep name="qt4-opengl" />
   <rosdep name="qglviewer-qt4" />
-  <!-- doxygen removed for now - we don't build docs on default 
-  		=> use rosdoc instead!     -->
-  <!-- <rosdep name="doxygen" /> -->
   
 
 </package>

@@ -5,8 +5,8 @@ all: installed
 
 SVN_DIR = build/octomap-svn
 SVN_URL = https://octomap.svn.sourceforge.net/svnroot/octomap/trunk
-# latest release (0.8)
-SVN_REVISION = -r154
+# latest release (testing 0.9)
+SVN_REVISION = -r173
 SVN_PATCH = 
 include $(shell rospack find mk)/svn_checkout.mk
 
@@ -17,9 +17,9 @@ CMAKE_ARGS = -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=`rospack find o
 
 installed: wiped $(SVN_DIR)
 	mkdir -p $(SVN_DIR)/build
-	cd $(SVN_DIR)/build && $(CMAKE) $(CMAKE_ARGS) ../src
+	cd $(SVN_DIR)/build && $(CMAKE) $(CMAKE_ARGS) ..
 	cd $(SVN_DIR)/build && make $(ROS_PARALLEL_JOBS) && make install
-	cp $(SVN_DIR)/src/doxygen.h $(INSTALL_DIR)/include/doxygen.h
+	cp $(SVN_DIR)/doxygen.h $(INSTALL_DIR)/include/doxygen.h
 	touch installed
 
 clean:
