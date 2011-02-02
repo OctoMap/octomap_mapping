@@ -36,8 +36,8 @@
  */
 
 #include <ros/ros.h>
-#include <octomap_server/GetOctomap.h>
-#include <octomap_server/octomap_server.h>
+#include <octomap_ros/GetOctomap.h>
+#include <octomap_ros/conversions.h>
 #include <octomap/octomap.h>
 #include <fstream>
 
@@ -55,8 +55,8 @@ class MapSaver{
       ros::NodeHandle n;
       const static std::string servname = "octomap_binary";
       ROS_INFO("Requesting the map from %s...", n.resolveName(servname).c_str());
-      octomap_server::GetOctomap::Request req;
-      octomap_server::GetOctomap::Response resp;
+      octomap_ros::GetOctomap::Request req;
+      octomap_ros::GetOctomap::Response resp;
       while(n.ok() && !ros::service::call(servname, req, resp))
       {
         ROS_WARN("Request to %s failed; trying again...", n.resolveName(servname).c_str());
@@ -76,7 +76,7 @@ class MapSaver{
 //			  octomap.writeBinary(mapname);
 
 			  // write out stream directly
-			  mapfile.write((char*)&resp.map.data[0], resp.map.get_data_size());
+			  mapfile.write((char*)&resp.map.data[0], resp.map.data.size());
 			  mapfile.close();
 		  }
       }

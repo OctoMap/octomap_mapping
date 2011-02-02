@@ -32,4 +32,3 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 rosbuild_add_executable(octomap_server src/octomap_server.cpp)
 rosbuild_add_executable(octomap_saver src/octomap_saver.cpp)
-#rosbuild_add_executable(octomap_debug src/octomap_debug.cpp)
