@@ -8,8 +8,16 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/octomap_ros</url>
+  
+  <export>
+    <cpp cflags="-I${prefix}/include"/>
+  </export>
+  
+  
   <depend package="octomap"/>
   <depend package="roscpp"/>
+  <depend package="geometry_msgs"/>
+  <depend package="sensor_msgs"/>
 
 </package>
 

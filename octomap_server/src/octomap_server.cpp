@@ -39,7 +39,10 @@
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/ColorRGBA.h>
-#include <octomap_server/octomap_server.h>
+#include <octomap_ros/OctomapBinary.h>
+#include <octomap_ros/GetOctomap.h>
+
+#include <octomap_ros/conversions.h>
 #include <octomap/octomap.h>
 
 #define USAGE "\nUSAGE: octomap_server <map.bt>\n" \
@@ -50,8 +53,8 @@ public:
 	OctomapServer(const std::string& filename);
 	virtual ~OctomapServer();
 	void readMap(const std::string& filename);
-	bool serviceCallback(octomap_server::GetOctomap::Request  &req,
-			octomap_server::GetOctomap::Response &res);
+	bool serviceCallback(octomap_ros::GetOctomap::Request  &req,
+			octomap_ros::GetOctomap::Response &res);
 
 private:
 	std_msgs::ColorRGBA heightMapColor(double h) const;
@@ -60,7 +63,7 @@ private:
 	ros::ServiceServer m_service;
 
 	// (cached) map data
-	octomap_server::GetOctomap::Response m_mapResponse;
+	octomap_ros::GetOctomap::Response m_mapResponse;
 	// (cached) map visualization data:
 	visualization_msgs::MarkerArray m_occupiedCellsVis;
 
@@ -94,7 +97,7 @@ OctomapServer::OctomapServer(const std::string& filename)
 	readMap(filename);
 
 	m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, true);
-	m_binaryMapPub = m_nh.advertise<octomap_server::OctomapBinary>("octomap_binary", 1, true);
+	m_binaryMapPub = m_nh.advertise<octomap_ros::OctomapBinary>("octomap_binary", 1, true);
 	m_service = m_nh.advertiseService("octomap_binary", &OctomapServer::serviceCallback, this);
 
 	// publish once as latched topic:
@@ -116,7 +119,7 @@ void OctomapServer::readMap(const std::string& filename){
 	octomap::OcTree map(filename);
 
 	m_mapResponse.map.header.frame_id = m_frameId;
-	octomap_server::octomapMapToMsg(map, m_mapResponse.map);
+	octomap::octomapMapToMsg(map, m_mapResponse.map);
 	double x, y, minZ, maxZ;
 	map.getMetricMin(x, y, minZ);
 	map.getMetricMax(y, y, maxZ);
@@ -183,8 +186,8 @@ void OctomapServer::readMap(const std::string& filename){
 	ROS_INFO("Octomap file %s loaded (%d nodes, %d occupied visualized).", filename.c_str(),map.size(), numVoxels);
 }
 
-bool OctomapServer::serviceCallback(octomap_server::GetOctomap::Request  &req,
-			octomap_server::GetOctomap::Response &res)
+bool OctomapServer::serviceCallback(octomap_ros::GetOctomap::Request  &req,
+		octomap_ros::GetOctomap::Response &res)
 {
 	res = m_mapResponse;
 	ROS_INFO("Sending map data on service request");
