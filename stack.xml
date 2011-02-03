@@ -5,11 +5,12 @@ providing data structures and mapping algorithms. The map implementation is
 based on an octree. This stack contains the actual OctoMap package and additional code.
   </description>
   <author>Maintained by Kai M. Wurm and Armin Hornung</author>
-  <license>GPL,BSD</license>  
+  <license>BSD,GPL</license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/octomap_mapping</url>
-  <depend stack="ros" /> <!-- std_msgs -->
-  <depend stack="visualization_common" /> <!-- visualization_msgs in cturtle -->
+  <depend stack="common_msgs" /> <!-- sensor_msgs, geometry_msgs -->
+  <depend stack="point_cloud_perception" /> <!-- pcl -->
+  <depend stack="ros" /> <!-- roscpp -->
+  <depend stack="visualization_common" /> <!-- visualization_msgs -->
   <depend stack="common_msgs" /> <!-- visualization_msgs in diamondback -->
-
 </stack>
