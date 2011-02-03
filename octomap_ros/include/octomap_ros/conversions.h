@@ -85,7 +85,7 @@ namespace octomap {
    * @param scan
    */
   template <class PointT>
-  static inline void octomapPointsToPCL(const point3d_list& points, pcl::PointCloud<PointT>& scan){
+  static inline void octomapPointsToPCL(const point3d_list& points, pcl::PointCloud<PointT>& cloud){
 
     scan.reserve(points.size());
     for (point3d_list::iterator it = points.begin(); it != points.end(); ++it){
