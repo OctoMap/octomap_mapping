@@ -10,7 +10,7 @@
   <url>http://ros.org/wiki/octomap_ros</url>
   
   <export>
-    <cpp cflags="-I${prefix}/include"/>
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_ros" />
   </export>
   
   
@@ -18,6 +18,7 @@
   <depend package="roscpp"/>
   <depend package="geometry_msgs"/>
   <depend package="sensor_msgs"/>
+  <depend package="pcl"/>
 
 </package>
 
