@@ -43,6 +43,7 @@
 #include <octomap/octomap.h>
 #include <octomap_ros/OctomapBinary.h>
 #include <octomap_ros/OctomapBinaryWithPose.h>
+#include <pcl/point_cloud.h>
 
 namespace octomap {
   /**
@@ -76,20 +77,22 @@ namespace octomap {
     octomap.readBinary(datastream);
   }
 
-  // TODO point3d_listToPCL
+  /**
+   * Conversion from octomap::point3d_list (e.g. all occupied nodes from getOccupied()) to
+   * pcl PointCloud
+   *
+   * @param points
+   * @param scan
+   */
+  template <class PointT>
+  static inline void octomapPointsToPCL(const point3d_list& points, pcl::PointCloud<PointT>& scan){
 
-//  PointCloud MapNode::generatePointCloud() {
-//    octomap::point3d_list node_centers;
-//    node_map->getOccupiedGlobal(node_centers);
-//    PointCloud cloud;
-//    cloud.points.reserve(node_centers.size());
-//    for (octomap::point3d_list::const_iterator it = node_centers.begin();
-//         it != node_centers.end(); ++it) {
-//      cloud.push_back(Point(it->x(), it->y(), it->z()));
-//    }
-//    return cloud;
-//  }
+    scan.reserve(points.size());
+    for (point3d_list::iterator it = points.begin(); it != points.end(); ++it){
+      cloud.push_back(PointT(it->x(), it->y(), it->z()));
+    }
 
+  }
 
 }
 
