@@ -10,7 +10,7 @@
   <url>http://ros.org/wiki/octomap_ros</url>
   
   <export>
-    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_ros" />
+    <cpp cflags="-I${prefix}/include" />
   </export>
   
   
