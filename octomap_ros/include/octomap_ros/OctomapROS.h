@@ -45,6 +45,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/ros/conversions.h>
+#include <tf/transform_datatypes.h>
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Vector3.h>
@@ -125,7 +126,8 @@ namespace octomap {
 
 
     /**
-     * @brief Search for a Node in the octree at a given coordinate
+     * @brief Search for a Node in the octree at a given coordinate.
+     * You need to check if a node is found at all (returned pointer != NULL).
      *
      * @param point The searched coordinate. Any type of Point that has x,y,z members (e.g. pcl::PointXYZ or a geometry_msgs::Point) works.
      * @return Pointer to the octree node at the coordinate if it exists, NULL if it doesn't.
@@ -133,7 +135,11 @@ namespace octomap {
     template <class PointT>
     typename OctreeT::NodeType* search(const PointT& point) const;
 
+    typename OctreeT::NodeType* search(const tf::Point& point) const;
+
     OctreeT octree; ///< the wrapped OctoMap octree
+
+    typedef typename OctreeT::NodeType NodeType;
   };
 
   /**
@@ -225,7 +231,12 @@ namespace octomap {
   template <class OctreeT>
   template <class PointT>
   typename OctreeT::NodeType* OctomapROS<OctreeT>::search(const PointT& point) const{
-    octree.search(point.x, point.y, point.z);
+    return octree.search(point.x, point.y, point.z);
+  }
+
+  template <class OctreeT>
+  typename OctreeT::NodeType* OctomapROS<OctreeT>::search(const tf::Point& point) const{
+    return octree.search(point.x(), point.y(), point.z());
   }
 
 }

@@ -44,10 +44,11 @@
 #include <octomap_ros/OctomapBinary.h>
 #include <octomap_ros/OctomapBinaryWithPose.h>
 #include <pcl/point_cloud.h>
+#include <geometry_msgs/Point.h>
 
 namespace octomap {
   /**
-   * Converts an octomap map structure to a ROS octomap msg as binary data
+   * @brief Converts an octomap map structure to a ROS octomap msg as binary data
    *
    * @param octomap input OcTree
    * @param mapMsg output msg
@@ -65,7 +66,7 @@ namespace octomap {
   }
 
   /**
-   * Converts a ROS octomap msg (binary data) to an octomap map structure
+   * @brief Converts a ROS octomap msg (binary data) to an octomap map structure
    *
    * @param mapMsg
    * @param octomap
@@ -78,14 +79,14 @@ namespace octomap {
   }
 
   /**
-   * Conversion from octomap::point3d_list (e.g. all occupied nodes from getOccupied()) to
+   * @brief Conversion from octomap::point3d_list (e.g. all occupied nodes from getOccupied()) to
    * pcl PointCloud
    *
    * @param points
    * @param scan
    */
   template <class PointT>
-  static inline void octomapPointsToPCL(const point3d_list& points, pcl::PointCloud<PointT>& cloud){
+  static inline void pointsOctomapToPCL(const point3d_list& points, pcl::PointCloud<PointT>& cloud){
 
     cloud.reserve(points.size());
     for (point3d_list::iterator it = points.begin(); it != points.end(); ++it){
@@ -93,6 +94,33 @@ namespace octomap {
     }
 
   }
+
+  /// Conversion from octomap::point3d to geometry_msgs::Point
+  static inline geometry_msgs::Point pointOctomapToMsg(const point3d& octomapPt){
+    geometry_msgs::Point pt;
+    pt.x = octomapPt.x();
+    pt.y = octomapPt.y();
+    pt.z = octomapPt.z();
+
+    return pt;
+  }
+
+  /// Conversion from geometry_msgs::Point to octomap::point3d
+  static inline octomap::point3d pointMsgToOctomap(const geometry_msgs::Point& ptMsg){
+    return octomap::point3d(ptMsg.x, ptMsg.y, ptMsg.z);
+  }
+
+  /// Conversion from octomap::point3d to tf::Point
+  static inline tf::Point pointOctomapToTf(const point3d& octomapPt){
+    return tf::Point(octomapPt.x(), octomapPt.y(), octomapPt.z());
+  }
+
+  /// Conversion from tf::Point to octomap::point3d
+  static inline octomap::point3d pointTfToOctomap(const tf::Point& ptTf){
+    return point3d(ptTf.x(), ptTf.y(), ptTf.z());
+  }
+
+
 
 
 }
