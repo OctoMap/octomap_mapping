@@ -45,6 +45,7 @@
 #include <octomap_ros/OctomapBinaryWithPose.h>
 #include <pcl/point_cloud.h>
 #include <geometry_msgs/Point.h>
+#include <tf/transform_datatypes.h>
 
 namespace octomap {
   /**
