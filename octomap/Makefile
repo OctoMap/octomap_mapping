@@ -6,7 +6,7 @@ all: installed
 SVN_DIR = build/octomap-svn
 SVN_URL = https://octomap.svn.sourceforge.net/svnroot/octomap/trunk
 # latest release (testing 0.9)
-SVN_REVISION = -r174
+SVN_REVISION = -r176
 SVN_PATCH = 
 include $(shell rospack find mk)/svn_checkout.mk
 

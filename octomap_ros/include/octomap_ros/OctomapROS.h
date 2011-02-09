@@ -54,7 +54,7 @@ namespace octomap {
 
 
   /**
-   * @brief: ROS wrapper class for OctoMap Octrees, providing the most important
+   * @brief ROS wrapper class for OctoMap Octrees, providing the most important
    * functionality with ROS / PCL types.
    * The class is templated over the Octree type. Any OcTree derived from
    * octomap::OccupancyOcTreeBase should work. For most cases, OcTreeROS
@@ -123,6 +123,15 @@ namespace octomap {
     template <class PointT>
     bool insertRay(const PointT& origin, const PointT& end, double maxRange = -1.0);
 
+
+    /**
+     * @brief Search for a Node in the octree at a given coordinate
+     *
+     * @param point The searched coordinate. Any type of Point that has x,y,z members (e.g. pcl::PointXYZ or a geometry_msgs::Point) works.
+     * @return Pointer to the octree node at the coordinate if it exists, NULL if it doesn't.
+     */
+    template <class PointT>
+    typename OctreeT::NodeType* search(const PointT& point) const;
 
     OctreeT octree; ///< the wrapped OctoMap octree
   };
@@ -212,6 +221,12 @@ namespace octomap {
     return result;
   }
 
+
+  template <class OctreeT>
+  template <class PointT>
+  typename OctreeT::NodeType* OctomapROS<OctreeT>::search(const PointT& point) const{
+    octree.search(point.x, point.y, point.z);
+  }
 
 }
 
