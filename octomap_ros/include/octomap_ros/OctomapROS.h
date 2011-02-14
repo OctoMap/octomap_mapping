@@ -164,12 +164,6 @@ namespace octomap {
   }
 
 
-  template <class OctreeT>
-  OctomapROS<OctreeT>::OctomapROS(OctreeT tree)
-      : octree(tree)
-  {
-
-  }
 
   template <class OctreeT>
   template <class PCLPointT>
