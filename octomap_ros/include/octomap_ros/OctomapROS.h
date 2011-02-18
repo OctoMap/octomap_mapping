@@ -94,6 +94,24 @@ namespace octomap {
         double maxrange=-1., bool pruning=true);
 
     /**
+     * @brief Integrate a 3d scan in relative coordinates, transform scan before tree update
+     *
+     * @param pc Pointcloud (measurement endpoints) relative to frame origin
+     * @param sensor_origin origin of sensor relative to frame origin
+     * @param frame_origin_trans Translation of reference frame origin, determines transform to be applied to cloud and sensor origin
+     * @param frame_origin_rot Rotation (as quaternion) of reference frame origin, determines transform to be applied to cloud and sensor origin
+     * @param maxrange maximum range for how long individual beams are inserted (default -1: complete beam)
+     * @param pruning whether the tree is (losslessly) pruned after insertion (default: true)
+     */
+    template <class PCLPointT, class PCLQuaternionT>
+    void insertScan(const pcl::PointCloud<PCLPointT>& scan, const PCLPointT& sensor_origin,
+        const PCLPointT& frame_origin_trans, const PCLQuaternionT& frame_origin_rot,
+        double maxrange=-1., bool pruning=true);
+
+
+
+
+    /**
      * @brief Performs raycasting in 3d.
      *
      * A ray is cast from origin with a given direction, the first occupied
@@ -180,6 +198,31 @@ namespace octomap {
     }
 
     octree.insertScan(pc, point3d(origin.x, origin.y, origin.z), maxrange, pruning);
+
+  }
+
+
+  template <class OctreeT>
+  template <class PCLPointT, class PCLQuaternionT>
+  void OctomapROS<OctreeT>::insertScan(const pcl::PointCloud<PCLPointT>& scan, const PCLPointT& sensor_origin,
+      const PCLPointT& frame_origin_trans, const PCLQuaternionT& frame_origin_rot, double maxrange, bool pruning)
+    {
+
+    Pointcloud pc;
+    pc.reserve(scan.points.size());
+
+    typename
+    pcl::PointCloud<PCLPointT>::const_iterator it;
+    for (it = scan.begin(); it != scan.end(); ++it){
+      pc.push_back(it->x, it->y, it->z);
+    }
+
+    pose6d frame_origin;
+    frame_origin.trans() = point3d(frame_origin_trans.x, frame_origin_trans.y, frame_origin_trans.z);
+    frame_origin.rot() = octomath::Quaternion(frame_origin_rot.w(),
+            frame_origin_rot.x(), frame_origin_rot.y(), frame_origin_rot.z());
+    octree.insertScan(pc, point3d(sensor_origin.x, sensor_origin.y, sensor_origin.z), frame_origin,
+        maxrange, pruning);
 
   }
 
