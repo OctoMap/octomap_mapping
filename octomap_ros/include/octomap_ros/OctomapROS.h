@@ -89,8 +89,8 @@ namespace octomap {
      * @param maxrange maximum range for how long individual beams are inserted (default -1: complete beam)
      * @param pruning whether the tree is (losslessly) pruned after insertion (default: true)
      */
-    template <class PointT>
-    void insertScan(const pcl::PointCloud<PointT>& scan, const PointT& origin,
+    template <class PCLPointT>
+    void insertScan(const pcl::PointCloud<PCLPointT>& scan, const PCLPointT& origin,
         double maxrange=-1., bool pruning=true);
 
     /**
