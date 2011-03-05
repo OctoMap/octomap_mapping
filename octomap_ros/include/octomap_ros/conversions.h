@@ -96,6 +96,25 @@ namespace octomap {
 
   }
 
+  /**
+   * @brief Conversion from a PCL pointcloud to octomap::Pointcloud, used internally in OctoMap
+   *
+   * @params pclCloud
+   * @params octomapCloud
+   */
+  template <class PointT>
+  static inline void pointcloudPCLToOctomap(const pcl::PointCloud<PointT>& pclCloud, Pointcloud& octomapCloud){
+    octomapCloud.reserve(pclCloud.points.size());
+
+    typename
+    pcl::PointCloud<PointT>::const_iterator it;
+    for (it = pclCloud.begin(); it != pclCloud.end(); ++it){
+      // Check if the point is invalid
+      if (!isnan (it->x) && !isnan (it->y) && !isnan (it->z))
+        octomapCloud.push_back(it->x, it->y, it->z);
+    }
+  }
+
   /// Conversion from octomap::point3d to geometry_msgs::Point
   static inline geometry_msgs::Point pointOctomapToMsg(const point3d& octomapPt){
     geometry_msgs::Point pt;

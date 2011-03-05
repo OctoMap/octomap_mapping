@@ -50,6 +50,7 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Vector3.h>
 #include <octomap/octomap.h>
+#include <octomap_ros/conversions.h>
 
 namespace octomap {
 
@@ -189,13 +190,7 @@ namespace octomap {
       double maxrange, bool pruning){
 
     Pointcloud pc;
-    pc.reserve(scan.points.size());
-
-    typename
-    pcl::PointCloud<PCLPointT>::const_iterator it;
-    for (it = scan.begin(); it != scan.end(); ++it){
-      pc.push_back(it->x, it->y, it->z);
-    }
+    pointcloudPCLToOctomap(scan, pc);
 
     octree.insertScan(pc, point3d(origin.x, origin.y, origin.z), maxrange, pruning);
 
@@ -209,13 +204,7 @@ namespace octomap {
     {
 
     Pointcloud pc;
-    pc.reserve(scan.points.size());
-
-    typename
-    pcl::PointCloud<PCLPointT>::const_iterator it;
-    for (it = scan.begin(); it != scan.end(); ++it){
-      pc.push_back(it->x, it->y, it->z);
-    }
+    pointcloudPCLToOctomap(scan, pc);
 
     pose6d frame_origin;
     frame_origin.trans() = point3d(frame_origin_trans.x, frame_origin_trans.y, frame_origin_trans.z);
