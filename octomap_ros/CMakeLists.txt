@@ -22,7 +22,7 @@ rosbuild_genmsg()
 rosbuild_gensrv()
 
 #common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME})
+rosbuild_add_library(${PROJECT_NAME} src/conversions.cpp)
 
 rosbuild_add_executable(test_octomap_ros src/test_octomap_ros.cpp)
 
