@@ -2,7 +2,10 @@
 \mainpage
 \htmlinclude manifest.html
 
-\b octomap_ros is ... 
+\b octomap_ros provides conversion functions between ROS/PCL and OctoMap in conversions.h. 
+It also provides a templated wrapper class OctomapROS<OctreeT> which does the converions
+for you. In most cases, the wrapper should OcTreeROS be what you are looking for if you
+want to use the default OctoMap OcTree in ROS, e.g. for occupancy mapping.
 
 <!-- 
 Provide an overview of your package.
