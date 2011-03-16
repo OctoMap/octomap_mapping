@@ -1,0 +1,27 @@
+<package>
+  <description brief="octomap_ros - conversions and wrappers to use octomap in ROS">
+
+     octomap_ros provides conversion functions between ROS / PCL and OctoMap's native types. 
+     This enables a convenvient use of the octomap package in ROS.
+
+  </description>
+  <author>Armin Hornung</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/octomap_ros</url>
+  
+  <export>
+    <cpp cflags="-I${prefix}/include"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_ros"/>
+  </export>
+  
+  
+  <depend package="octomap"/>
+  <depend package="roscpp"/>
+  <depend package="geometry_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="pcl"/>
+  <depend package="tf"/>
+
+</package>
+
+

@@ -1,0 +1,20 @@
+<package>
+  <description brief="octomap_server - map server for the OctoMap 3D maps">
+
+     octomap_server loads a 3D map (as Octree-based OctoMap) and distributes it to other nodes in a compact binary format. 
+	 See octomap_saver on how to request or save a map file. A visualization of the occupied cells is sent as MarkerArray.
+
+  </description>
+  <author>Armin Hornung</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://www.ros.org/wiki/octomap_server</url>
+   
+  <depend package="octomap"/>
+  <!-- in visualization_common stack in cturtle, moved to common_msgs in diamondback! 
+  				=> manually fix stack.xml! -->
+  <depend package="visualization_msgs"/> 
+  <depend package="octomap_ros"/>
+</package>
+
+

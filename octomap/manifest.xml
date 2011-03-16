@@ -1,0 +1,27 @@
+<package>
+  <description brief="OctoMap -  A  probabilistic, flexible, and compact 3D mapping library for robotic systems.">
+
+     <p>The <a href="http://octomap.sourceforge.net/">OctoMap library</a> implements a 3D occupancy grid mapping approach, 
+     providing data structures and mapping algorithms. The map implementation is based on an octree.</p>
+     <p>This package contains the latest release from the OctoMap repository, providing a convenient way to download and compile the library in a way that can be managed by the ROS dependency system.</p>
+     <p>More details are available at <a href="http://octomap.sourceforge.net/">http://octomap.sourceforge.net/</a>.</p>
+
+  </description>
+  <author>Kai M. Wurm and Armin Hornung</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://www.ros.org/wiki/octomap</url>
+  <export>
+    <cpp cflags="-I${prefix}/octomap/include" lflags="-L${prefix}/octomap/lib -Wl,-rpath,${prefix}/octomap/lib -loctomap  -loctomath"/>
+    <rosdoc external="http://octomap.sourceforge.net/doxygen/"/>
+  </export>
+  
+  <depend package="roscpp" />
+  <rosdep name="qt4" />
+  <rosdep name="qt4-opengl" />
+  <rosdep name="qglviewer-qt4" />
+  
+
+</package>
+
+

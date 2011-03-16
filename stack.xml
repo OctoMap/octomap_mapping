@@ -1,0 +1,17 @@
+<stack>
+  <description brief="Stack for the OctoMap 3D mapping library">
+    The <a href="http://octomap.sourceforge.net/">OctoMap library</a> implements a 3D occupancy grid mapping approach,
+providing data structures and mapping algorithms. The map implementation is
+based on an octree. This stack contains the actual OctoMap package and additional code for ROS integration.
+  </description>
+  <author>Maintained by Kai M. Wurm and Armin Hornung</author>
+  <license>BSD,GPL</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/octomap_mapping</url>
+  <depend stack="common_msgs" /> <!-- sensor_msgs, geometry_msgs -->
+  <depend stack="geometry" /> <!-- tf -->
+  <depend stack="point_cloud_perception" /> <!-- pcl -->
+  <depend stack="ros" /> <!-- roscpp -->
+  <depend stack="visualization_common" /> <!-- visualization_msgs -->
+
+</stack>

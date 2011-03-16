@@ -1,0 +1,29 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+\b octomap_ros provides conversion functions between ROS/PCL and OctoMap in conversions.h. 
+It also provides a templated wrapper class octomap::OctomapROS\<OctreeT\> which does the converions
+for you. In most cases, the wrapper octomap::OcTreeROS should be what you are looking for if you
+want to use the default OctoMap OcTree in ROS, e.g. for occupancy mapping.
+
+<!-- 
+Provide an overview of your package.
+-->
+
+
+\section codeapi Code API
+
+<!--
+Provide links to specific auto-generated API documentation within your
+package that is of particular interest to a reader. Doxygen will
+document pretty much every part of your code, so do your best here to
+point the reader to the actual API.
+
+If your codebase is fairly large or has different sets of APIs, you
+should use the doxygen 'group' tag to keep these APIs together. For
+example, the roscpp documentation has 'libros' group.
+-->
+
+
+*/
