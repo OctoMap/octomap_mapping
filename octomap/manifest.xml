@@ -13,7 +13,7 @@
   <url>http://www.ros.org/wiki/octomap</url>
   <export>
     <cpp cflags="-I${prefix}/octomap/include" lflags="-L${prefix}/octomap/lib -Wl,-rpath,${prefix}/octomap/lib -loctomap  -loctomath"/>
-    <rosdoc config="rosdoc.yaml" />
+    <rosdoc external="http://octomap.sourceforge.net/doxygen/"/>
   </export>
   
   <depend package="roscpp" />
