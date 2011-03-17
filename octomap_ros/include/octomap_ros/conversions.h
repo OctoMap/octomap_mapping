@@ -49,12 +49,15 @@
 
 namespace octomap {
   /**
-   * @brief Converts an octomap map structure to a ROS octomap msg as binary data
+   * @brief Converts an octomap map structure to a ROS octomap msg as binary data.
+   * This will fill the timestamp of the header with the current time, but will
+   * not fill in the frame_id.
    *
    * @param octomap input OcTree
    * @param mapMsg output msg
    */
-  static inline void octomapMapToMsg(const OcTree& octomap, octomap_ros::OctomapBinary& mapMsg){
+  template <class OctomapT>
+  static inline void octomapMapToMsg(const OctomapT& octomap, octomap_ros::OctomapBinary& mapMsg){
     // conversion via stringstream
 
     // TODO: read directly into buffer? see
@@ -72,7 +75,8 @@ namespace octomap {
    * @param mapMsg
    * @param octomap
    */
-  static inline void octomapMsgToMap(const octomap_ros::OctomapBinary& mapMsg, octomap::OcTree& octomap){
+  template <class OctomapT>
+  static inline void octomapMsgToMap(const octomap_ros::OctomapBinary& mapMsg, OctomapT& octomap){
     std::stringstream datastream;
     assert(mapMsg.data.size() > 0);
     datastream.write((const char*) &mapMsg.data[0], mapMsg.data.size());
@@ -99,8 +103,8 @@ namespace octomap {
   /**
    * @brief Conversion from a PCL pointcloud to octomap::Pointcloud, used internally in OctoMap
    *
-   * @params pclCloud
-   * @params octomapCloud
+   * @param pclCloud
+   * @param octomapCloud
    */
   template <class PointT>
   static inline void pointcloudPCLToOctomap(const pcl::PointCloud<PointT>& pclCloud, Pointcloud& octomapCloud){

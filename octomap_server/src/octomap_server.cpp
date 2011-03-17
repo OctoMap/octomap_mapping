@@ -119,6 +119,7 @@ void OctomapServer::readMap(const std::string& filename){
 	octomap::OcTree map(filename);
 
 	m_mapResponse.map.header.frame_id = m_frameId;
+	m_mapResponse.map.header.stamp = ros::Time::now();
 	octomap::octomapMapToMsg(map, m_mapResponse.map);
 	double x, y, minZ, maxZ;
 	map.getMetricMin(x, y, minZ);
