@@ -184,7 +184,7 @@ void OctomapServer::readMap(const std::string& filename){
 			m_occupiedCellsVis.markers[i].action = visualization_msgs::Marker::DELETE;
 	}
 
-	ROS_INFO("Octomap file %s loaded (%d nodes, %d occupied visualized).", filename.c_str(),map.size(), numVoxels);
+	ROS_INFO("Octomap file %s loaded (%zu nodes, %d occupied visualized).", filename.c_str(),map.size(), numVoxels);
 }
 
 bool OctomapServer::serviceCallback(octomap_ros::GetOctomap::Request  &req,
@@ -259,7 +259,7 @@ int main(int argc, char** argv){
 	  OctomapServer ms(mapFilename);
 	  ros::spin();
   }catch(std::runtime_error& e){
-	  ROS_ERROR("map_server exception: %s", e.what());
+	  ROS_ERROR("octomap_server exception: %s", e.what());
 	  return -1;
   }
 
