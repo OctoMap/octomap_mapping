@@ -90,9 +90,21 @@ namespace octomap {
    */
   template <class OctomapT>
   static inline void octomapMsgToMap(const octomap_ros::OctomapBinary& mapMsg, OctomapT& octomap){
+	octomapMsgDataToMap(mapMsg.data, octomap);
+  }
+
+  /**
+   * @brief Converts ROS binary data to an octomap map structure, e.g. coming from an
+   * octomap msg
+   *
+   * @param mapData input binary data
+   * @param octomap output OcTree
+   */
+  template <class OctomapT>
+  static inline void octomapMsgDataToMap(const std::vector<int8_t>& mapData, OctomapT& octomap){
     std::stringstream datastream;
-    assert(mapMsg.data.size() > 0);
-    datastream.write((const char*) &mapMsg.data[0], mapMsg.data.size());
+    assert(mapData.size() > 0);
+    datastream.write((const char*) &mapData[0], mapData.size());
     octomap.readBinary(datastream);
   }
 
@@ -155,6 +167,19 @@ namespace octomap {
   /// Conversion from tf::Point to octomap::point3d
   static inline octomap::point3d pointTfToOctomap(const tf::Point& ptTf){
     return point3d(ptTf.x(), ptTf.y(), ptTf.z());
+  }
+
+  /// Conversion from pcl::PointT to octomap::point3d
+  template <class PointT>
+  static inline octomap::point3d pointPCLToOctomap(const PointT& p){
+    return point3d(p.x, p.y, p.z);
+  }
+
+  /// Conversion from octomap::point3d to pcl::PointT, templated over pcl::PointT
+  /// You might have to call this like "pointOctomapToPCL<pcl::PointXYZ>(point3d)"
+  template <class PointT>
+  static inline PointT pointOctomapToPCL(const point3d& octomapPt){
+	return PointT(octomapPt.x(), octomapPt.y(), octomapPt.z());
   }
 
 
