@@ -182,6 +182,27 @@ namespace octomap {
 	return PointT(octomapPt.x(), octomapPt.y(), octomapPt.z());
   }
 
+  /// Conversion from octomap Quaternion to tf::Quaternion
+  static inline tf::Quaternion quaternionOctomapToTf(const octomath::Quaternion& octomapQ){
+    return tf::Quaternion(octomapQ.x(), octomapQ.y(), octomapQ.z(), octomapQ.u());
+  }
+
+  /// Conversion from tf::Quaternion to octomap Quaternion
+  static inline octomath::Quaternion quaternionTfToOctomap(const tf::Quaternion& qTf){
+    return octomath::Quaternion(qTf.w(), qTf.x(), qTf.y(), qTf.z());
+  }
+
+  /// Conversion from octomap::pose6f to tf::Pose
+  static inline tf::Pose poseOctomapToTf(const octomap::pose6d& octomapPose){
+    return tf::Pose(quaternionOctomapToTf(octomapPose.rot()), pointOctomapToTf(octomapPose.trans()));
+  }
+
+  /// Conversion from tf::Pose to octomap::pose6d
+  static inline octomap::pose6d poseTfToOctomap(const tf::Pose& poseTf){
+    return octomap::pose6d(pointTfToOctomap(poseTf.getOrigin()), quaternionTfToOctomap(poseTf.getRotation()));
+  }
+
+
 
 
 
