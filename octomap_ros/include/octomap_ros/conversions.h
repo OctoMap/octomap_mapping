@@ -43,6 +43,7 @@
 #include <octomap/octomap.h>
 #include <octomap_ros/OctomapBinary.h>
 #include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 #include <geometry_msgs/Point.h>
 #include <tf/transform_datatypes.h>
 

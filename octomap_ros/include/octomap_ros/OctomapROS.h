@@ -77,10 +77,12 @@ namespace octomap {
      * @param origin Origin of the scan. Any type of Point that has x,y,z member (e.g. pcl::PointXYZ or a geometry_msgs::Point) works.
      * @param maxrange maximum range for how long individual beams are inserted (default -1: complete beam)
      * @param pruning whether the tree is (losslessly) pruned after insertion (default: true)
+     * @param dirty whether the tree is left 'dirty' after the update (default: false).
+     *   This speeds up the insertion by not updating inner nodes, but you need to call octree.updateInnerOccupancy() when done.
      */
     template <class PointT>
     void insertScan(const sensor_msgs::PointCloud2& scan, const PointT& origin,
-        double maxrange=-1., bool pruning=true);
+        double maxrange=-1., bool pruning=true, bool dirty=false);
 
     /**
      * @brief Integrate a Pointcloud measurement (in global reference frame)
@@ -89,10 +91,11 @@ namespace octomap {
      * @param origin Origin of the scan. Any type of Point that has x,y,z members (e.g. pcl::PointXYZ or a geometry_msgs::Point) works.
      * @param maxrange maximum range for how long individual beams are inserted (default -1: complete beam)
      * @param pruning whether the tree is (losslessly) pruned after insertion (default: true)
+     *   This speeds up the insertion by not updating inner nodes, but you need to call octree.updateInnerOccupancy() when done.
      */
-    template <class PCLPointT>
-    void insertScan(const pcl::PointCloud<PCLPointT>& scan, const PCLPointT& origin,
-        double maxrange=-1., bool pruning=true);
+    template <class PCLPointT, class PointT>
+    void insertScan(const pcl::PointCloud<PCLPointT>& scan, const PointT& origin,
+        double maxrange=-1., bool pruning=true, bool dirty=false);
 
     /**
      * @brief Integrate a 3d scan in relative coordinates, transform scan before tree update
@@ -103,11 +106,12 @@ namespace octomap {
      * @param frame_origin_rot Rotation (as quaternion) of reference frame origin, determines transform to be applied to cloud and sensor origin
      * @param maxrange maximum range for how long individual beams are inserted (default -1: complete beam)
      * @param pruning whether the tree is (losslessly) pruned after insertion (default: true)
+     *   This speeds up the insertion by not updating inner nodes, but you need to call octree.updateInnerOccupancy() when done.
      */
     template <class PCLPointT, class PCLQuaternionT>
     void insertScan(const pcl::PointCloud<PCLPointT>& scan, const PCLPointT& sensor_origin,
         const PCLPointT& frame_origin_trans, const PCLQuaternionT& frame_origin_rot,
-        double maxrange=-1., bool pruning=true);
+        double maxrange=-1., bool pruning=true, bool dirty=false);
 
 
 
@@ -158,7 +162,8 @@ namespace octomap {
 
     OctreeT octree; ///< the wrapped OctoMap octree
 
-    typedef typename OctreeT::NodeType NodeType;
+    typedef OctreeT OcTreeType; ///< Type of the wrapped octree
+    typedef typename OctreeT::NodeType NodeType; ///< Type of the wrapped octree's nodes
   };
 
   /**
@@ -185,14 +190,14 @@ namespace octomap {
 
 
   template <class OctreeT>
-  template <class PCLPointT>
-  void OctomapROS<OctreeT>::insertScan(const pcl::PointCloud<PCLPointT>& scan, const PCLPointT& origin,
-      double maxrange, bool pruning){
+  template <class PCLPointT, class PointT>
+  void OctomapROS<OctreeT>::insertScan(const pcl::PointCloud<PCLPointT>& scan, const PointT& origin,
+      double maxrange, bool pruning, bool dirty){
 
     Pointcloud pc;
     pointcloudPCLToOctomap(scan, pc);
 
-    octree.insertScan(pc, point3d(origin.x, origin.y, origin.z), maxrange, pruning);
+    octree.insertScan(pc, point3d(origin.x, origin.y, origin.z), maxrange, pruning, dirty);
 
   }
 
@@ -200,7 +205,7 @@ namespace octomap {
   template <class OctreeT>
   template <class PCLPointT, class PCLQuaternionT>
   void OctomapROS<OctreeT>::insertScan(const pcl::PointCloud<PCLPointT>& scan, const PCLPointT& sensor_origin,
-      const PCLPointT& frame_origin_trans, const PCLQuaternionT& frame_origin_rot, double maxrange, bool pruning)
+      const PCLPointT& frame_origin_trans, const PCLQuaternionT& frame_origin_rot, double maxrange, bool pruning, bool dirty)
     {
 
     Pointcloud pc;
@@ -211,7 +216,7 @@ namespace octomap {
     frame_origin.rot() = octomath::Quaternion(frame_origin_rot.w(),
             frame_origin_rot.x(), frame_origin_rot.y(), frame_origin_rot.z());
     octree.insertScan(pc, point3d(sensor_origin.x, sensor_origin.y, sensor_origin.z), frame_origin,
-        maxrange, pruning);
+        maxrange, pruning, dirty);
 
   }
 
@@ -219,12 +224,12 @@ namespace octomap {
   template <class OctreeT>
   template <class PointT>
   void OctomapROS<OctreeT>::insertScan(const sensor_msgs::PointCloud2& scan, const PointT& origin,
-      double maxrange, bool pruning){
+      double maxrange, bool pruning, bool dirty){
 
 
     pcl::PointCloud<pcl::PointXYZ> pc;
     pcl::fromROSMsg(scan, pc);
-    insertScan(pc, origin, maxrange, pruning);
+    insertScan(pc, origin, maxrange, pruning, dirty);
 
   }
 
