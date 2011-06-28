@@ -8,9 +8,10 @@ based on an octree. This stack contains the actual OctoMap package and additiona
   <license>BSD,GPL</license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/octomap_mapping</url>
-  <depend stack="common_msgs" /> <!-- sensor_msgs, geometry_msgs, visualization_msgs -->
+  <depend stack="common_msgs" /> <!-- nav_msgs, sensor_msgs, geometry_msgs, visualization_msgs -->
   <depend stack="geometry" /> <!-- tf -->
-  <depend stack="perception_pcl" /> <!-- pcl -->
+  <depend stack="motion_planning_common" /> <!-- mapping_msgs -->
+  <depend stack="perception_pcl" /> <!-- pcl, pcl_ros -->
   <depend stack="ros" />
   <depend stack="ros_comm" /> <!-- roscpp -->
 
