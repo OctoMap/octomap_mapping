@@ -9,12 +9,18 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://www.ros.org/wiki/octomap_server</url>
-   
+  
+  <export>
+    <cpp cflags="-I${prefix}/include"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_ros"/>
+  </export>
+  
+  <depend package="roscpp"/> 
   <depend package="octomap"/>
-  <!-- in visualization_common stack in cturtle, moved to common_msgs in diamondback! 
-  				=> manually fix stack.xml! -->
   <depend package="visualization_msgs"/> 
   <depend package="octomap_ros"/>
+  <depend package="pcl_ros"/>
+  <depend package="nav_msgs"/>
+  <depend package="mapping_msgs"/>
 </package>
 
 

@@ -1,13 +1,13 @@
 /**
-* octomap_saver: Simple example which requests binary octomaps and stores them to a file.
-*
-* @author A. Hornung, University of Freiburg, Copyright (C) 2009.
+* octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
+* (inspired by the ROS map_saver)
+* @author A. Hornung, University of Freiburg, Copyright (C) 2009 - 2011.
 * @see http://octomap.sourceforge.net/
 * License: BSD
 */
 
 /*
- * Copyright (c) 2010, A. Hornung, University of Freiburg
+ * Copyright (c) 2009-2011, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,72 +35,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #include <ros/ros.h>
-#include <octomap_ros/GetOctomap.h>
-#include <octomap_ros/conversions.h>
-#include <octomap/octomap.h>
-#include <fstream>
+#include <octomap_server/OctomapServer.h>
 
-#define USAGE "\nUSAGE: octomap_saver <map.bt>\n" \
-              "  map.bt: filename of map to be saved\n"
+#define USAGE "\nUSAGE: octomap_server <map.bt>\n" \
+              "  map.bt: octomap 3D map file to read\n"
 
-using namespace std;
- 
-/**
- * @brief Map generation node.
- */
-class MapSaver{
-  public:
-    MapSaver(const std::string& mapname){
-      ros::NodeHandle n;
-      const static std::string servname = "octomap_binary";
-      ROS_INFO("Requesting the map from %s...", n.resolveName(servname).c_str());
-      octomap_ros::GetOctomap::Request req;
-      octomap_ros::GetOctomap::Response resp;
-      while(n.ok() && !ros::service::call(servname, req, resp))
-      {
-        ROS_WARN("Request to %s failed; trying again...", n.resolveName(servname).c_str());
-        usleep(1000000);
-      }
-
-      if (n.ok()){ // skip when CTRL-C
-		  ROS_INFO("Map received, saving to %s", mapname.c_str());
-		  ofstream mapfile(mapname.c_str(), ios_base::binary);
-
-		  if (!mapfile.is_open()){
-			  ROS_ERROR("Could not open file %s for writing", mapname.c_str());
-		  } else {
-			  // test conversion:
-//			  octomap::OcTree octomap(0.1);
-//			  octomap_server::octomapMsgToMap(resp.map, octomap);
-//			  octomap.writeBinary(mapname);
-
-			  // write out stream directly
-			  mapfile.write((char*)&resp.map.data[0], resp.map.data.size());
-			  mapfile.close();
-		  }
-      }
-  }
-};
+using namespace octomap;
 
 int main(int argc, char** argv){
-  ros::init(argc, argv, "octomap_saver");
+  ros::init(argc, argv, "octomap_server");
   std::string mapFilename("");
-  if (argc == 2)
-	  mapFilename = std::string(argv[1]);
-  else{
+
+  if (argc > 2 || (argc == 2 && std::string(argv[1]) == "-h")){
 	  ROS_ERROR("%s", USAGE);
 	  exit(-1);
   }
 
+  if (argc == 2)
+	  mapFilename = std::string(argv[1]);
+
   try{
-	  MapSaver ms(mapFilename);
+	  OctomapServer ms(mapFilename);
+	  ros::spin();
   }catch(std::runtime_error& e){
-	  ROS_ERROR("map_saver exception: %s", e.what());
+	  ROS_ERROR("octomap_server exception: %s", e.what());
 	  return -1;
   }
 
   return 0;
 }
-
-

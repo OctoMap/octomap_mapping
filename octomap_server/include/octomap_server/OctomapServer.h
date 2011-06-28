@@ -1,6 +1,6 @@
 /**
-* octomap_saver: Simple example which requests binary octomaps and stores them to a file.
-*
+* octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
+* (inspired by the ROS map_saver)
 * @author A. Hornung, University of Freiburg, Copyright (C) 2009.
 * @see http://octomap.sourceforge.net/
 * License: BSD
@@ -35,72 +35,55 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #include <ros/ros.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <std_msgs/ColorRGBA.h>
+#include <mapping_msgs/CollisionObject.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl/point_types.h>
+#include <pcl/ros/conversions.h>
+#include <pcl_ros/transforms.h>
+#include <tf/transform_listener.h>
+#include <tf/message_filter.h>
+#include <message_filters/subscriber.h>
+#include <octomap_ros/OctomapBinary.h>
 #include <octomap_ros/GetOctomap.h>
-#include <octomap_ros/conversions.h>
-#include <octomap/octomap.h>
-#include <fstream>
+#include <octomap_ros/OctomapROS.h>
 
-#define USAGE "\nUSAGE: octomap_saver <map.bt>\n" \
-              "  map.bt: filename of map to be saved\n"
 
-using namespace std;
- 
-/**
- * @brief Map generation node.
- */
-class MapSaver{
-  public:
-    MapSaver(const std::string& mapname){
-      ros::NodeHandle n;
-      const static std::string servname = "octomap_binary";
-      ROS_INFO("Requesting the map from %s...", n.resolveName(servname).c_str());
-      octomap_ros::GetOctomap::Request req;
-      octomap_ros::GetOctomap::Response resp;
-      while(n.ok() && !ros::service::call(servname, req, resp))
-      {
-        ROS_WARN("Request to %s failed; trying again...", n.resolveName(servname).c_str());
-        usleep(1000000);
-      }
+namespace octomap {
+	class OctomapServer{
+	public:
+		OctomapServer(const std::string& filename= "");
+		virtual ~OctomapServer();
+		bool serviceCallback(octomap_ros::GetOctomap::Request  &req,
+				octomap_ros::GetOctomap::Response &res);
 
-      if (n.ok()){ // skip when CTRL-C
-		  ROS_INFO("Map received, saving to %s", mapname.c_str());
-		  ofstream mapfile(mapname.c_str(), ios_base::binary);
+		void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
 
-		  if (!mapfile.is_open()){
-			  ROS_ERROR("Could not open file %s for writing", mapname.c_str());
-		  } else {
-			  // test conversion:
-//			  octomap::OcTree octomap(0.1);
-//			  octomap_server::octomapMsgToMap(resp.map, octomap);
-//			  octomap.writeBinary(mapname);
+	private:
+		void connectCallback(const ros::SingleSubscriberPublisher& pub);
+		std_msgs::ColorRGBA heightMapColor(double h) const;
+		void publishMap(const ros::Time& rostime = ros::Time::now());
+		void publishMarkers(const ros::Time& rostime = ros::Time::now());
+		void publishPointCloud(const ros::Time& rostime = ros::Time::now());
+		void publishCollisionObject(const ros::Time& rostime = ros::Time::now());
+		ros::NodeHandle m_nh;
+		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub;
+		message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
+		tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
+		ros::ServiceServer m_service;
+		tf::TransformListener m_tfListener;
 
-			  // write out stream directly
-			  mapfile.write((char*)&resp.map.data[0], resp.map.data.size());
-			  mapfile.close();
-		  }
-      }
-  }
-};
-
-int main(int argc, char** argv){
-  ros::init(argc, argv, "octomap_saver");
-  std::string mapFilename("");
-  if (argc == 2)
-	  mapFilename = std::string(argv[1]);
-  else{
-	  ROS_ERROR("%s", USAGE);
-	  exit(-1);
-  }
-
-  try{
-	  MapSaver ms(mapFilename);
-  }catch(std::runtime_error& e){
-	  ROS_ERROR("map_saver exception: %s", e.what());
-	  return -1;
-  }
-
-  return 0;
+		OcTreeROS m_octoMap;
+		double m_maxRange;
+		std::string m_frameId;
+		bool m_useHeightMap;
+		std_msgs::ColorRGBA m_color;
+		double m_colorFactor;
+		double m_visMinZ;
+		double m_visMaxZ;
+	};
 }
-
 
