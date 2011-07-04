@@ -5,6 +5,7 @@ all: installed
 #
 TARBALL = build/octomap-1.1.tar.gz
 TARBALL_URL = http://sourceforge.net/projects/octomap/files/octomap-1.1.tar.gz/download
+TARBALL_PATCH = with_rosbuild_support.patch
 INITIAL_DIR = build/octomap
 SOURCE_DIR = build/octomap-tar
 include $(shell rospack find mk)/download_unpack_build.mk
@@ -21,12 +22,14 @@ include $(shell rospack find mk)/download_unpack_build.mk
 #SVN_REVISION = 
 #SVN_PATCH = 
 #include $(shell rospack find mk)/svn_checkout.mk
-#SOURCE_DIR=SVN_DIR
+#SOURCE_DIR=$(SVN_DIR)
 #
 
 INSTALL_DIR = octomap
 CMAKE = cmake 
-CMAKE_ARGS = -D CMAKE_BUILD_TYPE="Release" -D CMAKE_INSTALL_PREFIX=`rospack find octomap`/$(INSTALL_DIR) 
+CMAKE_ARGS = -D CMAKE_BUILD_TYPE="Release" \
+	     -D CMAKE_INSTALL_PREFIX=`rospack find octomap`/$(INSTALL_DIR) \
+	     -D WITH_ROS=ON
 
 
 

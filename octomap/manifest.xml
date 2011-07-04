@@ -12,7 +12,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://www.ros.org/wiki/octomap</url>
   <export>
-    <cpp cflags="-I${prefix}/octomap/include" lflags="-L${prefix}/octomap/lib -Wl,-rpath,${prefix}/octomap/lib -loctomap  -loctomath"/>
+    <cpp cflags="-I${prefix}/octomap/include -DOCTOMAP_ROS" lflags="-L${prefix}/octomap/lib -Wl,-rpath,${prefix}/octomap/lib -loctomap  -loctomath"/>
     <rosdoc external="http://octomap.sourceforge.net/doxygen/"/>
   </export>
   
