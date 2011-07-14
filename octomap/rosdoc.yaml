@@ -1,0 +1,7 @@
+ - builder: rosmake
+ - builder: doxygen
+   file_patterns: '*.c *.cpp *.h *.hxx *.dox'
+   exclude_patterns: '*/.svn/* */extern/* */octovis/*'
+   tab_size: 2
+   javadoc_autobrief: YES
+   exclude_symbols: 'GridData OcTreeNodeLight OcTreeNodeEightPointers'

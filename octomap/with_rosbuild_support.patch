@@ -1,0 +1,44 @@
+Index: src/octomap/CMakeLists.txt
+===================================================================
+--- src/octomap/CMakeLists.txt	(revision 220)
++++ src/octomap/CMakeLists.txt	(working copy)
+@@ -12,11 +12,12 @@
+ ADD_LIBRARY( octomap ${octomap_SRCS})
+ set_target_properties(octomap PROPERTIES COMPILE_FLAGS "-fPIC")	
+ 
+-TARGET_LINK_LIBRARIES(
+-  octomap octomath
+-  )
++if(WITH_ROS)
++  TARGET_LINK_LIBRARIES(octomap octomath ${${PROJECT_NAME}_LIBRARIES})
++else(WITH_ROS)
++  TARGET_LINK_LIBRARIES(octomap octomath)
++endif(WITH_ROS)
+ 
+-
+ ADD_EXECUTABLE(graph2tree graph2tree.cpp)
+ TARGET_LINK_LIBRARIES(graph2tree octomap)
+ 
+Index: CMakeLists.txt
+===================================================================
+--- CMakeLists.txt	(revision 220)
++++ CMakeLists.txt	(working copy)
+@@ -1,6 +1,18 @@
+ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+ PROJECT( octomap )
+ 
++#If we are compiling with ROS support, we need to get the appropriate includes and link flags and such
++if(WITH_ROS)
++	include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
++	set(ROSBUILD_DONT_REDEFINE_PROJECT true)
++	set(PROJECT_SOURCE_DIR_BACKUP ${PROJECT_SOURCE_DIR})
++	set(PROJECT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/../..")
++	rosbuild_init()
++	set(PROJECT_SOURCE_DIR ${PROJECT_SOURCE_DIR_BACKUP})
++	add_definitions(-DOCTOMAP_ROS)
++	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
++endif(WITH_ROS)
++
+ # version (e.g. for packaging)
+ set(V_MAJOR 1)
+ set(V_MINOR 0)
