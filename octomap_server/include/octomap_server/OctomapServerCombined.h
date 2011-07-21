@@ -64,12 +64,8 @@ namespace octomap {
 		void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
 
 	private:
-		void connectCallback(const ros::SingleSubscriberPublisher& pub);
 		std_msgs::ColorRGBA heightMapColor(double h) const;
 		void publishMap(const ros::Time& rostime = ros::Time::now());
-		void publishMarkers(const ros::Time& rostime = ros::Time::now());
-		void publishPointCloud(const ros::Time& rostime = ros::Time::now());
-		void publishCollisionObject(const ros::Time& rostime = ros::Time::now());
 		void publishAll(const ros::Time& rostime = ros::Time::now());
 		ros::NodeHandle m_nh;
 		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub;
@@ -79,6 +75,7 @@ namespace octomap {
 		tf::TransformListener m_tfListener;
 
 		OcTreeROS m_octoMap;
+		KeyRay m_keyRay;  // temp storage for ray casting
 		double m_maxRange;
 		std::string m_frameId;
 		bool m_useHeightMap;
@@ -91,6 +88,7 @@ namespace octomap {
 	    double m_maxZRange;
 	    double m_minSizeX;
 	    double m_minSizeY;
+	    bool m_filterSpeckles;
 	};
 }
 
