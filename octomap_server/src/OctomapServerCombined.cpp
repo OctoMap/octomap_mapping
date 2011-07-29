@@ -376,22 +376,32 @@ namespace octomap{
 						pclCloud.push_back(pcl::PointXYZ(x, y, z));
 
 					// update 2D map (occupied always overrides):
-					// TODO: handle larger (pruned) nodes!
 					if (publish2DMap){
 						if (it.getDepth() == m_octoMap.octree.getTreeDepth()){
 							int i = nKey[0] - paddedMinKey[0];
 							int j = nKey[1] - paddedMinKey[1];
 							map.data[map.info.width*j + i] = 100;
+						} else{
+							double offset = (it.getSize()-m_octoMap.octree.getResolution())/2.0;
+							unsigned short int minKeyX, minKeyY;
+							// TODO: work on key manip. directly instead?
+							m_octoMap.octree.genKeyValue(it.getX() - offset, minKeyX);
+							m_octoMap.octree.genKeyValue(it.getY() - offset, minKeyY);
+							int intSize = 1 << (m_octoMap.octree.getTreeDepth() - it.getDepth());
+							for(int dx=0; dx<=intSize; dx++){
+								int i = minKeyX+dx - paddedMinKey[0];
+								for(int dy=0; dy<=intSize; dy++){
+									int j = minKeyY+dy - paddedMinKey[1];
+									map.data[map.info.width*j + i] = 100;
+								}
+							}
 						}
 					}
-
-
 				}
 			} else{ // node not occupied => mark as free in 2D map if unknown so far
 				if (publish2DMap){
 					if (it.getDepth() == m_octoMap.octree.getTreeDepth()){
 						octomap::OcTreeKey nKey = it.getKey();
-						// TODO: handle larger (pruned) nodes!
 						int i = nKey[0] - paddedMinKey[0];
 						int j = nKey[1] - paddedMinKey[1];
 						if (map.data[map.info.width*j + i] == -1){
@@ -400,10 +410,10 @@ namespace octomap{
 					} else{
 						double offset = (it.getSize()-m_octoMap.octree.getResolution())/2.0;
 						unsigned short int minKeyX, minKeyY;
-						// TODO: work on keys manip. directly instead?
+						// TODO: work on key manip. directly instead?
 						m_octoMap.octree.genKeyValue(it.getX() - offset, minKeyX);
 						m_octoMap.octree.genKeyValue(it.getY() - offset, minKeyY);
-						int intSize = double(1 << (m_octoMap.octree.getTreeDepth() - it.getDepth()));
+						int intSize = 1 << (m_octoMap.octree.getTreeDepth() - it.getDepth());
 						for(int dx=0; dx<=intSize; dx++){
 							int i = minKeyX+dx - paddedMinKey[0];
 							for(int dy=0; dy<=intSize; dy++){
