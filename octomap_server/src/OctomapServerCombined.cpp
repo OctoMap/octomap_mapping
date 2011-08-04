@@ -1,13 +1,13 @@
 /**
 * octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
 * (inspired by the ROS map_saver)
-* @author A. Hornung, University of Freiburg, Copyright (C) 2009.
+* @author A. Hornung, University of Freiburg, Copyright (C) 2010-2011.
 * @see http://octomap.sourceforge.net/
 * License: BSD
 */
 
 /*
- * Copyright (c) 2010, A. Hornung, University of Freiburg
+ * Copyright (c) 2010-2011, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -161,13 +161,51 @@ namespace octomap{
 		pcl::PointCloud<pcl::PointXYZ> pc;
 		pcl::fromROSMsg(transformed_cloud, pc);
 
+		// plane detection for ground plane removal:
+		pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+		pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+		// Create the segmentation object
+		pcl::SACSegmentation<pcl::PointXYZ> seg;
+		seg.setOptimizeCoefficients (true);
+		seg.setModelType (pcl::SACMODEL_PERPENDICULAR_PLANE);
+		seg.setMethodType (pcl::SAC_RANSAC);
+		seg.setMaxIterations(100);
+		seg.setDistanceThreshold (0.07);
+		seg.setAxis(Eigen::Vector3f(0,0,1));
+		seg.setEpsAngle(0.1); //~7°
+		// TODO: parameters:
+		seg.setInputCloud (pc.makeShared ());
+		seg.segment (*inliers, *coefficients);
+
+		// TODO: will find largest plane. Repeat and remove from points (extraction filter)
+		// while 4th coefficient != ~0. => PCL tutorials / mailing list?
+		ROS_INFO("Ground plane extraction: %d/%d inliers. Coeff: %f %f %f %f", inliers->indices.size(), pc.size(),
+				coefficients->values.at(0), coefficients->values.at(1), coefficients->values.at(2), coefficients->values.at(3));
+
+		// Debug: extract and save the inliers
+		// Create the filtering object
+		pcl::ExtractIndices<pcl::PointXYZ> extract;
+		pcl::PointCloud<pcl::PointXYZ> cloud_out;
+		extract.setInputCloud (pc.makeShared());
+		extract.setIndices (inliers);
+		extract.setNegative (false);
+		extract.filter (cloud_out);
+		pcl::PCDWriter writer;
+		writer.write<pcl::PointXYZ> ("inliers.pcd",cloud_out, false);
+		extract.setNegative(true);
+		extract.filter (cloud_out);
+		writer.write<pcl::PointXYZ> ("outliers.pcd", cloud_out, false);
+
+
+
 		OcTreeROS::OcTreeType::KeySet free_cells, occupied_cells;
 		point3d origin = pointTfToOctomap(trans.getOrigin());
 
 	    for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = pc.begin(); it != pc.end(); ++it){
 	      // Check if the point is invalid
-	      if (!isnan (it->x) && !isnan (it->y) && !isnan (it->z)){
-
+	      // (don't need that here => data already ran through robot_self_filter!
+	      // if (!isnan (it->x) && !isnan (it->y) && !isnan (it->z))
+	      {
 	    	point3d point(it->x, it->y, it->z);
 	    	// maxrange check
 	    	if ((m_maxRange < 0.0) || ((point - origin).norm() <= m_maxRange) ) {
