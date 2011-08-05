@@ -61,26 +61,30 @@ namespace octomap{
 		private_nh.param("vis_min_z", m_visMinZ, m_visMinZ);
 		private_nh.param("vis_max_z", m_visMaxZ, m_visMaxZ);
 
-		// from octomap_2D_server
 		private_nh.param("min_z_range", m_minZRange,m_minZRange);
 		private_nh.param("max_z_range", m_maxZRange,m_maxZRange);
 		private_nh.param("min_x_size", m_minSizeX,m_minSizeX);
 		private_nh.param("min_y_size", m_minSizeY,m_minSizeY);
 
+		private_nh.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
+		private_nh.param("filter_ground", m_filterGroundPlane, m_filterGroundPlane);
+		private_nh.param("ground_filter/distance", m_groundFilterDistance, m_groundFilterDistance);
+		private_nh.param("ground_filter/angle", m_groundFilterAngle, m_groundFilterAngle);
+
 		double res = 0.05;
 		private_nh.param("resolution", res, res);
 		m_octoMap.octree.setResolution(res);
 
-		private_nh.param("max_sensor_range", m_maxRange, m_maxRange);
+		private_nh.param("sensor_model/max_range", m_maxRange, m_maxRange);
 
 		double probHit = 0.7;
 		double probMiss = 0.4;
 		double thresMin = 0.12;
 		double thresMax = 0.97;
-		private_nh.param("sensor_model_hit", probHit, probHit);
-		private_nh.param("sensor_model_miss", probMiss, probMiss);
-		private_nh.param("sensor_model_min", thresMin, thresMin);
-		private_nh.param("sensor_model_max", thresMax, thresMax);
+		private_nh.param("sensor_model/hit", probHit, probHit);
+		private_nh.param("sensor_model/miss", probMiss, probMiss);
+		private_nh.param("sensor_model/min", thresMin, thresMin);
+		private_nh.param("sensor_model/max", thresMax, thresMax);
 		m_octoMap.octree.setProbHit(probHit);
 		m_octoMap.octree.setProbMiss(probMiss);
 		m_octoMap.octree.setClampingThresMin(thresMin);

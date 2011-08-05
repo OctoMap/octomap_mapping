@@ -59,16 +59,16 @@ namespace octomap{
 		private_nh.param("resolution", res, res);
 		m_octoMap.octree.setResolution(res);
 
-		private_nh.param("max_sensor_range", m_maxRange, m_maxRange);
+		private_nh.param("sensor_model/max_range", m_maxRange, m_maxRange);
 
 		double probHit = 0.7;
 		double probMiss = 0.4;
 		double thresMin = 0.12;
 		double thresMax = 0.97;
-		private_nh.param("sensor_model_hit", probHit, probHit);
-		private_nh.param("sensor_model_miss", probMiss, probMiss);
-		private_nh.param("sensor_model_min", thresMin, thresMin);
-		private_nh.param("sensor_model_max", thresMax, thresMax);
+		private_nh.param("sensor_model/hit", probHit, probHit);
+		private_nh.param("sensor_model/miss", probMiss, probMiss);
+		private_nh.param("sensor_model/min", thresMin, thresMin);
+		private_nh.param("sensor_model/max", thresMax, thresMax);
 		m_octoMap.octree.setProbHit(probHit);
 		m_octoMap.octree.setProbMiss(probMiss);
 		m_octoMap.octree.setClampingThresMin(thresMin);
