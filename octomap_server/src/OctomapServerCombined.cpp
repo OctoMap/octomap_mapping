@@ -50,9 +50,9 @@ namespace octomap{
 		m_visMaxZ(std::numeric_limits<double>::max()),
 		m_minZRange(-std::numeric_limits<double>::max()),
 		m_maxZRange(std::numeric_limits<double>::max()),
-		m_minSizeX(0.0),
-		m_minSizeY(0.0),
-		m_filterSpeckles(false)
+		m_minSizeX(0.0), m_minSizeY(0.0),
+		m_filterSpeckles(false), m_filterGroundPlane(true),
+		m_groundFilterDistance(0.05), m_groundFilterAngle(0.1)
 	{
 		ros::NodeHandle private_nh("~");
 		private_nh.param("frame_id", m_frameId, m_frameId);
@@ -161,51 +161,123 @@ namespace octomap{
 		pcl::PointCloud<pcl::PointXYZ> pc;
 		pcl::fromROSMsg(transformed_cloud, pc);
 
-		// plane detection for ground plane removal:
-		pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-		pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-		// Create the segmentation object
-		pcl::SACSegmentation<pcl::PointXYZ> seg;
-		seg.setOptimizeCoefficients (true);
-		seg.setModelType (pcl::SACMODEL_PERPENDICULAR_PLANE);
-		seg.setMethodType (pcl::SAC_RANSAC);
-		seg.setMaxIterations(100);
-		seg.setDistanceThreshold (0.07);
-		seg.setAxis(Eigen::Vector3f(0,0,1));
-		seg.setEpsAngle(0.1); //~7°
-		// TODO: parameters:
-		seg.setInputCloud (pc.makeShared ());
-		seg.segment (*inliers, *coefficients);
+		// filter height and range, also removes NANs:
+		pcl::PassThrough<pcl::PointXYZ> pass;
+		pass.setFilterFieldName("z");
+		pass.setFilterLimits(m_minZRange, m_maxZRange);
+		pass.setInputCloud(pc.makeShared());
+		pass.filter(pc);
 
-		// TODO: will find largest plane. Repeat and remove from points (extraction filter)
-		// while 4th coefficient != ~0. => PCL tutorials / mailing list?
-		ROS_INFO("Ground plane extraction: %d/%d inliers. Coeff: %f %f %f %f", inliers->indices.size(), pc.size(),
-				coefficients->values.at(0), coefficients->values.at(1), coefficients->values.at(2), coefficients->values.at(3));
+		pcl::PointCloud<pcl::PointXYZ> pc_ground; // segmented ground plane
+		pcl::PointCloud<pcl::PointXYZ> pc_nonground; // everything else
+		pc_ground.header = pc.header;
+		pc_nonground.header = pc.header;
 
-		// Debug: extract and save the inliers
-		// Create the filtering object
-		pcl::ExtractIndices<pcl::PointXYZ> extract;
-		pcl::PointCloud<pcl::PointXYZ> cloud_out;
-		extract.setInputCloud (pc.makeShared());
-		extract.setIndices (inliers);
-		extract.setNegative (false);
-		extract.filter (cloud_out);
-		pcl::PCDWriter writer;
-		writer.write<pcl::PointXYZ> ("inliers.pcd",cloud_out, false);
-		extract.setNegative(true);
-		extract.filter (cloud_out);
-		writer.write<pcl::PointXYZ> ("outliers.pcd", cloud_out, false);
+		if (m_filterGroundPlane){
+			if (pc.size() < 50){
+				ROS_WARN("Pointcloud in OctomapServerCombined too small, skipping ground plane extraction");
+				pc_nonground = pc;
+			} else {
+				// plane detection for ground plane removal:
+				pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+				pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+
+				// Create the segmentation object and set up:
+				pcl::SACSegmentation<pcl::PointXYZ> seg;
+				seg.setOptimizeCoefficients (true);
+				// TODO: maybe a filtering based on the surface normals might be more robust / accurate?
+				seg.setModelType(pcl::SACMODEL_PERPENDICULAR_PLANE);
+				seg.setMethodType(pcl::SAC_RANSAC);
+				seg.setMaxIterations(100);
+				seg.setDistanceThreshold (m_groundFilterDistance);
+				seg.setAxis(Eigen::Vector3f(0,0,1));
+				seg.setEpsAngle(m_groundFilterAngle);
 
 
+				pcl::PointCloud<pcl::PointXYZ> cloud_filtered(pc);
+				// Create the filtering object
+				pcl::ExtractIndices<pcl::PointXYZ> extract;
+				bool groundPlaneFound = false;
 
+				while(cloud_filtered.size() > 10 && !groundPlaneFound){
+					seg.setInputCloud(cloud_filtered.makeShared());
+					seg.segment (*inliers, *coefficients);
+					if (inliers->indices.size () == 0){
+						ROS_WARN("No plane found in cloud.");
+
+						break;
+					}
+
+					extract.setInputCloud(cloud_filtered.makeShared());
+					extract.setIndices(inliers);
+
+					if (std::abs(coefficients->values.at(3)) < m_groundFilterDistance){
+						ROS_DEBUG("Ground plane found: %d/%d inliers. Coeff: %f %f %f %f", inliers->indices.size(), cloud_filtered.size(),
+												coefficients->values.at(0), coefficients->values.at(1), coefficients->values.at(2), coefficients->values.at(3));
+						extract.setNegative (false);
+						extract.filter (pc_ground);
+
+						// remove ground points from full pointcloud:
+						extract.setNegative(true);
+						// workaround for PCL bug:
+						if(inliers->indices.size() != cloud_filtered.size()){
+							extract.filter(cloud_filtered);
+							pc_nonground += cloud_filtered;
+						}
+
+						groundPlaneFound = true;
+					} else{
+						ROS_DEBUG("Horizontal plane (not ground) found: %d/%d inliers. Coeff: %f %f %f %f", inliers->indices.size(), cloud_filtered.size(),
+																		coefficients->values.at(0), coefficients->values.at(1), coefficients->values.at(2), coefficients->values.at(3));
+						pcl::PointCloud<pcl::PointXYZ> cloud_out;
+						extract.setNegative (false);
+						extract.filter(cloud_out);
+						pc_nonground +=cloud_out;
+
+						// remove current plane from scan for next iteration:
+						extract.setNegative(true);
+						// workaround for PCL bug:
+						if(inliers->indices.size() != cloud_filtered.size()){
+							extract.filter(cloud_filtered);
+						} else{
+							cloud_filtered.points.clear();
+						}
+					}
+
+				}
+				if (!groundPlaneFound){ // no plane found or remaining points too small
+					ROS_WARN("No ground plane found in scan");
+					pc_nonground += cloud_filtered;
+				}
+
+				// debug:
+//				pcl::PCDWriter writer;
+//				writer.write<pcl::PointXYZ>("ground.pcd",pc_ground, false);
+//				writer.write<pcl::PointXYZ>("nonground.pcd",pc_nonground, false);
+
+			}
+		} else {
+			pc_nonground = pc;
+		}
 		OcTreeROS::OcTreeType::KeySet free_cells, occupied_cells;
 		point3d origin = pointTfToOctomap(trans.getOrigin());
 
+		// insert ground points only as free:
+		for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = pc_ground.begin(); it != pc_ground.end(); ++it){
+			point3d point(it->x, it->y, it->z);
+			// maxrange check
+			if ((m_maxRange > 0.0) && ((point - origin).norm() > m_maxRange) ) {
+				point = origin + (point - origin).normalized() * m_maxRange;
+			}
+
+			// only clear space (ground points)
+			if (m_octoMap.octree.computeRayKeys(origin, point, m_keyRay)){
+				free_cells.insert(m_keyRay.begin(), m_keyRay.end());
+			}
+		}
+
+		// all other points: free on ray, occupied on endpoint:
 	    for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = pc.begin(); it != pc.end(); ++it){
-	      // Check if the point is invalid
-	      // (don't need that here => data already ran through robot_self_filter!
-	      // if (!isnan (it->x) && !isnan (it->y) && !isnan (it->z))
-	      {
 	    	point3d point(it->x, it->y, it->z);
 	    	// maxrange check
 	    	if ((m_maxRange < 0.0) || ((point - origin).norm() <= m_maxRange) ) {
@@ -214,12 +286,10 @@ namespace octomap{
 				if (m_octoMap.octree.computeRayKeys(origin, point, m_keyRay)){
 					free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 				}
-				// occupied endpoint only when not floor:
-				if (it->z > m_minZRange){
-					OcTreeKey key;
-					if (m_octoMap.octree.genKey(point, key)){
-						occupied_cells.insert(key);
-					}
+				// occupied endpoint
+				OcTreeKey key;
+				if (m_octoMap.octree.genKey(point, key)){
+					occupied_cells.insert(key);
 				}
 	    	} else {// ray longer than maxrange:;
 	    		point3d new_end = origin + (point - origin).normalized() * m_maxRange;
@@ -227,9 +297,6 @@ namespace octomap{
 	    			free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 	    		}
 	    	}
-
-
-	      }
 	    }
 
 	    // mark free cells only if not seen occupied in this cloud
@@ -255,6 +322,11 @@ namespace octomap{
 
 	void OctomapServerCombined::publishAll(const ros::Time& rostime){
 		ros::WallTime startTime = ros::WallTime::now();
+
+		if (m_octoMap.octree.size() <= 1){
+			ROS_WARN("Nothing to publish, octree is empty");
+			return;
+		}
 		// configuration, right now only for testing:
 		bool publishCollisionObject = true;
 		bool publishMarkerArray = true;

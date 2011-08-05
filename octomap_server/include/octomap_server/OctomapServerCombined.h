@@ -51,6 +51,8 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/extract_indices.h>
+#include <pcl/filters/passthrough.h>
+
 
 #include <tf/transform_listener.h>
 #include <tf/message_filter.h>
@@ -96,6 +98,10 @@ namespace octomap {
 	    double m_minSizeX;
 	    double m_minSizeY;
 	    bool m_filterSpeckles;
+
+	    bool m_filterGroundPlane;
+	    double m_groundFilterDistance;
+	    double m_groundFilterAngle;
 	};
 }
 
