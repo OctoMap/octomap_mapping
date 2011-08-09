@@ -39,7 +39,7 @@
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/ColorRGBA.h>
-#include <mapping_msgs/CollisionObject.h>
+#include <arm_navigation_msgs/CollisionObject.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl/point_types.h>
 #include <pcl/ros/conversions.h>

@@ -40,7 +40,7 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
-#include <mapping_msgs/CollisionObject.h>
+#include <arm_navigation_msgs/CollisionObject.h>
 #include <sensor_msgs/PointCloud2.h>
 
 #include <pcl/point_types.h>

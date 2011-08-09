@@ -20,7 +20,7 @@
   <depend package="octomap_ros"/>
   <depend package="pcl_ros"/>
   <depend package="nav_msgs"/>
-  <depend package="mapping_msgs"/>
+  <depend package="arm_navigation_msgs"/>
 </package>
 
 
