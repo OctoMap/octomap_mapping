@@ -1,13 +1,13 @@
 /**
 * octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
 * (inspired by the ROS map_saver)
-* @author A. Hornung, University of Freiburg, Copyright (C) 2009.
+* @author A. Hornung, University of Freiburg, Copyright (C) 2010-2011.
 * @see http://octomap.sourceforge.net/
 * License: BSD
 */
 
 /*
- * Copyright (c) 2010, A. Hornung, University of Freiburg
+ * Copyright (c) 2010-2011, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,9 +42,18 @@
 #include <std_msgs/ColorRGBA.h>
 #include <arm_navigation_msgs/CollisionObject.h>
 #include <sensor_msgs/PointCloud2.h>
+
 #include <pcl/point_types.h>
 #include <pcl/ros/conversions.h>
 #include <pcl_ros/transforms.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/filters/passthrough.h>
+
+
 #include <tf/transform_listener.h>
 #include <tf/message_filter.h>
 #include <message_filters/subscriber.h>
@@ -64,12 +73,8 @@ namespace octomap {
 		void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
 
 	private:
-		void connectCallback(const ros::SingleSubscriberPublisher& pub);
 		std_msgs::ColorRGBA heightMapColor(double h) const;
 		void publishMap(const ros::Time& rostime = ros::Time::now());
-		void publishMarkers(const ros::Time& rostime = ros::Time::now());
-		void publishPointCloud(const ros::Time& rostime = ros::Time::now());
-		void publishCollisionObject(const ros::Time& rostime = ros::Time::now());
 		void publishAll(const ros::Time& rostime = ros::Time::now());
 		ros::NodeHandle m_nh;
 		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub;
@@ -79,6 +84,7 @@ namespace octomap {
 		tf::TransformListener m_tfListener;
 
 		OcTreeROS m_octoMap;
+		KeyRay m_keyRay;  // temp storage for ray casting
 		double m_maxRange;
 		std::string m_frameId;
 		bool m_useHeightMap;
@@ -91,6 +97,11 @@ namespace octomap {
 	    double m_maxZRange;
 	    double m_minSizeX;
 	    double m_minSizeY;
+	    bool m_filterSpeckles;
+
+	    bool m_filterGroundPlane;
+	    double m_groundFilterDistance;
+	    double m_groundFilterAngle;
 	};
 }
 

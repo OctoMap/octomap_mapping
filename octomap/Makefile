@@ -3,9 +3,9 @@ all: installed
 #
 # Download, extract and compile from a released tarball:
 #
-TARBALL = build/octomap-1.1.tar.gz
-TARBALL_URL = http://sourceforge.net/projects/octomap/files/octomap-1.1.tar.gz/download
-TARBALL_PATCH = with_rosbuild_support.patch
+TARBALL = build/octomap-1.1.1.tar.gz
+TARBALL_URL = https://code.ros.org/svn/release/download/thirdparty/octomap/octomap-1.1.1.tar.gz
+#TARBALL_PATCH = 
 INITIAL_DIR = build/octomap
 SOURCE_DIR = build/octomap-tar
 include $(shell rospack find mk)/download_unpack_build.mk
