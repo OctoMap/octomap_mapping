@@ -281,7 +281,7 @@ namespace octomap{
 		}
 
 		// all other points: free on ray, occupied on endpoint:
-	    for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = pc.begin(); it != pc.end(); ++it){
+	    for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = pc_nonground.begin(); it != pc_nonground.end(); ++it){
 	    	point3d point(it->x, it->y, it->z);
 	    	// maxrange check
 	    	if ((m_maxRange < 0.0) || ((point - origin).norm() <= m_maxRange) ) {
@@ -318,7 +318,7 @@ namespace octomap{
 		m_octoMap.octree.prune();
 
 		double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-		ROS_DEBUG("Pointcloud insertion in OctomapServer done (%d pts, %f sec)", int(cloud->height*cloud->width), total_elapsed);
+		ROS_DEBUG("Pointcloud insertion in OctomapServer done (%d+%d pts (ground/nonground), %f sec)", int(pc_ground.size()), int(pc_nonground.size()), total_elapsed);
 
 		publishAll(cloud->header.stamp);
 	}
