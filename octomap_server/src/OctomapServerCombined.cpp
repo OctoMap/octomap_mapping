@@ -263,7 +263,7 @@ namespace octomap{
 		} else {
 			pc_nonground = pc;
 		}
-		OcTreeROS::OcTreeType::KeySet free_cells, occupied_cells;
+		KeySet free_cells, occupied_cells;
 		point3d origin = pointTfToOctomap(trans.getOrigin());
 
 		// insert ground points only as free:
@@ -304,14 +304,14 @@ namespace octomap{
 	    }
 
 	    // mark free cells only if not seen occupied in this cloud
-	    for(OcTreeROS::OcTreeType::KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
+	    for(KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
 	      if (occupied_cells.find(*it) == occupied_cells.end()){
 	    	m_octoMap.octree.updateNode(*it, false, true);
 	      }
 	    }
 
 	    // now mark all occupied cells:
-		for (OcTreeROS::OcTreeType::KeySet::iterator it = occupied_cells.begin(), end=free_cells.end(); it!= end; it++) {
+		for (KeySet::iterator it = occupied_cells.begin(), end=free_cells.end(); it!= end; it++) {
 			m_octoMap.octree.updateNode(*it, true, true);
 		}
 		m_octoMap.octree.updateInnerOccupancy();

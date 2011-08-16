@@ -60,6 +60,7 @@
 #include <octomap_ros/OctomapBinary.h>
 #include <octomap_ros/GetOctomap.h>
 #include <octomap_ros/OctomapROS.h>
+#include <octomap/OcTreeKey.h>
 
 
 namespace octomap {

@@ -17,10 +17,6 @@
   </export>
   
   <depend package="roscpp" />
-  <rosdep name="qt4" />
-  <rosdep name="qt4-opengl" />
-  <rosdep name="qglviewer-qt4" />
-  
 
 </package>
 
