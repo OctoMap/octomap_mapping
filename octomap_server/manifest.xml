@@ -14,7 +14,6 @@
     <cpp cflags="-I${prefix}/include"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_ros"/>
   </export>
   
-  <depend package="roscpp"/> 
   <depend package="octomap"/>
   <depend package="visualization_msgs"/> 
   <depend package="octomap_ros"/>

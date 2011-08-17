@@ -3,8 +3,8 @@ all: installed
 #
 # Download, extract and compile from a released tarball:
 #
-TARBALL = build/octomap-1.1.1.tar.gz
-TARBALL_URL = https://code.ros.org/svn/release/download/thirdparty/octomap/octomap-1.1.1.tar.gz
+TARBALL = build/octomap.tar.gz
+TARBALL_URL = https://code.ros.org/svn/release/download/thirdparty/octomap/octomap-1.2.0.tar.gz
 #TARBALL_PATCH = 
 INITIAL_DIR = build/octomap
 SOURCE_DIR = build/octomap-tar
@@ -17,8 +17,8 @@ include $(shell rospack find mk)/download_unpack_build.mk
 # ROS stack releases.
 #
 #SVN_DIR = build/octomap-svn
-#SVN_URL = https://octomap.svn.sourceforge.net/svnroot/octomap/trunk
-# latest release (testing 0.9)
+#SVN_URL = https://octomap.svn.sourceforge.net/svnroot/octomap/trunk/octomap
+# latest code from trunk: empty revision
 #SVN_REVISION = 
 #SVN_PATCH = 
 #include $(shell rospack find mk)/svn_checkout.mk
