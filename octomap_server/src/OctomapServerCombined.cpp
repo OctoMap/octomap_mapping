@@ -43,33 +43,39 @@ namespace octomap{
 	  : m_nh(),
 	    m_octoMap(0.05),
 	    m_maxRange(-1.0),
-	    m_frameId("/map"),
+	    m_worldFrameId("map"),
+	    m_baseFrameId("base_footprint"),
 	    m_useHeightMap(true),
 		m_colorFactor(0.8),
-		m_visMinZ(-1.0*std::numeric_limits<double>::max()),
-		m_visMaxZ(std::numeric_limits<double>::max()),
-		m_minZRange(-std::numeric_limits<double>::max()),
-		m_maxZRange(std::numeric_limits<double>::max()),
+		m_pointcloudMinZ(-std::numeric_limits<double>::max()),
+		m_pointcloudMaxZ(std::numeric_limits<double>::max()),
+		m_occupancyMinZ(-std::numeric_limits<double>::max()),
+		m_occupancyMaxZ(std::numeric_limits<double>::max()),
 		m_minSizeX(0.0), m_minSizeY(0.0),
 		m_filterSpeckles(false), m_filterGroundPlane(true),
-		m_groundFilterDistance(0.05), m_groundFilterAngle(0.1)
+		m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07)
 	{
 		ros::NodeHandle private_nh("~");
-		private_nh.param("frame_id", m_frameId, m_frameId);
+		private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
+		private_nh.param("base_frame_id", m_baseFrameId, m_baseFrameId);
 		private_nh.param("height_map", m_useHeightMap, m_useHeightMap);
 		private_nh.param("color_factor", m_colorFactor, m_colorFactor);
-		private_nh.param("vis_min_z", m_visMinZ, m_visMinZ);
-		private_nh.param("vis_max_z", m_visMaxZ, m_visMaxZ);
 
-		private_nh.param("min_z_range", m_minZRange,m_minZRange);
-		private_nh.param("max_z_range", m_maxZRange,m_maxZRange);
+		private_nh.param("pointcloud_min_z", m_pointcloudMinZ,m_pointcloudMinZ);
+		private_nh.param("pointcloud_max_z", m_pointcloudMaxZ,m_pointcloudMaxZ);
+		private_nh.param("occupancy_min_z", m_occupancyMinZ,m_occupancyMinZ);
+		private_nh.param("occupancy_max_z", m_occupancyMaxZ,m_occupancyMaxZ);
 		private_nh.param("min_x_size", m_minSizeX,m_minSizeX);
 		private_nh.param("min_y_size", m_minSizeY,m_minSizeY);
 
 		private_nh.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
 		private_nh.param("filter_ground", m_filterGroundPlane, m_filterGroundPlane);
+		// distance of points from plane for RANSAC
 		private_nh.param("ground_filter/distance", m_groundFilterDistance, m_groundFilterDistance);
+		// angular derivation of found plane:
 		private_nh.param("ground_filter/angle", m_groundFilterAngle, m_groundFilterAngle);
+		// distance of found plane from z=0 to be detected as ground (e.g. to exclude tables)
+		private_nh.param("ground_filter/plane_distance", m_groundFilterPlaneDistance, m_groundFilterPlaneDistance);
 
 		double res = 0.05;
 		private_nh.param("resolution", res, res);
@@ -117,7 +123,7 @@ namespace octomap{
 		}
 
 		m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
-		m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_frameId, 5);
+		m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
 		m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServerCombined::insertCloudCallback, this, _1));
 
 
@@ -132,43 +138,36 @@ namespace octomap{
 	void OctomapServerCombined::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
 		ros::WallTime startTime = ros::WallTime::now();
 
-		// transform pointcloud from sensor frame to fixed_frame
-		tf::StampedTransform trans;
+
+		//
+		// ground filtering in base frame
+		//
+		pcl::PointCloud<pcl::PointXYZ> pc; // input cloud for filtering and ground-detection
+		pcl::fromROSMsg(*cloud, pc);
+
+		tf::StampedTransform sensorToWorldTf, sensorToBaseTf, baseToWorldTf;
 		try {
-			m_tfListener.waitForTransform(m_frameId, cloud->header.frame_id, cloud->header.stamp, ros::Duration(0.5));
-			m_tfListener.lookupTransform (m_frameId, cloud->header.frame_id, cloud->header.stamp, trans);
+			m_tfListener.waitForTransform(m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, ros::Duration(0.2));
+
+			m_tfListener.lookupTransform(m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
+			m_tfListener.lookupTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToBaseTf);
+			m_tfListener.lookupTransform(m_worldFrameId, m_baseFrameId, cloud->header.stamp, baseToWorldTf);
 		} catch(tf::TransformException& ex){
-				ROS_WARN_STREAM( "Transform error from " << cloud->header.frame_id
-					<< " to " << m_frameId << ", quitting callback");
-				return;
+			ROS_ERROR_STREAM( "Transform error: " << ex.what() << ", quitting callback");
+			return;
 		}
+		point3d sensorOrigin = pointTfToOctomap(sensorToWorldTf.getOrigin());
+		Eigen::Matrix4f sensorToBase, baseToWorld;
+		pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
+		pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
 
-		Eigen::Matrix4f eigen_transform;
-		sensor_msgs::PointCloud2 transformed_cloud;
-		pcl_ros::transformAsMatrix (trans, eigen_transform);
-		pcl_ros::transformPointCloud(eigen_transform, *cloud, transformed_cloud);
-
-
-
-
-//		// insert without pruning and 'dirty'
-//		geometry_msgs::Point origin;
-//		tf::pointTFToMsg(trans.getOrigin(), origin);
-//		m_octoMap.insertScan(transformed_cloud, origin, m_maxRange, false, true);
-//		// TODO: eval which faster: "dirty" with updateInner?
-//		m_octoMap.octree.updateInnerOccupancy();
-//		m_octoMap.octree.prune();
-//
-		// instead of direct scan insertion, compute update to filter ground:
-
-		// manual integration into octomap pointcloud, so that we can use our own computeUpdate:
-		pcl::PointCloud<pcl::PointXYZ> pc;
-		pcl::fromROSMsg(transformed_cloud, pc);
+		// transform pointcloud from sensor frame to fixed robot frame
+		pcl::transformPointCloud(pc, pc, sensorToBase);
 
 		// filter height and range, also removes NANs:
 		pcl::PassThrough<pcl::PointXYZ> pass;
 		pass.setFilterFieldName("z");
-		pass.setFilterLimits(m_minZRange, m_maxZRange);
+		pass.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
 		pass.setInputCloud(pc.makeShared());
 		pass.filter(pc);
 
@@ -192,7 +191,7 @@ namespace octomap{
 				// TODO: maybe a filtering based on the surface normals might be more robust / accurate?
 				seg.setModelType(pcl::SACMODEL_PERPENDICULAR_PLANE);
 				seg.setMethodType(pcl::SAC_RANSAC);
-				seg.setMaxIterations(100);
+				seg.setMaxIterations(200);
 				seg.setDistanceThreshold (m_groundFilterDistance);
 				seg.setAxis(Eigen::Vector3f(0,0,1));
 				seg.setEpsAngle(m_groundFilterAngle);
@@ -215,34 +214,40 @@ namespace octomap{
 					extract.setInputCloud(cloud_filtered.makeShared());
 					extract.setIndices(inliers);
 
-					if (std::abs(coefficients->values.at(3)) < m_groundFilterDistance){
-						ROS_DEBUG("Ground plane found: %d/%d inliers. Coeff: %f %f %f %f", inliers->indices.size(), cloud_filtered.size(),
-												coefficients->values.at(0), coefficients->values.at(1), coefficients->values.at(2), coefficients->values.at(3));
+					if (std::abs(coefficients->values.at(3)) < m_groundFilterPlaneDistance){
+						ROS_DEBUG("Ground plane found: %zu/%zu inliers. Coeff: %f %f %f %f", inliers->indices.size(), cloud_filtered.size(),
+								coefficients->values.at(0), coefficients->values.at(1), coefficients->values.at(2), coefficients->values.at(3));
 						extract.setNegative (false);
 						extract.filter (pc_ground);
 
 						// remove ground points from full pointcloud:
-						extract.setNegative(true);
 						// workaround for PCL bug:
 						if(inliers->indices.size() != cloud_filtered.size()){
-							extract.filter(cloud_filtered);
-							pc_nonground += cloud_filtered;
+							extract.setNegative(true);
+							pcl::PointCloud<pcl::PointXYZ> cloud_out;
+							extract.filter(cloud_out);
+							pc_nonground += cloud_out;
+							cloud_filtered = cloud_out;
 						}
 
 						groundPlaneFound = true;
 					} else{
-						ROS_DEBUG("Horizontal plane (not ground) found: %d/%d inliers. Coeff: %f %f %f %f", inliers->indices.size(), cloud_filtered.size(),
-																		coefficients->values.at(0), coefficients->values.at(1), coefficients->values.at(2), coefficients->values.at(3));
+						ROS_DEBUG("Horizontal plane (not ground) found: %zu/%zu inliers. Coeff: %f %f %f %f", inliers->indices.size(), cloud_filtered.size(),
+								coefficients->values.at(0), coefficients->values.at(1), coefficients->values.at(2), coefficients->values.at(3));
 						pcl::PointCloud<pcl::PointXYZ> cloud_out;
 						extract.setNegative (false);
 						extract.filter(cloud_out);
 						pc_nonground +=cloud_out;
+						pcl::PCDWriter writer;
+						writer.write<pcl::PointXYZ>("nonground_plane.pcd",cloud_out, false);
 
 						// remove current plane from scan for next iteration:
-						extract.setNegative(true);
 						// workaround for PCL bug:
 						if(inliers->indices.size() != cloud_filtered.size()){
-							extract.filter(cloud_filtered);
+							extract.setNegative(true);
+							cloud_out.points.clear();
+							extract.filter(cloud_out);
+							cloud_filtered = cloud_out;
 						} else{
 							cloud_filtered.points.clear();
 						}
@@ -255,27 +260,43 @@ namespace octomap{
 				}
 
 				// debug:
-//				pcl::PCDWriter writer;
-//				writer.write<pcl::PointXYZ>("ground.pcd",pc_ground, false);
-//				writer.write<pcl::PointXYZ>("nonground.pcd",pc_nonground, false);
+				pcl::PCDWriter writer;
+				if (pc_ground.size() > 0)
+					writer.write<pcl::PointXYZ>("ground.pcd",pc_ground, false);
+				if (pc_nonground.size() > 0)
+					writer.write<pcl::PointXYZ>("nonground.pcd",pc_nonground, false);
 
 			}
 		} else {
 			pc_nonground = pc;
 		}
-		KeySet free_cells, occupied_cells;
-		point3d origin = pointTfToOctomap(trans.getOrigin());
 
+		// transform clouds to world frame for insertion
+		pcl::transformPointCloud(pc_ground, pc_ground, baseToWorld);
+		pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
+
+
+//		// insert without pruning and 'dirty'
+//		geometry_msgs::Point sensorOrigin;
+//		tf::pointTFToMsg(trans.getOrigin(), sensorOrigin);
+//		m_octoMap.insertScan(transformed_cloud, sensorOrigin, m_maxRange, false, true);
+//		// TODO: eval which faster: "dirty" with updateInner?
+//		m_octoMap.octree.updateInnerOccupancy();
+//		m_octoMap.octree.prune();
+//
+
+		// instead of direct scan insertion, compute update to filter ground:
+		KeySet free_cells, occupied_cells;
 		// insert ground points only as free:
 		for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = pc_ground.begin(); it != pc_ground.end(); ++it){
 			point3d point(it->x, it->y, it->z);
 			// maxrange check
-			if ((m_maxRange > 0.0) && ((point - origin).norm() > m_maxRange) ) {
-				point = origin + (point - origin).normalized() * m_maxRange;
+			if ((m_maxRange > 0.0) && ((point - sensorOrigin).norm() > m_maxRange) ) {
+				point = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
 			}
 
 			// only clear space (ground points)
-			if (m_octoMap.octree.computeRayKeys(origin, point, m_keyRay)){
+			if (m_octoMap.octree.computeRayKeys(sensorOrigin, point, m_keyRay)){
 				free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 			}
 		}
@@ -284,10 +305,10 @@ namespace octomap{
 	    for (pcl::PointCloud<pcl::PointXYZ>::const_iterator it = pc_nonground.begin(); it != pc_nonground.end(); ++it){
 	    	point3d point(it->x, it->y, it->z);
 	    	// maxrange check
-	    	if ((m_maxRange < 0.0) || ((point - origin).norm() <= m_maxRange) ) {
+	    	if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange) ) {
 
 				// free cells
-				if (m_octoMap.octree.computeRayKeys(origin, point, m_keyRay)){
+				if (m_octoMap.octree.computeRayKeys(sensorOrigin, point, m_keyRay)){
 					free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 				}
 				// occupied endpoint
@@ -296,8 +317,8 @@ namespace octomap{
 					occupied_cells.insert(key);
 				}
 	    	} else {// ray longer than maxrange:;
-	    		point3d new_end = origin + (point - origin).normalized() * m_maxRange;
-	    		if (m_octoMap.octree.computeRayKeys(origin, new_end, m_keyRay)){
+	    		point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
+	    		if (m_octoMap.octree.computeRayKeys(sensorOrigin, new_end, m_keyRay)){
 	    			free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 	    		}
 	    	}
@@ -339,7 +360,7 @@ namespace octomap{
 
 		// init collision object:
 		mapping_msgs::CollisionObject collisionObject;
-		collisionObject.header.frame_id = m_frameId;
+		collisionObject.header.frame_id = m_worldFrameId;
 		collisionObject.header.stamp = rostime;
 		collisionObject.id = "map";
 
@@ -366,7 +387,7 @@ namespace octomap{
 		// init projected 2D map:
 		nav_msgs::OccupancyGrid map;
 		map.info.resolution = m_octoMap.octree.getResolution();
-	    map.header.frame_id = m_frameId;
+	    map.header.frame_id = m_worldFrameId;
 	    map.header.stamp = rostime;
 
 		octomap::point3d minPt(minX, minY, minZ);
@@ -427,7 +448,7 @@ namespace octomap{
 		{
 			if (m_octoMap.octree.isNodeOccupied(*it)){
 				double z = it.getZ();
-				if (z > m_visMinZ && z < m_visMaxZ)
+				if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
 				{
 					octomap::OcTreeKey nKey = it.getKey();
 					octomap::OcTreeKey key;
@@ -547,7 +568,7 @@ namespace octomap{
 			for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
 				double size = lowestRes * pow(2,i);
 
-				occupiedNodesVis.markers[i].header.frame_id = m_frameId;
+				occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
 				occupiedNodesVis.markers[i].header.stamp = rostime;
 				occupiedNodesVis.markers[i].ns = "map";
 				occupiedNodesVis.markers[i].id = i;
@@ -572,7 +593,7 @@ namespace octomap{
 		if (publishPointCloud){
 			sensor_msgs::PointCloud2 cloud;
 			pcl::toROSMsg (pclCloud, cloud);
-			cloud.header.frame_id = m_frameId;
+			cloud.header.frame_id = m_worldFrameId;
 			cloud.header.stamp = rostime;
 			m_pointCloudPub.publish(cloud);
 		}
@@ -593,7 +614,7 @@ namespace octomap{
 			octomap_ros::GetOctomap::Response &res)
 	{
 		ROS_INFO("Sending map data on service request");
-		res.map.header.frame_id = m_frameId;
+		res.map.header.frame_id = m_worldFrameId;
 		res.map.header.stamp = ros::Time::now();
 		octomap::octomapMapToMsgData(m_octoMap.octree, res.map.data);
 
@@ -603,7 +624,7 @@ namespace octomap{
 	void OctomapServerCombined::publishMap(const ros::Time& rostime){
 
 		octomap_ros::OctomapBinary map;
-		map.header.frame_id = m_frameId;
+		map.header.frame_id = m_worldFrameId;
 		map.header.stamp = rostime;
 
 		octomap::octomapMapToMsgData(m_octoMap.octree, map.data);

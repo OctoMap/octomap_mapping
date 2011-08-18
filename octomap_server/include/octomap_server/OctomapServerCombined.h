@@ -87,15 +87,16 @@ namespace octomap {
 		OcTreeROS m_octoMap;
 		KeyRay m_keyRay;  // temp storage for ray casting
 		double m_maxRange;
-		std::string m_frameId;
+		std::string m_worldFrameId; // the map frame
+		std::string m_baseFrameId; // base of the robot for ground plane filtering
 		bool m_useHeightMap;
 		std_msgs::ColorRGBA m_color;
 		double m_colorFactor;
-		double m_visMinZ;
-		double m_visMaxZ;
 
-	    double m_minZRange;
-	    double m_maxZRange;
+	    double m_pointcloudMinZ;
+	    double m_pointcloudMaxZ;
+	    double m_occupancyMinZ;
+	    double m_occupancyMaxZ;
 	    double m_minSizeX;
 	    double m_minSizeY;
 	    bool m_filterSpeckles;
@@ -103,6 +104,7 @@ namespace octomap {
 	    bool m_filterGroundPlane;
 	    double m_groundFilterDistance;
 	    double m_groundFilterAngle;
+	    double m_groundFilterPlaneDistance;
 	};
 }
 
