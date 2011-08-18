@@ -238,8 +238,9 @@ namespace octomap{
 						extract.setNegative (false);
 						extract.filter(cloud_out);
 						pc_nonground +=cloud_out;
-						pcl::PCDWriter writer;
-						writer.write<pcl::PointXYZ>("nonground_plane.pcd",cloud_out, false);
+						// debug
+//						pcl::PCDWriter writer;
+//						writer.write<pcl::PointXYZ>("nonground_plane.pcd",cloud_out, false);
 
 						// remove current plane from scan for next iteration:
 						// workaround for PCL bug:
@@ -260,11 +261,11 @@ namespace octomap{
 				}
 
 				// debug:
-				pcl::PCDWriter writer;
-				if (pc_ground.size() > 0)
-					writer.write<pcl::PointXYZ>("ground.pcd",pc_ground, false);
-				if (pc_nonground.size() > 0)
-					writer.write<pcl::PointXYZ>("nonground.pcd",pc_nonground, false);
+//				pcl::PCDWriter writer;
+//				if (pc_ground.size() > 0)
+//					writer.write<pcl::PointXYZ>("ground.pcd",pc_ground, false);
+//				if (pc_nonground.size() > 0)
+//					writer.write<pcl::PointXYZ>("nonground.pcd",pc_nonground, false);
 
 			}
 		} else {
