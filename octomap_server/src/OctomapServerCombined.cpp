@@ -41,10 +41,10 @@ namespace octomap{
 
 	OctomapServerCombined::OctomapServerCombined(const std::string& filename)
 	  : m_nh(),
+	    m_pointCloudSub(NULL), m_tfPointCloudSub(NULL),
 	    m_octoMap(0.05),
 	    m_maxRange(-1.0),
-	    m_worldFrameId("map"),
-	    m_baseFrameId("base_footprint"),
+	    m_worldFrameId("/map"), m_baseFrameId("base_footprint"),
 	    m_useHeightMap(true),
 		m_colorFactor(0.8),
 		m_pointcloudMinZ(-std::numeric_limits<double>::max()),
@@ -106,32 +106,46 @@ namespace octomap{
 		m_color.b = b;
 		m_color.a = a;
 
+		bool staticMap = false;
+		if (filename != "")
+			staticMap = true;
 
-		m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1);
-		m_binaryMapPub = m_nh.advertise<octomap_ros::OctomapBinary>("octomap_binary", 1);
-		m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1);
-		m_collisionObjectPub = m_nh.advertise<mapping_msgs::CollisionObject>("octomap_collision_object", 1);
-		m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("map", 5);
+		m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, staticMap);
+		m_binaryMapPub = m_nh.advertise<octomap_ros::OctomapBinary>("octomap_binary", 1, staticMap);
+		m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, staticMap);
+		m_collisionObjectPub = m_nh.advertise<mapping_msgs::CollisionObject>("octomap_collision_object", 1, staticMap);
+		m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("map", 5, staticMap);
 
 		m_service = m_nh.advertiseService("octomap_binary", &OctomapServerCombined::serviceCallback, this);
 
-		if (filename != ""){
-			m_octoMap.octree.readBinary(filename);
-			ROS_INFO("Octomap file %s loaded (%zu nodes).", filename.c_str(),m_octoMap.octree.size());
+		// a filename to load is set => distribute a static map latched
+		if (staticMap){
+			if (m_octoMap.octree.readBinary(filename)){
+				ROS_INFO("Octomap file %s loaded (%zu nodes).", filename.c_str(),m_octoMap.octree.size());
 
-			publishAll();
+				publishAll();
+			} else{
+				ROS_ERROR("Could not open requested file %s, exiting.", filename.c_str());
+				exit(-1);
+			}
+		} else { // otherwise: do scan integration
+
+
+
+			m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
+			m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
+			m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServerCombined::insertCloudCallback, this, _1));
 		}
 
-		m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
-		m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
-		m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServerCombined::insertCloudCallback, this, _1));
 
 
 	}
 
 	OctomapServerCombined::~OctomapServerCombined(){
-		delete m_tfPointCloudSub;
-		delete m_pointCloudSub;
+		if (m_tfPointCloudSub)
+			delete m_tfPointCloudSub;
+		if (m_pointCloudSub)
+			delete m_pointCloudSub;
 
 	}
 
@@ -436,7 +450,7 @@ namespace octomap{
 
 		// might not exactly be min / max of octree:
 		octomap::point3d origin;
-		m_octoMap.octree.genCoords(paddedMinKey, m_octoMap.octree.getTreeDepth()-1, origin);
+		m_octoMap.octree.genCoords(paddedMinKey, m_octoMap.octree.getTreeDepth(), origin);
 		map.info.origin.position.x = origin.x() - m_octoMap.octree.getResolution()*0.5;
 		map.info.origin.position.y = origin.y() - m_octoMap.octree.getResolution()*0.5;
 
@@ -518,16 +532,12 @@ namespace octomap{
 							int j = nKey[1] - paddedMinKey[1];
 							map.data[map.info.width*j + i] = 100;
 						} else{
-							double offset = (it.getSize()-m_octoMap.octree.getResolution())/2.0;
-							unsigned short int minKeyX, minKeyY;
-							// TODO: work on key manip. directly instead?
-							m_octoMap.octree.genKeyValue(it.getX() - offset, minKeyX);
-							m_octoMap.octree.genKeyValue(it.getY() - offset, minKeyY);
 							int intSize = 1 << (m_octoMap.octree.getTreeDepth() - it.getDepth());
-							for(int dx=0; dx<=intSize; dx++){
-								int i = minKeyX+dx - paddedMinKey[0];
-								for(int dy=0; dy<=intSize; dy++){
-									int j = minKeyY+dy - paddedMinKey[1];
+							octomap::OcTreeKey minKey=it.getIndexKey();
+							for(int dx=0; dx < intSize; dx++){
+								int i = minKey[0]+dx - paddedMinKey[0];
+								for(int dy=0; dy < intSize; dy++){
+									int j = minKey[1]+dy - paddedMinKey[1];
 									map.data[map.info.width*j + i] = 100;
 								}
 							}
@@ -544,20 +554,16 @@ namespace octomap{
 							map.data[map.info.width*j + i] = 0;
 						}
 					} else{
-						double offset = (it.getSize()-m_octoMap.octree.getResolution())/2.0;
-						unsigned short int minKeyX, minKeyY;
-						// TODO: work on key manip. directly instead?
-						m_octoMap.octree.genKeyValue(it.getX() - offset, minKeyX);
-						m_octoMap.octree.genKeyValue(it.getY() - offset, minKeyY);
 						int intSize = 1 << (m_octoMap.octree.getTreeDepth() - it.getDepth());
-						for(int dx=0; dx<=intSize; dx++){
-							int i = minKeyX+dx - paddedMinKey[0];
-							for(int dy=0; dy<=intSize; dy++){
-								int j = minKeyY+dy - paddedMinKey[1];
+						octomap::OcTreeKey minKey=it.getIndexKey();
+						for(int dx=0; dx < intSize; dx++){
+							int i = minKey[0]+dx - paddedMinKey[0];
+							for(int dy=0; dy < intSize; dy++){
+								int j = minKey[1]+dy - paddedMinKey[1];
 								if (map.data[map.info.width*j + i] == -1){
 									map.data[map.info.width*j + i] = 0;
 								}
-						  }
+							}
 						}
 					}
 				}
