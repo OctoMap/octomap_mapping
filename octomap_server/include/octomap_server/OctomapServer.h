@@ -1,3 +1,6 @@
+#ifndef OCTOMAP_SERVER_OCTOMAP_SERVER
+#define OCTOMAP_SERVER_OCTOMAP_SERVER
+
 /**
 * octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
 * (inspired by the ROS map_saver)
@@ -55,14 +58,16 @@
 namespace octomap {
 	class OctomapServer{
 	public:
-		OctomapServer(const std::string& filename= "");
+		OctomapServer();
 		virtual ~OctomapServer();
 		bool serviceCallback(octomap_ros::GetOctomap::Request  &req,
 				octomap_ros::GetOctomap::Response &res);
 
-		void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
+		virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
+                
+                bool loadInitialMap(const std::string& filename);
 
-	private:
+	protected:
 		void connectCallback(const ros::SingleSubscriberPublisher& pub);
 		std_msgs::ColorRGBA heightMapColor(double h) const;
 		void publishMap(const ros::Time& rostime = ros::Time::now());
@@ -87,3 +92,5 @@ namespace octomap {
 	};
 }
 
+
+#endif

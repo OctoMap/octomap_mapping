@@ -57,7 +57,8 @@ int main(int argc, char** argv){
 	  mapFilename = std::string(argv[1]);
 
   try{
-	  OctomapServer ms(mapFilename);
+	  OctomapServer ms;
+          ms.loadInitialMap(mapFilename);
 	  ros::spin();
   }catch(std::runtime_error& e){
 	  ROS_ERROR("octomap_server exception: %s", e.what());

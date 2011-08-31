@@ -39,7 +39,7 @@
 
 namespace octomap{
 
-	OctomapServer::OctomapServer(const std::string& filename)
+	OctomapServer::OctomapServer()
 	  : m_nh(),
 	    m_octoMap(0.05),
 	    m_maxRange(-1.0),
@@ -96,19 +96,6 @@ namespace octomap{
 
 		m_service = m_nh.advertiseService("octomap_binary", &OctomapServer::serviceCallback, this);
 
-		if (filename != ""){
-			m_octoMap.octree.readBinary(filename);
-			ROS_INFO("Octomap file %s loaded (%zu nodes).", filename.c_str(),m_octoMap.octree.size());
-
-			if (m_binaryMapPub.getNumSubscribers() > 0)
-				publishMap();
-			if (m_markerPub.getNumSubscribers() > 0)
-				publishMarkers();
-			if (m_pointCloudPub.getNumSubscribers() > 0)
-				publishPointCloud();
-			if (m_collisionObjectPub.getNumSubscribers() > 0)
-				publishCollisionObject();
-		}
 
 		m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
 		m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_frameId, 5);
@@ -122,6 +109,24 @@ namespace octomap{
 		delete m_pointCloudSub;
 
 	}
+
+  bool 	OctomapServer::loadInitialMap(const std::string& filename) {
+    if (!filename.empty()){
+      m_octoMap.octree.readBinary(filename);
+      ROS_INFO("Octomap file %s loaded (%zu nodes).", filename.c_str(),m_octoMap.octree.size());
+
+      if (m_binaryMapPub.getNumSubscribers() > 0)
+        publishMap();
+      if (m_markerPub.getNumSubscribers() > 0)
+        publishMarkers();
+      if (m_pointCloudPub.getNumSubscribers() > 0)
+        publishPointCloud();
+      if (m_collisionObjectPub.getNumSubscribers() > 0)
+        publishCollisionObject();
+    }
+    return true;
+  }
+
 
 	void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
 		ros::WallTime startTime = ros::WallTime::now();
