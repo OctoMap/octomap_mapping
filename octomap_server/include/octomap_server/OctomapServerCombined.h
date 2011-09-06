@@ -59,6 +59,7 @@
 #include <message_filters/subscriber.h>
 #include <octomap_ros/OctomapBinary.h>
 #include <octomap_ros/GetOctomap.h>
+#include <octomap_ros/ClearBBXRegion.h>
 #include <octomap_ros/OctomapROS.h>
 #include <octomap/OcTreeKey.h>
 
@@ -70,10 +71,11 @@ namespace octomap {
 		virtual ~OctomapServerCombined();
 		bool serviceCallback(octomap_ros::GetOctomap::Request  &req,
 				octomap_ros::GetOctomap::Response &res);
+		bool clearBBXSrv(octomap_ros::ClearBBXRegionRequest& req, octomap_ros::ClearBBXRegionRequest& resp);
 
 		void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
 
-	private:
+	protected:
 		std_msgs::ColorRGBA heightMapColor(double h) const;
 		void publishMap(const ros::Time& rostime = ros::Time::now());
 		void publishAll(const ros::Time& rostime = ros::Time::now());
@@ -81,7 +83,7 @@ namespace octomap {
 		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub;
 		message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
 		tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
-		ros::ServiceServer m_service;
+		ros::ServiceServer m_octomapService, m_clearBBXService;
 		tf::TransformListener m_tfListener;
 
 		OcTreeROS m_octoMap;

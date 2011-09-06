@@ -116,7 +116,8 @@ namespace octomap{
 		m_collisionObjectPub = m_nh.advertise<mapping_msgs::CollisionObject>("octomap_collision_object", 1, staticMap);
 		m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("map", 5, staticMap);
 
-		m_service = m_nh.advertiseService("octomap_binary", &OctomapServerCombined::serviceCallback, this);
+		m_octomapService = m_nh.advertiseService("octomap_binary", &OctomapServerCombined::serviceCallback, this);
+		m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServerCombined::clearBBXSrv, this);
 
 		// a filename to load is set => distribute a static map latched
 		if (staticMap){
@@ -624,6 +625,23 @@ namespace octomap{
 		res.map.header.frame_id = m_worldFrameId;
 		res.map.header.stamp = ros::Time::now();
 		octomap::octomapMapToMsgData(m_octoMap.octree, res.map.data);
+
+		return true;
+	}
+
+	bool OctomapServerCombined::clearBBXSrv(octomap_ros::ClearBBXRegionRequest& req, octomap_ros::ClearBBXRegionRequest& resp){
+		OcTreeROS::OcTreeType::leaf_bbx_iterator it, end;
+		point3d min = pointMsgToOctomap(req.min);
+		point3d max = pointMsgToOctomap(req.max);
+
+		for(OcTreeROS::OcTreeType::leaf_bbx_iterator it = m_octoMap.octree.begin_leafs_bbx(min,max),
+		     end=m_octoMap.octree.end_leafs_bbx(); it!= end; ++it){
+			it->setLogOdds(-2);
+//			m_octoMap.octree.updateNode(it.getKey(), -6.0f);
+		}
+		m_octoMap.octree.updateInnerOccupancy();
+
+		publishAll(ros::Time::now());
 
 		return true;
 	}
