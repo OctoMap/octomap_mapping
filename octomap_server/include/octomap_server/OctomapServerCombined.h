@@ -42,6 +42,7 @@
 #include <std_msgs/ColorRGBA.h>
 #include <mapping_msgs/CollisionObject.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <std_srvs/Empty.h>
 
 #include <pcl/point_types.h>
 #include <pcl/ros/conversions.h>
@@ -72,6 +73,7 @@ namespace octomap {
 		bool serviceCallback(octomap_ros::GetOctomap::Request  &req,
 				octomap_ros::GetOctomap::Response &res);
 		bool clearBBXSrv(octomap_ros::ClearBBXRegionRequest& req, octomap_ros::ClearBBXRegionRequest& resp);
+		bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
 		void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
 
@@ -83,7 +85,7 @@ namespace octomap {
 		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub;
 		message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
 		tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
-		ros::ServiceServer m_octomapService, m_clearBBXService;
+		ros::ServiceServer m_octomapService, m_clearBBXService, m_resetService;
 		tf::TransformListener m_tfListener;
 
 		OcTreeROS m_octoMap;

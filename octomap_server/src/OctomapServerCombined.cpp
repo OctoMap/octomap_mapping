@@ -110,14 +110,18 @@ namespace octomap{
 		if (filename != "")
 			staticMap = true;
 
-		m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, staticMap);
-		m_binaryMapPub = m_nh.advertise<octomap_ros::OctomapBinary>("octomap_binary", 1, staticMap);
-		m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, staticMap);
-		m_collisionObjectPub = m_nh.advertise<mapping_msgs::CollisionObject>("octomap_collision_object", 1, staticMap);
-		m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("map", 5, staticMap);
+		bool latch = staticMap;
+		private_nh.param("latch", latch, latch);
+
+		m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, latch);
+		m_binaryMapPub = m_nh.advertise<octomap_ros::OctomapBinary>("octomap_binary", 1, latch);
+		m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, latch);
+		m_collisionObjectPub = m_nh.advertise<mapping_msgs::CollisionObject>("octomap_collision_object", 1, latch);
+		m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("map", 5, latch);
 
 		m_octomapService = m_nh.advertiseService("octomap_binary", &OctomapServerCombined::serviceCallback, this);
 		m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServerCombined::clearBBXSrv, this);
+		m_resetService = private_nh.advertiseService("reset", &OctomapServerCombined::resetSrv, this);
 
 		// a filename to load is set => distribute a static map latched
 		if (staticMap){
@@ -611,6 +615,9 @@ namespace octomap{
 
 		if (publish2DMap)
 			m_mapPub.publish(map);
+			
+		// TODO: do this only if there is a subscriber and not latched
+		publishMap(rostime);
 
 		double total_elapsed = (ros::WallTime::now() - startTime).toSec();
 		ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
@@ -636,6 +643,21 @@ namespace octomap{
 
 		for(OcTreeROS::OcTreeType::leaf_bbx_iterator it = m_octoMap.octree.begin_leafs_bbx(min,max),
 		     end=m_octoMap.octree.end_leafs_bbx(); it!= end; ++it){
+			it->setLogOdds(-2);
+//			m_octoMap.octree.updateNode(it.getKey(), -6.0f);
+		}
+		m_octoMap.octree.updateInnerOccupancy();
+
+		publishAll(ros::Time::now());
+
+		return true;
+	}
+
+	bool OctomapServerCombined::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {
+		OcTreeROS::OcTreeType::leaf_iterator it, end;
+
+		for(OcTreeROS::OcTreeType::leaf_iterator it = m_octoMap.octree.begin_leafs(),
+			 end=m_octoMap.octree.end_leafs(); it!= end; ++it){
 			it->setLogOdds(-2);
 //			m_octoMap.octree.updateNode(it.getKey(), -6.0f);
 		}
