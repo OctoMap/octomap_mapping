@@ -81,6 +81,7 @@ namespace octomap {
 		std_msgs::ColorRGBA heightMapColor(double h) const;
 		void publishMap(const ros::Time& rostime = ros::Time::now());
 		void publishAll(const ros::Time& rostime = ros::Time::now());
+		void resetOctomap();
 		ros::NodeHandle m_nh;
 		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub;
 		message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
@@ -88,7 +89,7 @@ namespace octomap {
 		ros::ServiceServer m_octomapService, m_clearBBXService, m_resetService;
 		tf::TransformListener m_tfListener;
 
-		OcTreeROS m_octoMap;
+		OcTreeROS *m_octoMap;
 		KeyRay m_keyRay;  // temp storage for ray casting
 		double m_maxRange;
 		std::string m_worldFrameId; // the map frame
@@ -96,6 +97,12 @@ namespace octomap {
 		bool m_useHeightMap;
 		std_msgs::ColorRGBA m_color;
 		double m_colorFactor;
+
+        double m_res;
+        double m_probHit;
+        double m_probMiss;
+        double m_thresMin;
+        double m_thresMax;
 
 	    double m_pointcloudMinZ;
 	    double m_pointcloudMaxZ;
