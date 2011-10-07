@@ -140,7 +140,7 @@ namespace octomap {
     pcl::PointCloud<PointT>::const_iterator it;
     for (it = pclCloud.begin(); it != pclCloud.end(); ++it){
       // Check if the point is invalid
-      if (!isnan (it->x) && !isnan (it->y) && !isnan (it->z))
+      if (!std::isnan (it->x) && !std::isnan (it->y) && !std::isnan (it->z))
         octomapCloud.push_back(it->x, it->y, it->z);
     }
   }
