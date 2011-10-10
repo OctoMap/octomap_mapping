@@ -650,9 +650,24 @@ namespace octomap{
 	}
 
 	bool OctomapServerCombined::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {
+	    visualization_msgs::MarkerArray occupiedNodesVis;
+	    occupiedNodesVis.markers.resize(m_octoMap->octree.getTreeDepth());
+	    ros::Time rostime = ros::Time::now();
 	    resetOctomap();
-		ROS_INFO("Cleared octomap");
-		publishAll(ros::Time::now());
+	    ROS_INFO("Cleared octomap");
+		publishMap(rostime);
+		for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
+
+				occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
+				occupiedNodesVis.markers[i].header.stamp = rostime;
+				occupiedNodesVis.markers[i].ns = "map";
+				occupiedNodesVis.markers[i].id = i;
+				occupiedNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
+				occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
+			}
+
+
+			m_markerPub.publish(occupiedNodesVis);		
 		return true;
 	}
 
