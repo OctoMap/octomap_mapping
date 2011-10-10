@@ -78,10 +78,19 @@ namespace octomap {
 		void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
 
 	protected:
-		std_msgs::ColorRGBA heightMapColor(double h) const;
-		void publishMap(const ros::Time& rostime = ros::Time::now());
-		void publishAll(const ros::Time& rostime = ros::Time::now());
+		void publishMap(const ros::Time& rostime = ros::Time::now()) const;
+		void publishAll(const ros::Time& rostime = ros::Time::now()) const;
+
+		/// @brief Clear the internal OctoMap
 		void resetOctomap();
+
+		/**
+		 * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
+		 * @param key
+		 * @return
+		 */
+		bool isSpeckleNode(const OcTreeKey& key) const;
+		std_msgs::ColorRGBA heightMapColor(double h) const;
 		ros::NodeHandle m_nh;
 		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub;
 		message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
@@ -98,24 +107,27 @@ namespace octomap {
 		std_msgs::ColorRGBA m_color;
 		double m_colorFactor;
 
-        double m_res;
-        double m_probHit;
-        double m_probMiss;
-        double m_thresMin;
-        double m_thresMax;
+		bool m_latchedTopics;
 
-	    double m_pointcloudMinZ;
-	    double m_pointcloudMaxZ;
-	    double m_occupancyMinZ;
-	    double m_occupancyMaxZ;
-	    double m_minSizeX;
-	    double m_minSizeY;
-	    bool m_filterSpeckles;
+		double m_res;
+		unsigned m_treeDepth;
+		double m_probHit;
+		double m_probMiss;
+		double m_thresMin;
+		double m_thresMax;
 
-	    bool m_filterGroundPlane;
-	    double m_groundFilterDistance;
-	    double m_groundFilterAngle;
-	    double m_groundFilterPlaneDistance;
+		double m_pointcloudMinZ;
+		double m_pointcloudMaxZ;
+		double m_occupancyMinZ;
+		double m_occupancyMaxZ;
+		double m_minSizeX;
+		double m_minSizeY;
+		bool m_filterSpeckles;
+
+		bool m_filterGroundPlane;
+		double m_groundFilterDistance;
+		double m_groundFilterAngle;
+		double m_groundFilterPlaneDistance;
 	};
 }
 
