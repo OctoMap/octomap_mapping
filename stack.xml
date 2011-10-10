@@ -5,14 +5,14 @@ providing data structures and mapping algorithms. The map implementation is
 based on an octree. This stack contains the actual OctoMap package and additional code for ROS integration.
   </description>
   <author>Maintained by Armin Hornung</author>
-  <license>BSD,GPL</license>  
+  <license>BSD</license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/octomap_mapping</url>
+  <depend stack="arm_navigation" /> <!-- arm_navigation_msgs -->
   <depend stack="common_msgs" /> <!-- nav_msgs, sensor_msgs, geometry_msgs, visualization_msgs -->
   <depend stack="geometry" /> <!-- tf -->
-  <depend stack="motion_planning_common" /> <!-- mapping_msgs -->
   <depend stack="perception_pcl" /> <!-- pcl, pcl_ros -->
   <depend stack="ros" />
-  <depend stack="ros_comm" /> <!-- roscpp -->
+  <depend stack="ros_comm" /> <!-- std_srvs, std_msgs, roscpp -->
 
 </stack>

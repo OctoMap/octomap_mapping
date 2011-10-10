@@ -108,7 +108,7 @@ namespace octomap{
 		m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, latch);
 		m_binaryMapPub = m_nh.advertise<octomap_ros::OctomapBinary>("octomap_binary", 1, latch);
 		m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, latch);
-		m_collisionObjectPub = m_nh.advertise<mapping_msgs::CollisionObject>("octomap_collision_object", 1, latch);
+		m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1, latch);
 		m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("map", 5, latch);
 
 		m_octomapService = m_nh.advertiseService("octomap_binary", &OctomapServerCombined::serviceCallback, this);
@@ -373,13 +373,13 @@ namespace octomap{
 		bool publish2DMap = true;
 
 		// init collision object:
-		mapping_msgs::CollisionObject collisionObject;
+		arm_navigation_msgs::CollisionObject collisionObject;
 		collisionObject.header.frame_id = m_worldFrameId;
 		collisionObject.header.stamp = rostime;
 		collisionObject.id = "map";
 
-		geometric_shapes_msgs::Shape shape;
-		shape.type = geometric_shapes_msgs::Shape::BOX;
+		arm_navigation_msgs::Shape shape;
+		shape.type = arm_navigation_msgs::Shape::BOX;
 		shape.dimensions.resize(3);
 
 		geometry_msgs::Pose pose;

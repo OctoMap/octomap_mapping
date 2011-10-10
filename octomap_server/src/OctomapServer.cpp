@@ -91,7 +91,7 @@ namespace octomap{
 				boost::bind(&OctomapServer::connectCallback, this, _1), ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true);
 		m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1,
 				boost::bind(&OctomapServer::connectCallback, this, _1), ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true);
-		m_collisionObjectPub = m_nh.advertise<mapping_msgs::CollisionObject>("octomap_collision_object", 1,
+		m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1,
 				boost::bind(&OctomapServer::connectCallback, this, _1), ros::SubscriberStatusCallback(), ros::VoidConstPtr(), true);
 
 		m_service = m_nh.advertiseService("octomap_binary", &OctomapServer::serviceCallback, this);
@@ -177,14 +177,14 @@ namespace octomap{
 	}
 
 	void OctomapServer::publishCollisionObject(const ros::Time& rostime){
-		mapping_msgs::CollisionObject collisionObject;
+		arm_navigation_msgs::CollisionObject collisionObject;
 
 		collisionObject.header.frame_id = m_frameId;
 		collisionObject.header.stamp = rostime;
 		collisionObject.id = "map";
 
-		geometric_shapes_msgs::Shape shape;
-		shape.type = geometric_shapes_msgs::Shape::BOX;
+		arm_navigation_msgs::Shape shape;
+		shape.type = arm_navigation_msgs::Shape::BOX;
 		shape.dimensions.resize(3);
 
 		geometry_msgs::Pose pose;

@@ -1,5 +1,5 @@
 <!-- Launch octomap_server for mapping: Listens to incoming PointCloud2 data 
-and incrementally build an octomap. The data is sent out in different representations. -->
+and incrementally builds an octomap. The data is sent out in different representations. -->
 <launch>
 	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
 		<param name="resolution" value="0.05" />
