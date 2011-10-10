@@ -1,16 +1,13 @@
-#ifndef OCTOMAP_SERVER_OCTOMAP_SERVER
-#define OCTOMAP_SERVER_OCTOMAP_SERVER
-
 /**
 * octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
 * (inspired by the ROS map_saver)
-* @author A. Hornung, University of Freiburg, Copyright (C) 2009.
+* @author A. Hornung, University of Freiburg, Copyright (C) 2010-2011.
 * @see http://octomap.sourceforge.net/
 * License: BSD
 */
 
 /*
- * Copyright (c) 2010, A. Hornung, University of Freiburg
+ * Copyright (c) 2010-2011, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,56 +38,96 @@
 
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
 #include <arm_navigation_msgs/CollisionObject.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <std_srvs/Empty.h>
+
 #include <pcl/point_types.h>
 #include <pcl/ros/conversions.h>
 #include <pcl_ros/transforms.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/filters/passthrough.h>
+
+
 #include <tf/transform_listener.h>
 #include <tf/message_filter.h>
 #include <message_filters/subscriber.h>
 #include <octomap_ros/OctomapBinary.h>
 #include <octomap_ros/GetOctomap.h>
+#include <octomap_ros/ClearBBXRegion.h>
 #include <octomap_ros/OctomapROS.h>
+#include <octomap/OcTreeKey.h>
 
 
 namespace octomap {
 	class OctomapServer{
 	public:
-		OctomapServer();
+		OctomapServer(const std::string& filename= "");
 		virtual ~OctomapServer();
 		bool serviceCallback(octomap_ros::GetOctomap::Request  &req,
 				octomap_ros::GetOctomap::Response &res);
+		bool clearBBXSrv(octomap_ros::ClearBBXRegionRequest& req, octomap_ros::ClearBBXRegionRequest& resp);
+		bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
-		virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
-                
-                bool loadInitialMap(const std::string& filename);
+		void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
 
 	protected:
-		void connectCallback(const ros::SingleSubscriberPublisher& pub);
+		void publishMap(const ros::Time& rostime = ros::Time::now()) const;
+		void publishAll(const ros::Time& rostime = ros::Time::now()) const;
+
+		/// @brief Clear the internal OctoMap
+		void resetOctomap();
+
+		/**
+		 * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
+		 * @param key
+		 * @return
+		 */
+		bool isSpeckleNode(const OcTreeKey& key) const;
 		std_msgs::ColorRGBA heightMapColor(double h) const;
-		void publishMap(const ros::Time& rostime = ros::Time::now());
-		void publishMarkers(const ros::Time& rostime = ros::Time::now());
-		void publishPointCloud(const ros::Time& rostime = ros::Time::now());
-		void publishCollisionObject(const ros::Time& rostime = ros::Time::now());
 		ros::NodeHandle m_nh;
-		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub;
+		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub;
 		message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
 		tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
-		ros::ServiceServer m_service;
+		ros::ServiceServer m_octomapService, m_clearBBXService, m_resetService;
 		tf::TransformListener m_tfListener;
 
-		OcTreeROS m_octoMap;
+		OcTreeROS *m_octoMap;
+		KeyRay m_keyRay;  // temp storage for ray casting
 		double m_maxRange;
-		std::string m_frameId;
+		std::string m_worldFrameId; // the map frame
+		std::string m_baseFrameId; // base of the robot for ground plane filtering
 		bool m_useHeightMap;
 		std_msgs::ColorRGBA m_color;
 		double m_colorFactor;
-		double m_visMinZ;
-		double m_visMaxZ;
+
+		bool m_latchedTopics;
+
+		double m_res;
+		unsigned m_treeDepth;
+		double m_probHit;
+		double m_probMiss;
+		double m_thresMin;
+		double m_thresMax;
+
+		double m_pointcloudMinZ;
+		double m_pointcloudMaxZ;
+		double m_occupancyMinZ;
+		double m_occupancyMaxZ;
+		double m_minSizeX;
+		double m_minSizeY;
+		bool m_filterSpeckles;
+
+		bool m_filterGroundPlane;
+		double m_groundFilterDistance;
+		double m_groundFilterAngle;
+		double m_groundFilterPlaneDistance;
 	};
 }
 
-
-#endif
