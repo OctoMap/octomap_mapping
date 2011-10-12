@@ -67,11 +67,12 @@
 
 namespace octomap {
 	class OctomapServer{
+	  typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
+
 	public:
 		OctomapServer(const std::string& filename= "");
 		virtual ~OctomapServer();
-		bool serviceCallback(octomap_ros::GetOctomap::Request  &req,
-				octomap_ros::GetOctomap::Response &res);
+		bool serviceCallback(octomap_ros::GetOctomap::Request  &req, octomap_ros::GetOctomap::Response &res);
 		bool clearBBXSrv(octomap_ros::ClearBBXRegionRequest& req, octomap_ros::ClearBBXRegionRequest& resp);
 		bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
@@ -79,10 +80,23 @@ namespace octomap {
 
 	protected:
 		void publishMap(const ros::Time& rostime = ros::Time::now()) const;
-		void publishAll(const ros::Time& rostime = ros::Time::now()) const;
+		void publishAll(const ros::Time& rostime = ros::Time::now());
 
 		/// @brief Clear the internal OctoMap
 		void resetOctomap();
+
+		/**
+		 * @brief update occupancy map with a scan labeled as ground and nonground.
+		 * The scans should be in the global map frame.
+		 *
+		 * @param sensorOrigin origin of the measurements for raycasting
+		 * @param ground scan endpoints on the ground plane (only clear space)
+		 * @param nonground all other endpoints (clear up to occupied endpoint)
+		 */
+		void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& ground, const PCLPointCloud& nonground);
+
+		/// label the input cloud "pc" into ground and nonground. Should be in the robot's fixed frame (not world!)
+		void filterGroundPlane(const PCLPointCloud& pc, PCLPointCloud& ground, PCLPointCloud& nonground) const;
 
 		/**
 		 * @brief Find speckle nodes (single occupied voxels with no neighbors). Only works on lowest resolution!
@@ -90,6 +104,22 @@ namespace octomap {
 		 * @return
 		 */
 		bool isSpeckleNode(const OcTreeKey& key) const;
+
+		/// hook that is called after traversing all nodes
+		void handlePreNodeTraversal(const ros::Time& rostime);
+
+		/// hook that is called when traversing all nodes of the updated Octree (does nothing here)
+		void handleNode(const OcTreeROS::OcTreeType::iterator& it) {};
+
+		/// hook that is called when traversing occupied nodes of the updated Octree (updates 2D map projection here)
+		void handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it);
+
+		/// hook that is called when traversing free nodes of the updated Octree (updates 2D map projection here)
+		void handleFreeNode(const OcTreeROS::OcTreeType::iterator& it);
+
+		/// hook that is called after traversing all nodes
+		void handlePostNodeTraversal(const ros::Time& rostime);
+
 		std_msgs::ColorRGBA heightMapColor(double h) const;
 		ros::NodeHandle m_nh;
 		ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub;
@@ -128,6 +158,11 @@ namespace octomap {
 		double m_groundFilterDistance;
 		double m_groundFilterAngle;
 		double m_groundFilterPlaneDistance;
+
+		// downprojected 2D map:
+		nav_msgs::OccupancyGrid m_gridmap;
+		bool m_publish2DMap;
+		OcTreeKey m_paddedMinKey;
 	};
 }
 
