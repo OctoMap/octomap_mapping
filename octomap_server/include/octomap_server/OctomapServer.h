@@ -67,9 +67,11 @@
 
 namespace octomap {
 	class OctomapServer{
-	  typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
 
 	public:
+	  typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
+
+
 		OctomapServer(const std::string& filename= "");
 		virtual ~OctomapServer();
 		bool serviceCallback(octomap_ros::GetOctomap::Request  &req, octomap_ros::GetOctomap::Response &res);

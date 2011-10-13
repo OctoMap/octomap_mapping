@@ -23,7 +23,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_gensrv()
 
 #common commands for building c++ executables and libraries
-rosbuild_add_library(${PROJECT_NAME} src/OctomapServer.cpp)
+rosbuild_add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp)
 
 rosbuild_add_executable(octomap_server_node src/octomap_server_node.cpp)
 target_link_libraries(octomap_server_node ${PROJECT_NAME})
