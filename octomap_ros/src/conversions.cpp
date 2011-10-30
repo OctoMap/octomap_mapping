@@ -42,8 +42,8 @@
 namespace octomap {
 
 	// common template specializations (check for errors while compiling octomap_ros)
-	template static inline void pointsOctomapToPCL(const point3d_list& points, pcl::PointCloud<pcl::PointXYZ>& cloud);
-	template static inline void pointcloudPCLToOctomap(const pcl::PointCloud<pcl::PointXYZ>& pclCloud, Pointcloud& octomapCloud);
+	template static void pointsOctomapToPCL(const point3d_list& points, pcl::PointCloud<pcl::PointXYZ>& cloud);
+	template static void pointcloudPCLToOctomap(const pcl::PointCloud<pcl::PointXYZ>& pclCloud, Pointcloud& octomapCloud);
 
 }
 
