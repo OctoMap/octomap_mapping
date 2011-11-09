@@ -5,7 +5,7 @@ all: installed
 #
 TARBALL = build/octomap.tar.gz
 TARBALL_URL = https://code.ros.org/svn/release/download/thirdparty/octomap/octomap-1.2.1.tar.gz
-#TARBALL_PATCH = 
+TARBALL_PATCH = osx.patch
 INITIAL_DIR = build/octomap
 SOURCE_DIR = build/octomap-tar
 include $(shell rospack find mk)/download_unpack_build.mk
