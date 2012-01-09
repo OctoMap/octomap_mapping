@@ -21,6 +21,9 @@
   <depend package="sensor_msgs"/>
   <depend package="pcl"/>
   <depend package="tf"/>
+  <depend package="common_rosdeps"/>
+
+  <rosdep name="eigen" />
 
 </package>
 

@@ -22,6 +22,8 @@
   <depend package="arm_navigation_msgs"/>
   <depend package="std_msgs"/>
   <depend package="std_srvs"/>
+
+  <rosdep name="eigen"/>
 </package>
 
 
