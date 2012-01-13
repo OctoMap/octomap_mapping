@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (c) 2010, A. Hornung, University of Freiburg
+ * Copyright (c) 2011, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
