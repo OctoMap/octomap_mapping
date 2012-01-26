@@ -95,7 +95,7 @@ namespace octomap {
 		 * @param ground scan endpoints on the ground plane (only clear space)
 		 * @param nonground all other endpoints (clear up to occupied endpoint)
 		 */
-		void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& ground, const PCLPointCloud& nonground);
+		virtual void insertScan(const tf::Point& sensorOrigin, const PCLPointCloud& ground, const PCLPointCloud& nonground);
 
 		/// label the input cloud "pc" into ground and nonground. Should be in the robot's fixed frame (not world!)
 		void filterGroundPlane(const PCLPointCloud& pc, PCLPointCloud& ground, PCLPointCloud& nonground) const;
