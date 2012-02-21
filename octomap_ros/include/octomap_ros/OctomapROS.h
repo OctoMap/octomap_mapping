@@ -3,7 +3,7 @@
 /**
  * OctoMap ROS integration
  *
- * @author A. Hornung, University of Freiburg, Copyright (C) 2011.
+ * @author A. Hornung, University of Freiburg, Copyright (C) 2011-2012
  * @see http://www.ros.org/wiki/octomap_ros
  * License: BSD
  */

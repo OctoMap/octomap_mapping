@@ -14,13 +14,13 @@
     <cpp cflags="-I${prefix}/include"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_ros"/>
   </export>
   
-  
-  <depend package="octomap"/>
   <depend package="roscpp"/>
   <depend package="geometry_msgs"/>
   <depend package="sensor_msgs"/>
   <depend package="pcl"/>
   <depend package="tf"/>
+  
+  <rosdep name="octomap" />
 
 </package>
 
