@@ -1,4 +1,0 @@
-octomap:
-  ubuntu: 
-    apt: 
-      packages: [ ros-fuerte-octomap ]
