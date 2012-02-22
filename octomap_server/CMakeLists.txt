@@ -10,11 +10,6 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 set(ROS_BUILD_TYPE RelWithDebInfo)
 #set(ROS_BUILD_TYPE Release)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIRS})
-
-
 rosbuild_init()
 
 #set the default path for built executables to the "bin" directory

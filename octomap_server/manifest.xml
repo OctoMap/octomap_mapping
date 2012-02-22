@@ -11,7 +11,7 @@
   <url>http://www.ros.org/wiki/octomap_server</url>
   
   <export>
-    <cpp cflags="-I${prefix}/include"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_ros"/>
+    <cpp cflags="-I${prefix}/include"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_server"/>
   </export>
   
   <depend package="octomap"/>
@@ -23,7 +23,6 @@
   <depend package="std_msgs"/>
   <depend package="std_srvs"/>
 
-  <rosdep name="eigen"/>
 </package>
 
 
