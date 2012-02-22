@@ -4,7 +4,7 @@ all: installed
 # Download, extract and compile from a released tarball:
 #
 TARBALL = build/octomap.tar.gz
-TARBALL_URL = https://code.ros.org/svn/release/download/thirdparty/octomap/octomap-1.3.2.tar.gz
+TARBALL_URL = https://code.ros.org/svn/release/download/thirdparty/octomap/octomap-1.4.0.tar.gz
 TARBALL_PATCH = 
 INITIAL_DIR = build/octomap
 SOURCE_DIR = build/octomap-tar
