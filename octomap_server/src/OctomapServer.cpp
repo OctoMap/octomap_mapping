@@ -185,8 +185,6 @@ namespace octomap{
 		pcl::PassThrough<pcl::PointXYZ> pass;
 		pass.setFilterFieldName("z");
 		pass.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
-		pass.setInputCloud(pc.makeShared());
-
 
 		PCLPointCloud pc_ground; // segmented ground plane
 		PCLPointCloud pc_nonground; // everything else
@@ -211,6 +209,7 @@ namespace octomap{
 
       // transform pointcloud from sensor frame to fixed robot frame
       pcl::transformPointCloud(pc, pc, sensorToBase);
+      pass.setInputCloud(pc.makeShared());
 	    pass.filter(pc);
 		  filterGroundPlane(pc, pc_ground, pc_nonground);
 
@@ -222,6 +221,7 @@ namespace octomap{
 		  pcl::transformPointCloud(pc, pc, sensorToWorld);
 
 		  // just filter height range:
+	    pass.setInputCloud(pc.makeShared());
 	    pass.filter(pc);
 
 			pc_nonground = pc;

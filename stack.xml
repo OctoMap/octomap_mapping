@@ -2,7 +2,7 @@
   <description brief="Stack for the OctoMap 3D mapping library">
     The <a href="http://octomap.sourceforge.net/">OctoMap library</a> implements a 3D occupancy grid mapping approach,
 providing data structures and mapping algorithms. The map implementation is
-based on an octree. This stack contains the actual OctoMap package and additional code for ROS integration.
+based on an octree. This stack contains additional code for ROS integration.
   </description>
   <author>Maintained by Armin Hornung</author>
   <license>BSD</license>  
