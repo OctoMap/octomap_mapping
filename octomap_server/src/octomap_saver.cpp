@@ -42,44 +42,45 @@
 #include <fstream>
 
 #define USAGE "\nUSAGE: octomap_saver <map.bt>\n" \
-              "  map.bt: filename of map to be saved\n"
+		"  map.bt: filename of map to be saved\n"
 
 using namespace std;
- 
+
 /**
- * @brief Map generation node.
- */
+* @brief Map generation node.
+*/
 class MapSaver{
-  public:
-    MapSaver(const std::string& mapname){
-      ros::NodeHandle n;
-      const static std::string servname = "octomap_binary";
-      ROS_INFO("Requesting the map from %s...", n.resolveName(servname).c_str());
-      octomap_ros::GetOctomap::Request req;
-      octomap_ros::GetOctomap::Response resp;
-      while(n.ok() && !ros::service::call(servname, req, resp))
-      {
-        ROS_WARN("Request to %s failed; trying again...", n.resolveName(servname).c_str());
-        usleep(1000000);
+public:
+  MapSaver(const std::string& mapname){
+    ros::NodeHandle n;
+    const static std::string servname = "octomap_binary";
+    ROS_INFO("Requesting the map from %s...", n.resolveName(servname).c_str());
+    octomap_ros::GetOctomap::Request req;
+    octomap_ros::GetOctomap::Response resp;
+    while(n.ok() && !ros::service::call(servname, req, resp))
+    {
+      ROS_WARN("Request to %s failed; trying again...", n.resolveName(servname).c_str());
+      usleep(1000000);
+    }
+
+    if (n.ok()){ // skip when CTRL-C
+      ROS_INFO("Map received, saving to %s", mapname.c_str());
+      ofstream mapfile(mapname.c_str(), ios_base::binary);
+
+      if (!mapfile.is_open()){
+        ROS_ERROR("Could not open file %s for writing", mapname.c_str());
+      } else {
+        octomap::OcTree octomap(0.1);
+        octomap::octomapMsgToMap(resp.map, octomap);
+        octomap.writeBinary(mapname);
+
+        ROS_INFO("Finished writing %d nodes to file %s (res: %f)", octomap.size(), mapname.c_str(), octomap.getResolution());
+
+        // write out stream directly (old format, no header)
+        //mapfile.write((char*)&resp.map.data[0], resp.map.data.size());
+        //mapfile.close();
       }
-
-      if (n.ok()){ // skip when CTRL-C
-		  ROS_INFO("Map received, saving to %s", mapname.c_str());
-		  ofstream mapfile(mapname.c_str(), ios_base::binary);
-
-		  if (!mapfile.is_open()){
-			  ROS_ERROR("Could not open file %s for writing", mapname.c_str());
-		  } else {
-			  // test conversion:
-//			  octomap::OcTree octomap(0.1);
-//			  octomap_server::octomapMsgToMap(resp.map, octomap);
-//			  octomap.writeBinary(mapname);
-
-			  // write out stream directly
-			  mapfile.write((char*)&resp.map.data[0], resp.map.data.size());
-			  mapfile.close();
-		  }
-      }
+    }
   }
 };
 
@@ -87,17 +88,17 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "octomap_saver");
   std::string mapFilename("");
   if (argc == 2)
-	  mapFilename = std::string(argv[1]);
+    mapFilename = std::string(argv[1]);
   else{
-	  ROS_ERROR("%s", USAGE);
-	  exit(-1);
+    ROS_ERROR("%s", USAGE);
+    exit(-1);
   }
 
   try{
-	  MapSaver ms(mapFilename);
+    MapSaver ms(mapFilename);
   }catch(std::runtime_error& e){
-	  ROS_ERROR("map_saver exception: %s", e.what());
-	  return -1;
+    ROS_ERROR("map_saver exception: %s", e.what());
+    return -1;
   }
 
   return 0;

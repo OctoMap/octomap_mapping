@@ -1,13 +1,13 @@
 /**
 * octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
 * (inspired by the ROS map_saver)
-* @author A. Hornung, University of Freiburg, Copyright (C) 2010-2011.
+* @author A. Hornung, University of Freiburg, Copyright (C) 2010-2012.
 * @see http://octomap.sourceforge.net/
 * License: BSD
 */
 
 /*
- * Copyright (c) 2010-2011, A. Hornung, University of Freiburg
+ * Copyright (c) 2010-2012, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,53 +37,55 @@
 
 #include <octomap_server/OctomapServerMultilayer.h>
 
-namespace octomap{
+using namespace octomap;
 
-	OctomapServerMultilayer::OctomapServerMultilayer(const std::string& filename)
-	  : OctomapServer(filename),
-	    m_haveAttachedObject(false)
-	{
+namespace octomap_server{
 
-	  m_attachedObjectsSub = m_nh.subscribe("attached_collision_object", 1, &OctomapServerMultilayer::attachedCallback, this);
+OctomapServerMultilayer::OctomapServerMultilayer(const std::string& filename)
+: OctomapServer(filename),
+  m_haveAttachedObject(false)
+{
 
-	}
+  m_attachedObjectsSub = m_nh.subscribe("attached_collision_object", 1, &OctomapServerMultilayer::attachedCallback, this);
 
-	OctomapServerMultilayer::~OctomapServerMultilayer(){
+}
 
-	}
+OctomapServerMultilayer::~OctomapServerMultilayer(){
 
-	void OctomapServerMultilayer::attachedCallback(const arm_navigation_msgs::AttachedCollisionObjectConstPtr& msg){
-	  ROS_DEBUG("AttachedCollisionObjects received");
-	  m_haveAttachedObject = (msg->object.operation.operation == arm_navigation_msgs::CollisionObjectOperation::ATTACH_AND_REMOVE_AS_OBJECT);
-	  if(m_haveAttachedObject){
-	    m_attachedFrame = msg->link_name;
-	    m_attachedMaxOffset = msg->object.poses.back().position.z + msg->object.shapes.back().dimensions[1];
-	    m_attachedMinOffset = msg->object.poses.back().position.z - msg->object.shapes.back().dimensions[1];
-	  }
-	}
+}
 
-	void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
+void OctomapServerMultilayer::attachedCallback(const arm_navigation_msgs::AttachedCollisionObjectConstPtr& msg){
+  ROS_DEBUG("AttachedCollisionObjects received");
+  m_haveAttachedObject = (msg->object.operation.operation == arm_navigation_msgs::CollisionObjectOperation::ATTACH_AND_REMOVE_AS_OBJECT);
+  if(m_haveAttachedObject){
+    m_attachedFrame = msg->link_name;
+    m_attachedMaxOffset = msg->object.poses.back().position.z + msg->object.shapes.back().dimensions[1];
+    m_attachedMinOffset = msg->object.poses.back().position.z - msg->object.shapes.back().dimensions[1];
+  }
+}
 
-	  // TODO: set up 2D map
-	}
+void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
 
-	void OctomapServerMultilayer::handlePostNodeTraversal(const ros::Time& rostime){
+  // TODO: set up 2D map
+}
 
-	  // TODO: publish multilayer maps
+void OctomapServerMultilayer::handlePostNodeTraversal(const ros::Time& rostime){
 
-	}
+  // TODO: publish multilayer maps
 
-	void OctomapServerMultilayer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it){
+}
 
-	  // TODO: set map pixel in layers
+void OctomapServerMultilayer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it){
 
-	}
+  // TODO: set map pixel in layers
 
-	void OctomapServerMultilayer::handleFreeNode(const OcTreeROS::OcTreeType::iterator& it){
+}
 
-	  // TODO: set map pixel in layers
+void OctomapServerMultilayer::handleFreeNode(const OcTreeROS::OcTreeType::iterator& it){
 
-	}
+  // TODO: set map pixel in layers
+
+}
 }
 
 

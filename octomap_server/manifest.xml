@@ -23,7 +23,8 @@
   <depend package="std_srvs"/>
   
   <rosdep name="octomap" />
-
+  <depend package="dynamic_reconfigure"/>
+  
 </package>
 
 

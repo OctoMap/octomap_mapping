@@ -39,39 +39,39 @@
 #include <octomap_server/OctomapServer.h>
 #include <arm_navigation_msgs/AttachedCollisionObject.h>
 
-namespace octomap {
-	class OctomapServerMultilayer : public OctomapServer{
+namespace octomap_server {
+class OctomapServerMultilayer : public OctomapServer{
 
-	public:
-		OctomapServerMultilayer(const std::string& filename= "");
-		virtual ~OctomapServerMultilayer();
-		void attachedCallback(const arm_navigation_msgs::AttachedCollisionObjectConstPtr& msg);
+public:
+  OctomapServerMultilayer(const std::string& filename= "");
+  virtual ~OctomapServerMultilayer();
+  void attachedCallback(const arm_navigation_msgs::AttachedCollisionObjectConstPtr& msg);
 
-	protected:
+protected:
 
-		/// hook that is called after traversing all nodes
-		void handlePreNodeTraversal(const ros::Time& rostime);
+  /// hook that is called after traversing all nodes
+  void handlePreNodeTraversal(const ros::Time& rostime);
 
-		/// hook that is called when traversing all nodes of the updated Octree (does nothing here)
-		void handleNode(const OcTreeROS::OcTreeType::iterator& it) {};
+  /// hook that is called when traversing all nodes of the updated Octree (does nothing here)
+  void handleNode(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
 
-		/// hook that is called when traversing occupied nodes of the updated Octree (updates 2D map projection here)
-		void handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it);
+  /// hook that is called when traversing occupied nodes of the updated Octree (updates 2D map projection here)
+  void handleOccupiedNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
-		/// hook that is called when traversing free nodes of the updated Octree (updates 2D map projection here)
-		void handleFreeNode(const OcTreeROS::OcTreeType::iterator& it);
+  /// hook that is called when traversing free nodes of the updated Octree (updates 2D map projection here)
+  void handleFreeNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
-		/// hook that is called after traversing all nodes
-		void handlePostNodeTraversal(const ros::Time& rostime);
+  /// hook that is called after traversing all nodes
+  void handlePostNodeTraversal(const ros::Time& rostime);
 
-		ros::Subscriber m_attachedObjectsSub;
+  ros::Subscriber m_attachedObjectsSub;
 
-    std::string m_attachedFrame;
-    double m_attachedMaxOffset;
-    double m_attachedMinOffset;
-		bool m_haveAttachedObject;
+  std::string m_attachedFrame;
+  double m_attachedMaxOffset;
+  double m_attachedMinOffset;
+  bool m_haveAttachedObject;
 
 
-	};
+};
 }
 

@@ -1,13 +1,13 @@
 /**
 * octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
 * (inspired by the ROS map_saver)
-* @author A. Hornung, University of Freiburg, Copyright (C) 2009 - 2011.
+* @author A. Hornung, University of Freiburg, Copyright (C) 2009 - 2012.
 * @see http://octomap.sourceforge.net/
 * License: BSD
 */
 
 /*
- * Copyright (c) 2009-2011, A. Hornung, University of Freiburg
+ * Copyright (c) 2009-2012, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,28 +40,28 @@
 #include <octomap_server/OctomapServer.h>
 
 #define USAGE "\nUSAGE: octomap_server <map.bt>\n" \
-              "  map.bt: octomap 3D map file to read\n"
+		"  map.bt: inital octomap 3D map file to read\n"
 
-using namespace octomap;
+using namespace octomap_server;
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "octomap_server");
   std::string mapFilename("");
 
   if (argc > 2 || (argc == 2 && std::string(argv[1]) == "-h")){
-	  ROS_ERROR("%s", USAGE);
-	  exit(-1);
+    ROS_ERROR("%s", USAGE);
+    exit(-1);
   }
 
   if (argc == 2)
-	  mapFilename = std::string(argv[1]);
+    mapFilename = std::string(argv[1]);
 
   try{
-	  OctomapServer ms(mapFilename);
-	  ros::spin();
+    OctomapServer ms(mapFilename);
+    ros::spin();
   }catch(std::runtime_error& e){
-	  ROS_ERROR("octomap_server exception: %s", e.what());
-	  return -1;
+    ROS_ERROR("octomap_server exception: %s", e.what());
+    return -1;
   }
 
   return 0;
