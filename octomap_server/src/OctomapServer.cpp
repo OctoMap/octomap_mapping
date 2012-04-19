@@ -124,7 +124,7 @@ OctomapServer::OctomapServer(const std::string& filename)
   private_nh.param("latch", m_latchedTopics, m_latchedTopics);
 
   m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
-  m_binaryMapPub = m_nh.advertise<octomap_ros::OctomapBinary>("octomap_binary", 1, m_latchedTopics);
+  m_binaryMapPub = m_nh.advertise<octomap_msgs::OctomapBinary>("octomap_binary", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
   m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("map", 5, m_latchedTopics);
@@ -498,8 +498,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 }
 
 
-bool OctomapServer::serviceCallback(octomap_ros::GetOctomap::Request  &req,
-                                    octomap_ros::GetOctomap::Response &res)
+bool OctomapServer::serviceCallback(octomap_msgs::GetOctomap::Request  &req,
+		octomap_msgs::GetOctomap::Response &res)
 {
   ROS_INFO("Sending map data on service request");
   res.map.header.frame_id = m_worldFrameId;
@@ -509,7 +509,7 @@ bool OctomapServer::serviceCallback(octomap_ros::GetOctomap::Request  &req,
   return true;
 }
 
-bool OctomapServer::clearBBXSrv(octomap_ros::ClearBBXRegionRequest& req, octomap_ros::ClearBBXRegionRequest& resp){
+bool OctomapServer::clearBBXSrv(octomap_msgs::ClearBBXRegionRequest& req, octomap_msgs::ClearBBXRegionRequest& resp){
   OcTreeROS::OcTreeType::leaf_bbx_iterator it, end;
   point3d min = pointMsgToOctomap(req.min);
   point3d max = pointMsgToOctomap(req.max);
@@ -553,7 +553,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
 
 void OctomapServer::publishMap(const ros::Time& rostime) const{
 
-  octomap_ros::OctomapBinary map;
+  octomap_msgs::OctomapBinary map;
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 

@@ -30,7 +30,7 @@
 #ifndef TRACKINGOCTOMAPSERVER_H_
 #define TRACKINGOCTOMAPSERVER_H_
 
-#include "OctomapServer.h"
+#include "octomap_server/OctomapServer.h"
 
 namespace octomap_server {
 

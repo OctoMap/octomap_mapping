@@ -36,7 +36,7 @@
  */
 
 #include <ros/ros.h>
-#include <octomap_ros/GetOctomap.h>
+#include <octomap_msgs/GetOctomap.h>
 #include <octomap_ros/conversions.h>
 #include <octomap/octomap.h>
 #include <fstream>
@@ -55,8 +55,8 @@ public:
     ros::NodeHandle n;
     const static std::string servname = "octomap_binary";
     ROS_INFO("Requesting the map from %s...", n.resolveName(servname).c_str());
-    octomap_ros::GetOctomap::Request req;
-    octomap_ros::GetOctomap::Response resp;
+    octomap_msgs::GetOctomap::Request req;
+    octomap_msgs::GetOctomap::Response resp;
     while(n.ok() && !ros::service::call(servname, req, resp))
     {
       ROS_WARN("Request to %s failed; trying again...", n.resolveName(servname).c_str());
