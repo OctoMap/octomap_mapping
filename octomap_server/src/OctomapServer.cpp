@@ -127,7 +127,7 @@ OctomapServer::OctomapServer(const std::string& filename)
   m_binaryMapPub = m_nh.advertise<octomap_msgs::OctomapBinary>("octomap_binary", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
   m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1, m_latchedTopics);
-  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("map", 5, m_latchedTopics);
+  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
   m_cmapPub = m_nh.advertise<arm_navigation_msgs::CollisionMap>("collision_map_out", 1, m_latchedTopics);
 
 
@@ -383,9 +383,9 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         double size = it.getSize();
         double x = it.getX();
         double y = it.getY();
-        octomap::OcTreeKey nKey = it.getKey();
+
         // Ignore speckles in the map:
-        if (m_filterSpeckles && (it.getDepth() == m_treeDepth +1) && isSpeckleNode(nKey)){
+        if (m_filterSpeckles && (it.getDepth() == m_treeDepth +1) && isSpeckleNode(it.getKey())){
           ROS_DEBUG("Ignoring single speckle at (%f,%f,%f)", x, y, z);
           continue;
         } // else: current octree node is no speckle, send it out
@@ -509,7 +509,7 @@ bool OctomapServer::serviceCallback(octomap_msgs::GetOctomap::Request  &req,
   return true;
 }
 
-bool OctomapServer::clearBBXSrv(octomap_msgs::ClearBBXRegionRequest& req, octomap_msgs::ClearBBXRegionRequest& resp){
+bool OctomapServer::clearBBXSrv(octomap_msgs::BoundingBoxQueryRequest& req, octomap_msgs::BoundingBoxQueryResponse& resp){
   OcTreeROS::OcTreeType::leaf_bbx_iterator it, end;
   point3d min = pointMsgToOctomap(req.min);
   point3d max = pointMsgToOctomap(req.max);
@@ -517,7 +517,7 @@ bool OctomapServer::clearBBXSrv(octomap_msgs::ClearBBXRegionRequest& req, octoma
   for(OcTreeROS::OcTreeType::leaf_bbx_iterator it = m_octoMap->octree.begin_leafs_bbx(min,max),
       end=m_octoMap->octree.end_leafs_bbx(); it!= end; ++it){
 
-    it->setLogOdds(m_thresMin);
+    it->setLogOdds(octomap::logodds(m_thresMin));
     //			m_octoMap->octree.updateNode(it.getKey(), -6.0f);
   }
   // TODO: eval which is faster (setLogOdds+updateInner or updateNode)
@@ -762,9 +762,8 @@ void OctomapServer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it
   // update 2D map (occupied always overrides):
   if (m_publish2DMap){
     if (it.getDepth() == m_maxTreeDepth){
-      octomap::OcTreeKey nKey = it.getKey(); // TODO: remove intermedate obj (1.4)
-      int i = nKey[0] - m_paddedMinKey[0];
-      int j = nKey[1] - m_paddedMinKey[1];
+      int i = it.getKey()[0] - m_paddedMinKey[0];
+      int j = it.getKey()[1] - m_paddedMinKey[1];
       m_gridmap.data[m_gridmap.info.width*j + i] = 100;
     } else{
       int intSize = 1 << (m_treeDepth - it.getDepth());
@@ -784,9 +783,8 @@ void OctomapServer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it
 void OctomapServer::handleFreeNode(const OcTreeROS::OcTreeType::iterator& it){
   if (m_publish2DMap){
     if (it.getDepth() == m_maxTreeDepth){
-      octomap::OcTreeKey nKey = it.getKey(); //TODO: remove intermedate obj (1.4)
-      int i = nKey[0] - m_paddedMinKey[0];
-      int j = nKey[1] - m_paddedMinKey[1];
+      int i = it.getKey()[0] - m_paddedMinKey[0];
+      int j = it.getKey()[1] - m_paddedMinKey[1];
       if (m_gridmap.data[m_gridmap.info.width*j + i] == -1){
         m_gridmap.data[m_gridmap.info.width*j + i] = 0;
       }

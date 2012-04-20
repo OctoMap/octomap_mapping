@@ -9,15 +9,14 @@ import sys
 from time import sleep
 
 import roslib
-roslib.load_manifest('geometry_msgs')
-roslib.load_manifest('octomap_ros')
+roslib.load_manifest('octomap_server')
 from geometry_msgs.msg import Point
-import octomap_ros.srv
+import octomap_msgs.srv
 import rospy
 
 
-SRV_NAME = '/octomap_server_combined/clear_bbx'
-SRV_INTERFACE = octomap_ros.srv.ClearBBXRegion
+SRV_NAME = '/octomap_server/clear_bbx'
+SRV_INTERFACE = octomap_msgs.srv.BoundingBoxQuery
 
 
 if __name__ == '__main__':

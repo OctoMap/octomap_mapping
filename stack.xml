@@ -8,6 +8,8 @@ based on an octree. This stack contains additional code for ROS integration.
   <license>BSD</license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/octomap_mapping</url>
+  <depend stack="octomap_msgs" />
+  <depend stack="octomap_ros" />
   <depend stack="arm_navigation" /> <!-- arm_navigation_msgs -->
   <depend stack="common_msgs" /> <!-- nav_msgs, sensor_msgs, geometry_msgs, visualization_msgs -->
   <depend stack="geometry" /> <!-- tf -->

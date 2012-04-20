@@ -63,7 +63,7 @@
 #include <message_filters/subscriber.h>
 #include <octomap_msgs/OctomapBinary.h>
 #include <octomap_msgs/GetOctomap.h>
-#include <octomap_msgs/ClearBBXRegion.h>
+#include <octomap_msgs/BoundingBoxQuery.h>
 #include <octomap_ros/OctomapROS.h>
 #include <octomap/OcTreeKey.h>
 
@@ -78,7 +78,7 @@ public:
   OctomapServer(const std::string& filename= "");
   virtual ~OctomapServer();
   bool serviceCallback(octomap_msgs::GetOctomap::Request  &req, octomap_msgs::GetOctomap::Response &res);
-  bool clearBBXSrv(octomap_msgs::ClearBBXRegionRequest& req, octomap_msgs::ClearBBXRegionRequest& resp);
+  bool clearBBXSrv(octomap_msgs::BoundingBoxQueryRequest& req, octomap_msgs::BoundingBoxQueryResponse& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
   void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
