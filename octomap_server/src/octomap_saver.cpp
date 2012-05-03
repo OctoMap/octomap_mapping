@@ -36,10 +36,17 @@
  */
 
 #include <ros/ros.h>
-#include <octomap_msgs/GetOctomap.h>
 #include <octomap_ros/conversions.h>
 #include <octomap/octomap.h>
 #include <fstream>
+
+#if ROS_VERSION_MINIMUM(1,8,0)
+  #include <octomap_msgs/GetOctomap.h>
+  using octomap_msgs::GetOctomap;
+#else
+  #include <octomap_ros/GetOctomap.h>
+  using octomap_ros::GetOctomap;
+#endif
 
 #define USAGE "\nUSAGE: octomap_saver <map.bt>\n" \
 		"  map.bt: filename of map to be saved\n"
@@ -55,8 +62,8 @@ public:
     ros::NodeHandle n;
     const static std::string servname = "octomap_binary";
     ROS_INFO("Requesting the map from %s...", n.resolveName(servname).c_str());
-    octomap_msgs::GetOctomap::Request req;
-    octomap_msgs::GetOctomap::Response resp;
+    GetOctomap::Request req;
+    GetOctomap::Response resp;
     while(n.ok() && !ros::service::call(servname, req, resp))
     {
       ROS_WARN("Request to %s failed; trying again...", n.resolveName(servname).c_str());
@@ -74,7 +81,7 @@ public:
         octomap::octomapMsgToMap(resp.map, octomap);
         octomap.writeBinary(mapname);
 
-        ROS_INFO("Finished writing %d nodes to file %s (res: %f)", octomap.size(), mapname.c_str(), octomap.getResolution());
+        ROS_INFO("Finished writing %zu nodes to file %s (res: %f)", octomap.size(), mapname.c_str(), octomap.getResolution());
 
         // write out stream directly (old format, no header)
         //mapfile.write((char*)&resp.map.data[0], resp.map.data.size());

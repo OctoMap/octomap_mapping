@@ -38,6 +38,12 @@
 #include <octomap_server/OctomapServer.h>
 
 using namespace octomap;
+#if ROS_VERSION_MINIMUM(1,8,0)
+  using octomap_msgs::OctomapBinary;
+#else
+  using octomap_ros::OctomapBinary;
+#endif
+
 
 namespace octomap_server{
 
@@ -62,7 +68,8 @@ OctomapServer::OctomapServer()
   m_occupancyMaxZ(std::numeric_limits<double>::max()),
   m_minSizeX(0.0), m_minSizeY(0.0),
   m_filterSpeckles(false), m_filterGroundPlane(false),
-  m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07)
+  m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
+  m_compressMap(true)
 {
   ros::NodeHandle private_nh("~");
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
@@ -93,6 +100,15 @@ OctomapServer::OctomapServer()
   private_nh.param("sensor_model/miss", m_probMiss, m_probMiss);
   private_nh.param("sensor_model/min", m_thresMin, m_thresMin);
   private_nh.param("sensor_model/max", m_thresMax, m_thresMax);
+  private_nh.param("compress_map", m_compressMap, m_compressMap);
+
+  if (m_filterGroundPlane && (m_pointcloudMinZ > 0.0 || m_pointcloudMaxZ < 0.0)){
+	  ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
+			  <<m_pointcloudMinZ <<", "<< m_pointcloudMaxZ << "], excluding the ground level z=0. "
+			  << "This will not work.");
+
+  }
+
 
 
   // initialize octomap object & params
@@ -104,7 +120,6 @@ OctomapServer::OctomapServer()
   m_treeDepth = m_octoMap->octree.getTreeDepth();
   m_maxTreeDepth = m_treeDepth;
   m_gridmap.info.resolution = m_res;
-
 
   double r, g, b, a;
   private_nh.param("color/r", r, 0.0);
@@ -123,7 +138,7 @@ OctomapServer::OctomapServer()
     ROS_INFO("Publishing non-latched (topics are only prepared as needed, will only be re-published on map change");
 
   m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
-  m_binaryMapPub = m_nh.advertise<octomap_msgs::OctomapBinary>("octomap_binary", 1, m_latchedTopics);
+  m_binaryMapPub = m_nh.advertise<OctomapBinary>("octomap_binary", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
   m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
@@ -170,6 +185,17 @@ bool OctomapServer::openFile(const std::string& filename){
   m_maxTreeDepth = m_treeDepth;
   m_res = m_octoMap->octree.getResolution();
   m_gridmap.info.resolution = m_res;
+  double minX, minY, minZ;
+  double maxX, maxY, maxZ;
+  m_octoMap->octree.getMetricMin(minX, minY, minZ);
+  m_octoMap->octree.getMetricMax(maxX, maxY, maxZ);
+
+  m_octoMap->octree.genKeyValue(minX, m_updateBBXMin[0]);
+  m_octoMap->octree.genKeyValue(minY, m_updateBBXMin[1]);
+  m_octoMap->octree.genKeyValue(minZ, m_updateBBXMin[2]);
+  m_octoMap->octree.genKeyValue(maxX, m_updateBBXMax[0]);
+  m_octoMap->octree.genKeyValue(maxY, m_updateBBXMax[1]);
+  m_octoMap->octree.genKeyValue(maxZ, m_updateBBXMax[2]);
 
   publishAll();
 
@@ -260,6 +286,9 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
 
+  m_octoMap->octree.genKey(sensorOrigin, m_updateBBXMin);
+  m_octoMap->octree.genKey(sensorOrigin, m_updateBBXMax);
+
   // instead of direct scan insertion, compute update to filter ground:
   KeySet free_cells, occupied_cells;
   // insert ground points only as free:
@@ -274,6 +303,9 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
     if (m_octoMap->octree.computeRayKeys(sensorOrigin, point, m_keyRay)){
       free_cells.insert(m_keyRay.begin(), m_keyRay.end());
     }
+
+    updateMinKey(m_keyRay.ray.back(), m_updateBBXMin);
+    updateMaxKey(m_keyRay.ray.back(), m_updateBBXMax);
   }
 
   // all other points: free on ray, occupied on endpoint:
@@ -290,11 +322,17 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
       OcTreeKey key;
       if (m_octoMap->octree.genKey(point, key)){
         occupied_cells.insert(key);
+
+        updateMinKey(key, m_updateBBXMin);
+        updateMaxKey(key, m_updateBBXMax);
       }
     } else {// ray longer than maxrange:;
       point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
       if (m_octoMap->octree.computeRayKeys(sensorOrigin, new_end, m_keyRay)){
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
+
+        updateMinKey(m_keyRay.ray.back(), m_updateBBXMin);
+        updateMaxKey(m_keyRay.ray.back(), m_updateBBXMax);
       }
     }
   }
@@ -315,8 +353,8 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // non-lazy by default (updateInnerOccupancy() too slow for large maps)
   //m_octoMap->octree.updateInnerOccupancy();
 
-  // prune by default:
-  m_octoMap->octree.prune();
+  if (m_compressMap)
+    m_octoMap->octree.prune();
 
 
 }
@@ -374,9 +412,12 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   for (OcTreeROS::OcTreeType::iterator it = m_octoMap->octree.begin(m_maxTreeDepth),
       end = m_octoMap->octree.end(); it != end; ++it)
   {
+    bool inUpdateBBX = isInUpdateBBX(it.getKey());
 
     // call general hook:
     handleNode(it);
+    if (inUpdateBBX)
+      handleNodeInBBX(it);
 
     if (m_octoMap->octree.isNodeOccupied(*it)){
       double z = it.getZ();
@@ -393,6 +434,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         } // else: current octree node is no speckle, send it out
 
         handleOccupiedNode(it);
+        if (inUpdateBBX)
+          handleOccupiedNodeInBBX(it);
 
 
         // create collision object:
@@ -444,6 +487,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       }
     } else{ // node not occupied => mark as free in 2D map if unknown so far
       handleFreeNode(it);
+      if (inUpdateBBX)
+        handleFreeNodeInBBX(it);
     }
   }
 
@@ -500,8 +545,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 }
 
 
-bool OctomapServer::serviceCallback(octomap_msgs::GetOctomap::Request  &req,
-		octomap_msgs::GetOctomap::Response &res)
+bool OctomapServer::serviceCallback(OctomapSrv::Request  &req,
+                                    OctomapSrv::Response &res)
 {
   ROS_INFO("Sending map data on service request");
   res.map.header.frame_id = m_worldFrameId;
@@ -511,7 +556,7 @@ bool OctomapServer::serviceCallback(octomap_msgs::GetOctomap::Request  &req,
   return true;
 }
 
-bool OctomapServer::clearBBXSrv(octomap_msgs::BoundingBoxQueryRequest& req, octomap_msgs::BoundingBoxQueryResponse& resp){
+bool OctomapServer::clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp){
   OcTreeROS::OcTreeType::leaf_bbx_iterator it, end;
   point3d min = pointMsgToOctomap(req.min);
   point3d max = pointMsgToOctomap(req.max);
@@ -555,7 +600,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
 
 void OctomapServer::publishMap(const ros::Time& rostime) const{
 
-  octomap_msgs::OctomapBinary map;
+  OctomapBinary map;
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
@@ -773,7 +818,7 @@ void OctomapServer::handlePostNodeTraversal(const ros::Time& rostime){
     m_mapPub.publish(m_gridmap);
 }
 
-void OctomapServer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it){
+void OctomapServer::handleOccupiedNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
 
   // update 2D map (occupied always overrides):
   if (m_publish2DMap){
@@ -794,7 +839,7 @@ void OctomapServer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it
 
 }
 
-void OctomapServer::handleFreeNode(const OcTreeROS::OcTreeType::iterator& it){
+void OctomapServer::handleFreeNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
 
   if (m_publish2DMap){
     if (it.getDepth() == m_maxTreeDepth){

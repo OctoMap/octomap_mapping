@@ -61,9 +61,16 @@
 #include <tf/transform_listener.h>
 #include <tf/message_filter.h>
 #include <message_filters/subscriber.h>
-#include <octomap_msgs/OctomapBinary.h>
-#include <octomap_msgs/GetOctomap.h>
-#include <octomap_msgs/BoundingBoxQuery.h>
+#if ROS_VERSION_MINIMUM(1,8,0) // test for Fuerte (newer PCL)
+  #include <octomap_msgs/OctomapBinary.h>
+  #include <octomap_msgs/GetOctomap.h>
+  #include <octomap_msgs/BoundingBoxQuery.h>
+#else
+  #include <octomap_ros/OctomapBinary.h>
+  #include <octomap_ros/GetOctomap.h>
+  #include <octomap_ros/ClearBBXRegion.h>
+#endif
+
 #include <octomap_ros/OctomapROS.h>
 #include <octomap/OcTreeKey.h>
 
@@ -73,18 +80,40 @@ class OctomapServer{
 
 public:
   typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
+#if ROS_VERSION_MINIMUM(1,8,0)
+  typedef octomap_msgs::GetOctomap OctomapSrv;
+  typedef octomap_msgs::BoundingBoxQuery BBXSrv;
+#else
+  typedef octomap_ros::GetOctomap OctomapSrv;
+  typedef octomap_ros::ClearBBXRegion BBXSrv;
+#endif
 
 
   OctomapServer();
   virtual ~OctomapServer();
-  virtual bool serviceCallback(octomap_msgs::GetOctomap::Request  &req, octomap_msgs::GetOctomap::Response &res);
-  bool clearBBXSrv(octomap_msgs::BoundingBoxQueryRequest& req, octomap_msgs::BoundingBoxQueryResponse& resp);
+  virtual bool serviceCallback(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
+  bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
   virtual bool openFile(const std::string& filename);
 
 protected:
+  inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min){
+    for (unsigned i=0; i<3; ++i)
+      min[i] = std::min(in[i], min[i]);
+  };
+  
+  inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& max){
+    for (unsigned i=0; i<3; ++i)
+      max[i] = std::max(in[i], max[i]);
+  };
+  
+  inline bool isInUpdateBBX(const octomap::OcTreeKey& key) const{
+    return (key[0] >= m_updateBBXMin[0] && key[1] >= m_updateBBXMin[1] && key[2] >= m_updateBBXMin[2]
+         && key[0] <= m_updateBBXMax[0] && key[1] <= m_updateBBXMax[1] && key[2] <= m_updateBBXMax[2] );
+  }
+
   void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
   void publishMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishAll(const ros::Time& rostime = ros::Time::now());
@@ -115,11 +144,20 @@ protected:
   /// hook that is called when traversing all nodes of the updated Octree (does nothing here)
   virtual void handleNode(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
 
-  /// hook that is called when traversing occupied nodes of the updated Octree (updates 2D map projection here)
-  virtual void handleOccupiedNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  /// hook that is called when traversing all nodes of the updated Octree in the updated area (does nothing here)
+  virtual void handleNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
 
-  /// hook that is called when traversing free nodes of the updated Octree (updates 2D map projection here)
-  virtual void handleFreeNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  /// hook that is called when traversing occupied nodes of the updated Octree
+  virtual void handleOccupiedNode(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
+
+  /// hook that is called when traversing occupied nodes in the updated area (updates 2D map projection here)
+  virtual void handleOccupiedNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
+
+  /// hook that is called when traversing free nodes of the updated Octree
+  virtual void handleFreeNode(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
+
+  /// hook that is called when traversing free nodes in the updated area (updates 2D map projection here)
+  virtual void handleFreeNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
   /// hook that is called after traversing all nodes
   virtual void handlePostNodeTraversal(const ros::Time& rostime);
@@ -145,6 +183,9 @@ protected:
 
   octomap::OcTreeROS *m_octoMap;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
+  octomap::OcTreeKey m_updateBBXMin;
+  octomap::OcTreeKey m_updateBBXMax;
+
   double m_maxRange;
   std::string m_worldFrameId; // the map frame
   std::string m_baseFrameId; // base of the robot for ground plane filtering
@@ -175,9 +216,13 @@ protected:
   double m_groundFilterAngle;
   double m_groundFilterPlaneDistance;
 
+  bool m_compressMap;
+
   // downprojected 2D map:
+  bool m_incrementalUpdate;
   nav_msgs::OccupancyGrid m_gridmap;
   bool m_publish2DMap;
+  bool m_mapOriginChanged;
   octomap::OcTreeKey m_paddedMinKey;
   unsigned m_multires2DScale;
 };
