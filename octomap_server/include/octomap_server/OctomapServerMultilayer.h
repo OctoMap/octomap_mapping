@@ -66,6 +66,8 @@ protected:
   double m_attachedMaxOffset;
   double m_attachedMinOffset;
   bool m_haveAttachedObject;
+  std::vector<std::string> m_armLinks;
+  std::vector<double> m_armLinkOffsets;
 
   MultilevelGrid m_multiGridmap;
 

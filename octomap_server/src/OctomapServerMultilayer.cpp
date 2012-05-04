@@ -69,6 +69,29 @@ OctomapServerMultilayer::OctomapServerMultilayer()
     m_multiMapPub.push_back(pub);
   }
 
+  // init arm links (could be params as well)
+  m_armLinks.push_back("l_elbow_flex_link");
+  m_armLinkOffsets.push_back(0.10);
+  m_armLinks.push_back("l_gripper_l_finger_tip_link");
+  m_armLinkOffsets.push_back(0.03);
+  m_armLinks.push_back("l_gripper_r_finger_tip_link");
+  m_armLinkOffsets.push_back(0.03);
+  m_armLinks.push_back("l_upper_arm_roll_link");
+  m_armLinkOffsets.push_back(0.16);
+  m_armLinks.push_back("l_wrist_flex_link");
+  m_armLinkOffsets.push_back(0.05);
+  m_armLinks.push_back("r_elbow_flex_link");
+  m_armLinkOffsets.push_back(0.10);
+  m_armLinks.push_back("r_gripper_l_finger_tip_link");
+  m_armLinkOffsets.push_back(0.03);
+  m_armLinks.push_back("r_gripper_r_finger_tip_link");
+  m_armLinkOffsets.push_back(0.03);
+  m_armLinks.push_back("r_upper_arm_roll_link");
+  m_armLinkOffsets.push_back(0.16);
+  m_armLinks.push_back("r_wrist_flex_link");
+  m_armLinkOffsets.push_back(0.05);
+
+
 }
 
 OctomapServerMultilayer::~OctomapServerMultilayer(){
@@ -94,6 +117,50 @@ void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
   nav_msgs::MapMetaData gridmapInfo = m_gridmap.info;
 
   OctomapServer::handlePreNodeTraversal(rostime);
+
+
+  // recalculate height of arm layer (stub, TODO)
+  geometry_msgs::PointStamped vin;
+  vin.point.x = 0;
+  vin.point.y = 0;
+  vin.point.z = 0;
+  vin.header.stamp = rostime;
+  double link_padding = 0.03;
+
+  double minArmHeight = 2.0;
+  double maxArmHeight = 0.0;
+  if(m_haveAttachedObject){
+    printf("adjust for attached object\n");
+    vin.header.frame_id = m_attachedFrame;
+    geometry_msgs::PointStamped vout;
+    m_tfListener.transformPoint("base_footprint",vin,vout);
+    //ROS_ERROR("link %s with height %f\n",arm_links[i],vout.point.z);
+    maxArmHeight = vout.point.z + (m_attachedMaxOffset + link_padding);
+    minArmHeight = vout.point.z - (m_attachedMinOffset + link_padding);
+  }
+
+  for (unsigned i = 0; i < m_armLinks.size(); ++i){
+    vin.header.frame_id = m_armLinks[i];
+    geometry_msgs::PointStamped vout;
+    const bool found_trans =
+        m_tfListener.waitForTransform("base_footprint", m_armLinks.at(i),
+                                      ros::Time(0), ros::Duration(1.0));
+    ROS_ASSERT_MSG(found_trans, "Timed out waiting for transform to %s",
+                   m_armLinks[i].c_str());
+    m_tfListener.transformPoint("base_footprint",vin,vout);
+    maxArmHeight = std::max(maxArmHeight, vout.point.z + (m_armLinkOffsets.at(i) + link_padding));
+    minArmHeight = std::min(minArmHeight, vout.point.z - (m_armLinkOffsets.at(i) + link_padding));
+  }
+  ROS_INFO("Arm layer interval adjusted to (%f,%f)", minArmHeight, maxArmHeight);
+  m_multiGridmap.at(2).minZ = minArmHeight;
+  m_multiGridmap.at(2).maxZ = maxArmHeight;
+  m_multiGridmap.at(2).z = (maxArmHeight+minArmHeight)/2.0;
+
+
+
+
+
+
 
   bool mapInfoChanged = mapChanged(gridmapInfo, m_gridmap.info);
 
