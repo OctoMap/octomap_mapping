@@ -151,19 +151,22 @@ protected:
   virtual void handleNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
 
   /// hook that is called when traversing occupied nodes of the updated Octree
-  virtual void handleOccupiedNode(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
+  virtual void handleOccupiedNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
   /// hook that is called when traversing occupied nodes in the updated area (updates 2D map projection here)
   virtual void handleOccupiedNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
   /// hook that is called when traversing free nodes of the updated Octree
-  virtual void handleFreeNode(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
+  virtual void handleFreeNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
   /// hook that is called when traversing free nodes in the updated area (updates 2D map projection here)
   virtual void handleFreeNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
   /// hook that is called after traversing all nodes
   virtual void handlePostNodeTraversal(const ros::Time& rostime);
+
+  /// updates the downprojected 2D map as either occupied or free
+  virtual void update2DMap(const octomap::OcTreeROS::OcTreeType::iterator& it, bool occupied);
 
   inline unsigned mapIdx(int i, int j) const{
     return m_gridmap.info.width*j + i;
@@ -184,8 +187,7 @@ protected:
   void adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const;
 
   inline bool mapChanged(const nav_msgs::MapMetaData& oldMapInfo, const nav_msgs::MapMetaData& newMapInfo){
-    return (    oldMapInfo.resolution != newMapInfo.resolution
-             || oldMapInfo.height != newMapInfo.height
+    return (    oldMapInfo.height != newMapInfo.height
              || oldMapInfo.width !=newMapInfo.width
              || oldMapInfo.origin.position.x != newMapInfo.origin.position.x
              || oldMapInfo.origin.position.y != newMapInfo.origin.position.y);
@@ -244,6 +246,7 @@ protected:
   bool m_mapOriginChanged;
   octomap::OcTreeKey m_paddedMinKey;
   unsigned m_multires2DScale;
+  bool m_resolutionChanged;
 };
 }
 

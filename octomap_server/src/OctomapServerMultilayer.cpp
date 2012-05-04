@@ -92,6 +92,7 @@ void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
   // multilayer server always publishes 2D maps:
   m_publish2DMap = true;
   nav_msgs::MapMetaData gridmapInfo = m_gridmap.info;
+
   OctomapServer::handlePreNodeTraversal(rostime);
 
   bool mapInfoChanged = mapChanged(gridmapInfo, m_gridmap.info);
@@ -100,7 +101,12 @@ void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
     it->map.header = m_gridmap.header;
     it->map.info = m_gridmap.info;
     it->map.info.origin.position.z = it->z;
-    if (mapInfoChanged){
+    if (m_resolutionChanged){
+      ROS_INFO("Map resolution changed, rebuilding complete 2D maps");
+      it->map.data.clear();
+      // init to unknown:
+      it->map.data.resize(it->map.info.width * it->map.info.height, -1);
+    } else if (mapInfoChanged){
       adjustMapData(it->map, gridmapInfo);
     }
   }
@@ -151,50 +157,11 @@ void OctomapServerMultilayer::handlePostNodeTraversal(const ros::Time& rostime){
   }
 
 }
-
-void OctomapServerMultilayer::handleOccupiedNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
+void OctomapServerMultilayer::update2DMap(const OcTreeROS::OcTreeType::iterator& it, bool occupied){
   double z = it.getZ();
   double s2 = it.getSize()/2.0;
-  std::vector<bool> inMapLevel(m_multiGridmap.size(), false);
-  for (unsigned i = 0; i < m_multiGridmap.size(); ++i){
-    if (z+s2 >= m_multiGridmap[i].minZ && z-s2 <= m_multiGridmap[i].maxZ){
-      inMapLevel[i] = true;
-    }
-  }
 
-
-  if (it.getDepth() == m_maxTreeDepth){
-    unsigned idx = mapIdx(it.getKey());
-    m_gridmap.data[idx] = 100;
-
-    for (unsigned i = 0; i < inMapLevel.size(); ++i){
-      if (inMapLevel[i])
-        m_multiGridmap[i].map.data[idx] = 100;
-    }
-  } else{
-    int intSize = 1 << (m_maxTreeDepth - it.getDepth());
-    octomap::OcTreeKey minKey=it.getIndexKey();
-    for(int dx=0; dx < intSize; dx++){
-      int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
-      for(int dy=0; dy < intSize; dy++){
-        int j = (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale;
-        unsigned idx = mapIdx(i,j);
-        m_gridmap.data[idx] = 100;
-
-        for (unsigned i = 0; i < inMapLevel.size(); ++i){
-          if (inMapLevel[i])
-            m_multiGridmap[i].map.data[idx] = 100;
-        }
-
-      }
-    }
-  }
-
-}
-
-void OctomapServerMultilayer::handleFreeNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
-  double z = it.getZ();
-  double s2 = it.getSize()/2.0;
+  // create a mask on which maps to update:
   std::vector<bool> inMapLevel(m_multiGridmap.size(), false);
   for (unsigned i = 0; i < m_multiGridmap.size(); ++i){
     if (z+s2 >= m_multiGridmap[i].minZ && z-s2 <= m_multiGridmap[i].maxZ){
@@ -204,36 +171,49 @@ void OctomapServerMultilayer::handleFreeNodeInBBX(const OcTreeROS::OcTreeType::i
 
   if (it.getDepth() == m_maxTreeDepth){
     unsigned idx = mapIdx(it.getKey());
-    if (m_gridmap.data[idx] == -1){
+    if (occupied)
+      m_gridmap.data[idx] = 100;
+    else if (m_gridmap.data[idx] == -1){
       m_gridmap.data[idx] = 0;
     }
 
     for (unsigned i = 0; i < inMapLevel.size(); ++i){
-      if (inMapLevel[i] && m_multiGridmap[i].map.data[idx] == -1)
-        m_multiGridmap[i].map.data[idx] = 0;
+      if (inMapLevel[i]){
+        if (occupied)
+          m_multiGridmap[i].map.data[idx] = 100;
+        else if (m_multiGridmap[i].map.data[idx] == -1)
+          m_multiGridmap[i].map.data[idx] = 0;
+      }
     }
 
-  } else{
+  } else {
     int intSize = 1 << (m_treeDepth - it.getDepth());
     octomap::OcTreeKey minKey=it.getIndexKey();
     for(int dx=0; dx < intSize; dx++){
       int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
       for(int dy=0; dy < intSize; dy++){
         unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
-        if (m_gridmap.data[idx] == -1){
+        if (occupied)
+          m_gridmap.data[idx] = 100;
+        else if (m_gridmap.data[idx] == -1){
           m_gridmap.data[idx] = 0;
         }
 
         for (unsigned i = 0; i < inMapLevel.size(); ++i){
-          if (inMapLevel[i] && m_multiGridmap[i].map.data[idx] == -1)
-            m_multiGridmap[i].map.data[idx] = 0;
+          if (inMapLevel[i]){
+            if (occupied)
+              m_multiGridmap[i].map.data[idx] = 100;
+            else if (m_multiGridmap[i].map.data[idx] == -1)
+              m_multiGridmap[i].map.data[idx] = 0;
+          }
         }
-
       }
     }
   }
 
+
 }
+
 }
 
 

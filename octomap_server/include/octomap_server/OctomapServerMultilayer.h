@@ -53,11 +53,8 @@ protected:
   /// hook that is called after traversing all nodes
   virtual void handlePreNodeTraversal(const ros::Time& rostime);
 
-  /// hook that is called when traversing occupied nodes of the updated Octree (updates 2D map projection here)
-  virtual void handleOccupiedNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
-
-  /// hook that is called when traversing free nodes of the updated Octree (updates 2D map projection here)
-  virtual void handleFreeNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  /// updates the downprojected 2D map as either occupied or free
+  virtual void update2DMap(const octomap::OcTreeROS::OcTreeType::iterator& it, bool occupied);
 
   /// hook that is called after traversing all nodes
   virtual void handlePostNodeTraversal(const ros::Time& rostime);

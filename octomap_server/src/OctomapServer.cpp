@@ -806,6 +806,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     octomap::point3d origin;
     m_octoMap->octree.genCoords(m_paddedMinKey, m_treeDepth, origin);
     double gridRes = m_octoMap->octree.getNodeSize(m_maxTreeDepth);
+    m_resolutionChanged = std::abs(gridRes-m_gridmap.info.resolution) > 1e-6;
     m_gridmap.info.resolution = gridRes;
     m_gridmap.info.origin.position.x = origin.x() - gridRes*0.5;
     m_gridmap.info.origin.position.y = origin.y() - gridRes*0.5;
@@ -815,8 +816,13 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
 
     }
 
+    if(m_resolutionChanged){
+      ROS_INFO("Map resolution changed, rebuilding complete 2D map");
+      m_gridmap.data.clear();
+      // init to unknown:
+      m_gridmap.data.resize(m_gridmap.info.width * m_gridmap.info.height, -1);
 
-    if (mapChanged(oldMapInfo, m_gridmap.info)){
+    } else if (mapChanged(oldMapInfo, m_gridmap.info)){
       ROS_DEBUG("2D grid map size changed to %dx%d", m_gridmap.info.width, m_gridmap.info.height);
       adjustMapData(m_gridmap, oldMapInfo);
     }
@@ -832,50 +838,63 @@ void OctomapServer::handlePostNodeTraversal(const ros::Time& rostime){
     m_mapPub.publish(m_gridmap);
 }
 
+void OctomapServer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it){
+
+  if (m_publish2DMap && m_resolutionChanged){
+    update2DMap(it, true);
+  }
+}
+
+void OctomapServer::handleFreeNode(const OcTreeROS::OcTreeType::iterator& it){
+
+  if (m_publish2DMap && m_resolutionChanged){
+    update2DMap(it, false);
+  }
+}
+
 void OctomapServer::handleOccupiedNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
 
-  // update 2D map (occupied always overrides):
-  if (m_publish2DMap){
-    if (it.getDepth() == m_maxTreeDepth){
-      m_gridmap.data[mapIdx(it.getKey())] = 100;
-    } else{
-      int intSize = 1 << (m_maxTreeDepth - it.getDepth());
-      octomap::OcTreeKey minKey=it.getIndexKey();
-      for(int dx=0; dx < intSize; dx++){
-        int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
-        for(int dy=0; dy < intSize; dy++){
-          int j = (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale;
-          m_gridmap.data[mapIdx(i,j)] = 100;
-        }
-      }
-    }
+  if (m_publish2DMap && !m_resolutionChanged){
+    update2DMap(it, true);
   }
-
 }
 
 void OctomapServer::handleFreeNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
 
-  if (m_publish2DMap){
-    if (it.getDepth() == m_maxTreeDepth){
-      unsigned idx = mapIdx(it.getKey());
-      if (m_gridmap.data[idx] == -1){
-        m_gridmap.data[idx] = 0;
-      }
-    } else{
-      int intSize = 1 << (m_treeDepth - it.getDepth());
-      octomap::OcTreeKey minKey=it.getIndexKey();
-      for(int dx=0; dx < intSize; dx++){
-        int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
-        for(int dy=0; dy < intSize; dy++){
-          unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
+  if (m_publish2DMap && !m_resolutionChanged){
+    update2DMap(it, false);
+  }
+}
 
-          if (m_gridmap.data[idx] == -1){
-            m_gridmap.data[idx] = 0;
-          }
+void OctomapServer::update2DMap(const OcTreeROS::OcTreeType::iterator& it, bool occupied){
+
+  // update 2D map (occupied always overrides):
+
+  if (it.getDepth() == m_maxTreeDepth){
+    unsigned idx = mapIdx(it.getKey());
+    if (occupied)
+      m_gridmap.data[mapIdx(it.getKey())] = 100;
+    else if (m_gridmap.data[idx] == -1){
+      m_gridmap.data[idx] = 0;
+    }
+
+  } else{
+    int intSize = 1 << (m_maxTreeDepth - it.getDepth());
+    octomap::OcTreeKey minKey=it.getIndexKey();
+    for(int dx=0; dx < intSize; dx++){
+      int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
+      for(int dy=0; dy < intSize; dy++){
+        unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
+        if (occupied)
+          m_gridmap.data[idx] = 100;
+        else if (m_gridmap.data[idx] == -1){
+          m_gridmap.data[idx] = 0;
         }
       }
     }
   }
+
+
 }
 
 
@@ -904,7 +923,6 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
   if (m_maxTreeDepth != unsigned(config.max_depth)){
     m_maxTreeDepth = unsigned(config.max_depth);
 
-//    handleResolutionChange();
     publishAll();
   }
 
