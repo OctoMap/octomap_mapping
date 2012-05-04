@@ -286,8 +286,13 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
 
-  m_octoMap->octree.genKey(sensorOrigin, m_updateBBXMin);
-  m_octoMap->octree.genKey(sensorOrigin, m_updateBBXMax);
+  if (!m_octoMap->octree.genKey(sensorOrigin, m_updateBBXMin)
+      || !m_octoMap->octree.genKey(sensorOrigin, m_updateBBXMax))
+  {
+    ROS_ERROR_STREAM("Could not generate Key for origin "<<sensorOrigin);
+  }
+
+
 
   // instead of direct scan insertion, compute update to filter ground:
   KeySet free_cells, occupied_cells;
@@ -304,8 +309,13 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
       free_cells.insert(m_keyRay.begin(), m_keyRay.end());
     }
 
-    updateMinKey(m_keyRay.ray.back(), m_updateBBXMin);
-    updateMaxKey(m_keyRay.ray.back(), m_updateBBXMax);
+    octomap::OcTreeKey endKey;
+    if (m_octoMap->octree.genKey(point, endKey)){
+      updateMinKey(endKey, m_updateBBXMin);
+      updateMaxKey(endKey, m_updateBBXMax);
+    } else{
+      ROS_ERROR_STREAM("Could not generate Key for endpoint "<<point);
+    }
   }
 
   // all other points: free on ray, occupied on endpoint:
@@ -331,8 +341,15 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
       if (m_octoMap->octree.computeRayKeys(sensorOrigin, new_end, m_keyRay)){
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 
-        updateMinKey(m_keyRay.ray.back(), m_updateBBXMin);
-        updateMaxKey(m_keyRay.ray.back(), m_updateBBXMax);
+        octomap::OcTreeKey endKey;
+        if (m_octoMap->octree.genKey(new_end, endKey)){
+          updateMinKey(endKey, m_updateBBXMin);
+          updateMaxKey(endKey, m_updateBBXMax);
+        } else{
+          ROS_ERROR_STREAM("Could not generate Key for endpoint "<<new_end);
+        }
+
+
       }
     }
   }
@@ -352,6 +369,10 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // TODO: eval lazy+updateInner vs. proper insertion
   // non-lazy by default (updateInnerOccupancy() too slow for large maps)
   //m_octoMap->octree.updateInnerOccupancy();
+  octomap::point3d minPt, maxPt;
+  m_octoMap->octree.genCoords(m_updateBBXMin, m_octoMap->octree.getTreeDepth(), minPt);
+  m_octoMap->octree.genCoords(m_updateBBXMax, m_octoMap->octree.getTreeDepth(), maxPt);
+  ROS_DEBUG_STREAM("Updated area bounding box: "<< minPt << " - "<<maxPt);
 
   if (m_compressMap)
     m_octoMap->octree.prune();
@@ -643,7 +664,7 @@ void OctomapServer::filterGroundPlane(const PCLPointCloud& pc, PCLPointCloud& gr
       seg.setInputCloud(cloud_filtered.makeShared());
       seg.segment (*inliers, *coefficients);
       if (inliers->indices.size () == 0){
-        ROS_WARN("No plane found in cloud.");
+        ROS_INFO("PCL segmentation did not find any plane.");
 
         break;
       }
@@ -724,7 +745,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     // init projected 2D map:
     m_gridmap.header.frame_id = m_worldFrameId;
     m_gridmap.header.stamp = rostime;
-    bool sizeChanged = false;
+    nav_msgs::MapMetaData oldMapInfo = m_gridmap.info;
 
     // TODO: move most of this stuff into c'tor and init map only once (adjust if size changes)
     double minX, minY, minZ, maxX, maxY, maxZ;
@@ -774,14 +795,9 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     assert(paddedMaxKey[0] >= maxKey[0] && paddedMaxKey[1] >= maxKey[1]);
 
     m_multires2DScale = 1 << (m_treeDepth - m_maxTreeDepth);
-    unsigned int newWidth = (paddedMaxKey[0] - m_paddedMinKey[0])/m_multires2DScale +1;
-    unsigned int newHeight = (paddedMaxKey[1] - m_paddedMinKey[1])/m_multires2DScale +1;
+    m_gridmap.info.width = (paddedMaxKey[0] - m_paddedMinKey[0])/m_multires2DScale +1;
+    m_gridmap.info.height = (paddedMaxKey[1] - m_paddedMinKey[1])/m_multires2DScale +1;
 
-    if (newWidth != m_gridmap.info.width || newHeight != m_gridmap.info.height)
-      sizeChanged = true;
-
-    m_gridmap.info.width = newWidth;
-    m_gridmap.info.height = newHeight;
     int mapOriginX = minKey[0] - m_paddedMinKey[0];
     int mapOriginY = minKey[1] - m_paddedMinKey[1];
     assert(mapOriginX >= 0 && mapOriginY >= 0);
@@ -800,11 +816,9 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     }
 
 
-    if (sizeChanged){
-      ROS_INFO("2D grid map size changed to %d x %d", m_gridmap.info.width, m_gridmap.info.height);
-      m_gridmap.data.clear();
-      // init to unknown:
-      m_gridmap.data.resize(m_gridmap.info.width * m_gridmap.info.height, -1);
+    if (mapChanged(oldMapInfo, m_gridmap.info)){
+      ROS_DEBUG("2D grid map size changed to %dx%d", m_gridmap.info.width, m_gridmap.info.height);
+      adjustMapData(m_gridmap, oldMapInfo);
     }
 
 
@@ -854,6 +868,7 @@ void OctomapServer::handleFreeNodeInBBX(const OcTreeROS::OcTreeType::iterator& i
         int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
         for(int dy=0; dy < intSize; dy++){
           unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
+
           if (m_gridmap.data[idx] == -1){
             m_gridmap.data[idx] = 0;
           }
@@ -889,13 +904,55 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
   if (m_maxTreeDepth != unsigned(config.max_depth)){
     m_maxTreeDepth = unsigned(config.max_depth);
 
-  publishAll();
+//    handleResolutionChange();
+    publishAll();
   }
 
 
 }
 
-std_msgs::ColorRGBA OctomapServer::heightMapColor(double h) const {
+void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const{
+  if (map.info.resolution != oldMapInfo.resolution){
+    ROS_ERROR("Resolution of map changed, cannot be adjusted");
+    return;
+  }
+
+  int i_off = int((oldMapInfo.origin.position.x - map.info.origin.position.x)/map.info.resolution +0.5);
+  int j_off = int((oldMapInfo.origin.position.y - map.info.origin.position.y)/map.info.resolution +0.5);
+
+  if (i_off < 0 || j_off < 0
+      || oldMapInfo.width  + i_off > map.info.width
+      || oldMapInfo.height + j_off > map.info.height)
+  {
+    ROS_ERROR("New map does not contain old map area, this case is not implemented");
+    return;
+  }
+
+  nav_msgs::OccupancyGrid::_data_type oldMapData = map.data;
+
+  map.data.clear();
+  // init to unknown:
+  map.data.resize(map.info.width * map.info.height, -1);
+
+  nav_msgs::OccupancyGrid::_data_type::iterator fromStart, fromEnd, toStart;
+
+  for (int j =0; j < int(oldMapInfo.height); ++j ){
+    // copy chunks, row by row:
+    fromStart = oldMapData.begin() + j*oldMapInfo.width;
+    fromEnd = fromStart + oldMapInfo.width;
+    toStart = map.data.begin() + ((j+j_off)*m_gridmap.info.width + i_off);
+    copy(fromStart, fromEnd, toStart);
+
+//    for (int i =0; i < int(oldMapInfo.width); ++i){
+//      map.data[m_gridmap.info.width*(j+j_off) +i+i_off] = oldMapData[oldMapInfo.width*j +i];
+//    }
+
+  }
+
+}
+
+
+std_msgs::ColorRGBA OctomapServer::heightMapColor(double h) {
 
   std_msgs::ColorRGBA color;
   color.a = 1.0;

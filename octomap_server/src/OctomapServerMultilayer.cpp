@@ -91,15 +91,18 @@ void OctomapServerMultilayer::attachedCallback(const arm_navigation_msgs::Attach
 void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
   // multilayer server always publishes 2D maps:
   m_publish2DMap = true;
-
+  nav_msgs::MapMetaData gridmapInfo = m_gridmap.info;
   OctomapServer::handlePreNodeTraversal(rostime);
+
+  bool mapInfoChanged = mapChanged(gridmapInfo, m_gridmap.info);
 
   for (MultilevelGrid::iterator it = m_multiGridmap.begin(); it != m_multiGridmap.end(); ++it){
     it->map.header = m_gridmap.header;
     it->map.info = m_gridmap.info;
-    it->map.data.clear();
-    it->map.data.resize(m_gridmap.data.size(), -1);
     it->map.info.origin.position.z = it->z;
+    if (mapInfoChanged){
+      adjustMapData(it->map, gridmapInfo);
+    }
   }
 }
 
@@ -149,7 +152,7 @@ void OctomapServerMultilayer::handlePostNodeTraversal(const ros::Time& rostime){
 
 }
 
-void OctomapServerMultilayer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it){
+void OctomapServerMultilayer::handleOccupiedNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
   double z = it.getZ();
   double s2 = it.getSize()/2.0;
   std::vector<bool> inMapLevel(m_multiGridmap.size(), false);
@@ -189,7 +192,7 @@ void OctomapServerMultilayer::handleOccupiedNode(const OcTreeROS::OcTreeType::it
 
 }
 
-void OctomapServerMultilayer::handleFreeNode(const OcTreeROS::OcTreeType::iterator& it){
+void OctomapServerMultilayer::handleFreeNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
   double z = it.getZ();
   double s2 = it.getSize()/2.0;
   std::vector<bool> inMapLevel(m_multiGridmap.size(), false);

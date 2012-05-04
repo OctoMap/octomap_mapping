@@ -35,6 +35,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef OCTOMAP_SERVER_OCTOMAPSERVER_H
+#define OCTOMAP_SERVER_OCTOMAPSERVER_H
 
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -114,6 +116,7 @@ protected:
          && key[0] <= m_updateBBXMax[0] && key[1] <= m_updateBBXMax[1] && key[2] <= m_updateBBXMax[2] );
   }
 
+
   void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
   void publishMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishAll(const ros::Time& rostime = ros::Time::now());
@@ -172,7 +175,23 @@ protected:
 
   }
 
-  std_msgs::ColorRGBA heightMapColor(double h) const;
+  /**
+   * Adjust data of map due to a change in its info properties (origin or size,
+   * resolution needs to stay fixed). map already contains the new map info,
+   * but the data is stored according to oldMapInfo.
+   */
+
+  void adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const;
+
+  inline bool mapChanged(const nav_msgs::MapMetaData& oldMapInfo, const nav_msgs::MapMetaData& newMapInfo){
+    return (    oldMapInfo.resolution != newMapInfo.resolution
+             || oldMapInfo.height != newMapInfo.height
+             || oldMapInfo.width !=newMapInfo.width
+             || oldMapInfo.origin.position.x != newMapInfo.origin.position.x
+             || oldMapInfo.origin.position.y != newMapInfo.origin.position.y);
+  }
+
+  static std_msgs::ColorRGBA heightMapColor(double h);
   ros::NodeHandle m_nh;
   ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
@@ -228,3 +247,4 @@ protected:
 };
 }
 
+#endif

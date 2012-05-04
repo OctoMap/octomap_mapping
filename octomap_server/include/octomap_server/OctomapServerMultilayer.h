@@ -26,7 +26,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
+#ifndef OCTOMAP_SERVER_OCTOMAPSERVERMULTILAYER_H
+#define OCTOMAP_SERVER_OCTOMAPSERVERMULTILAYER_H
 
 #include <octomap_server/OctomapServer.h>
 #include <arm_navigation_msgs/AttachedCollisionObject.h>
@@ -52,14 +53,11 @@ protected:
   /// hook that is called after traversing all nodes
   virtual void handlePreNodeTraversal(const ros::Time& rostime);
 
-  /// hook that is called when traversing all nodes of the updated Octree (does nothing here)
-  virtual void handleNode(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
-
   /// hook that is called when traversing occupied nodes of the updated Octree (updates 2D map projection here)
-  virtual void handleOccupiedNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  virtual void handleOccupiedNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
   /// hook that is called when traversing free nodes of the updated Octree (updates 2D map projection here)
-  virtual void handleFreeNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  virtual void handleFreeNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
 
   /// hook that is called after traversing all nodes
   virtual void handlePostNodeTraversal(const ros::Time& rostime);
@@ -77,4 +75,6 @@ protected:
 
 };
 }
+
+#endif
 
