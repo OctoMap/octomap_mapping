@@ -601,8 +601,17 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   occupiedNodesVis.markers.resize(m_treeDepth +1);
   ros::Time rostime = ros::Time::now();
   m_octoMap->octree.clear();
+  // clear 2D map:
+  m_gridmap.data.clear();
+  m_gridmap.info.height = 0.0;
+  m_gridmap.info.width = 0.0;
+  m_gridmap.info.resolution = 0.0;
+  m_gridmap.info.origin.position.x = 0.0;
+  m_gridmap.info.origin.position.y = 0.0;
 
   ROS_INFO("Cleared octomap");
+  publishAll(rostime);
+
   publishMap(rostime);
   for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
 
@@ -942,7 +951,7 @@ void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::
       || oldMapInfo.width  + i_off > map.info.width
       || oldMapInfo.height + j_off > map.info.height)
   {
-    ROS_ERROR("New map does not contain old map area, this case is not implemented");
+    ROS_ERROR("New 2D map does not contain old map area, this case is not implemented");
     return;
   }
 
