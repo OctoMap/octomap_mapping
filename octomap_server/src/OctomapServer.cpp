@@ -822,7 +822,16 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     if (m_maxTreeDepth != m_treeDepth){
       m_gridmap.info.origin.position.x -= m_res/2.0;
       m_gridmap.info.origin.position.y -= m_res/2.0;
+    }
 
+    nav_msgs::OccupancyGrid::_data_type::iterator startIt;
+    size_t colStart = m_updateBBXMin[0]/m_multires2DScale;
+    size_t numCols = m_updateBBXMax[0]/m_multires2DScale - colStart;
+    size_t numRows = (m_updateBBXMax[1] - m_updateBBXMin[1])/m_multires2DScale;
+    // reset proj. 2D map in bounding box:
+    for (unsigned int j = m_updateBBXMin[1]/m_multires2DScale; j < numRows; ++j){
+      startIt = m_gridmap.data.begin() + mapIdx(colStart, j);
+      std::fill_n(startIt, numCols, -1);
     }
 
     if(m_resolutionChanged){

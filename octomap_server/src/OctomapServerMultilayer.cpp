@@ -160,7 +160,7 @@ void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
 
 
 
-
+  // TODO: also clear multilevel maps in BBX region (see OctomapServer.cpp)?
 
   bool mapInfoChanged = mapChanged(gridmapInfo, m_gridmap.info);
 
