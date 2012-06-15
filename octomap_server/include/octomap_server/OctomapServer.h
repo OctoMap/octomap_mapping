@@ -110,10 +110,11 @@ protected:
     for (unsigned i=0; i<3; ++i)
       max[i] = std::max(in[i], max[i]);
   };
-  
+ 
+  /// Test if kez is within update area of map (2D, ignores height)
   inline bool isInUpdateBBX(const octomap::OcTreeKey& key) const{
-    return (key[0] >= m_updateBBXMin[0] && key[1] >= m_updateBBXMin[1] && key[2] >= m_updateBBXMin[2]
-         && key[0] <= m_updateBBXMax[0] && key[1] <= m_updateBBXMax[1] && key[2] <= m_updateBBXMax[2] );
+    return (key[0] >= m_updateBBXMin[0] && key[1] >= m_updateBBXMin[1]
+         && key[0] <= m_updateBBXMax[0] && key[1] <= m_updateBBXMax[1]);
   }
 
 

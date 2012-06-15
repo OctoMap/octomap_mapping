@@ -283,6 +283,18 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   publishAll(cloud->header.stamp);
 }
 
+
+OcTreeKey getIndexKey(const OcTreeKey & key, unsigned short depth ) {
+   unsigned short int mask = 65535 << (16 - depth);
+   OcTreeKey result = key;
+   result[0] &= mask;
+   result[1] &= mask;
+   result[2] &= mask;
+   return result;
+}
+
+
+
 void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
 
@@ -370,15 +382,32 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // non-lazy by default (updateInnerOccupancy() too slow for large maps)
   //m_octoMap->octree.updateInnerOccupancy();
   octomap::point3d minPt, maxPt;
+  ROS_DEBUG_STREAM("Bounding box keys (before): " << m_updateBBXMin[0] << " " <<m_updateBBXMin[1] << " " << m_updateBBXMin[2] << " / " <<m_updateBBXMax[0] << " "<<m_updateBBXMax[1] << " "<< m_updateBBXMax[2]);
+
+  // TODO: snap max / min keys to larger voxesl by m_maxTreeDepth 
+//   if (m_maxTreeDepth < 16)
+//   {
+//      OcTreeKey tmpMin = getIndexKey(m_updateBBXMin, m_maxTreeDepth); // this should give us the first key at depth m_maxTreeDepth that is smaller or equal to m_updateBBXMin (i.e. lower left in 2D grid coordinates)
+//      OcTreeKey tmpMax = getIndexKey(m_updateBBXMax, m_maxTreeDepth); // see above, now add something to find upper right
+//      tmpMax[0]+= m_octoMap->octree.getNodeSize( m_maxTreeDepth ) - 1;
+//      tmpMax[1]+= m_octoMap->octree.getNodeSize( m_maxTreeDepth ) - 1;
+//      tmpMax[2]+= m_octoMap->octree.getNodeSize( m_maxTreeDepth ) - 1;
+//      m_updateBBXMin = tmpMin;
+//      m_updateBBXMax = tmpMax;
+//   }
+
+  // TODO: we could also limit the bbx to be within the map bounds here (see publishing check)
   m_octoMap->octree.genCoords(m_updateBBXMin, m_octoMap->octree.getTreeDepth(), minPt);
   m_octoMap->octree.genCoords(m_updateBBXMax, m_octoMap->octree.getTreeDepth(), maxPt);
   ROS_DEBUG_STREAM("Updated area bounding box: "<< minPt << " - "<<maxPt);
+  ROS_DEBUG_STREAM("Bounding box keys (after): " << m_updateBBXMin[0] << " " <<m_updateBBXMin[1] << " " << m_updateBBXMin[2] << " / " <<m_updateBBXMax[0] << " "<<m_updateBBXMax[1] << " "<< m_updateBBXMax[2]);
 
   if (m_compressMap)
     m_octoMap->octree.prune();
 
 
 }
+
 
 
 void OctomapServer::publishAll(const ros::Time& rostime){
@@ -823,16 +852,12 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
       m_gridmap.info.origin.position.x -= m_res/2.0;
       m_gridmap.info.origin.position.y -= m_res/2.0;
     }
+    
+    // workaround for  multires. projection not working properly for inner nodes:
+    // force re-building complete map
+    if (m_maxTreeDepth < m_treeDepth)
+      m_resolutionChanged = true;
 
-    nav_msgs::OccupancyGrid::_data_type::iterator startIt;
-    size_t colStart = m_updateBBXMin[0]/m_multires2DScale;
-    size_t numCols = m_updateBBXMax[0]/m_multires2DScale - colStart;
-    size_t numRows = (m_updateBBXMax[1] - m_updateBBXMin[1])/m_multires2DScale;
-    // reset proj. 2D map in bounding box:
-    for (unsigned int j = m_updateBBXMin[1]/m_multires2DScale; j < numRows; ++j){
-      startIt = m_gridmap.data.begin() + mapIdx(colStart, j);
-      std::fill_n(startIt, numCols, -1);
-    }
 
     if(m_resolutionChanged){
       ROS_INFO("Map resolution changed, rebuilding complete 2D map");
@@ -840,10 +865,42 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
       // init to unknown:
       m_gridmap.data.resize(m_gridmap.info.width * m_gridmap.info.height, -1);
 
-    } else if (mapChanged(oldMapInfo, m_gridmap.info)){
-      ROS_DEBUG("2D grid map size changed to %dx%d", m_gridmap.info.width, m_gridmap.info.height);
-      adjustMapData(m_gridmap, oldMapInfo);
+    } else {
+
+       if (mapChanged(oldMapInfo, m_gridmap.info)){
+          ROS_DEBUG("2D grid map size changed to %dx%d", m_gridmap.info.width, m_gridmap.info.height);
+          adjustMapData(m_gridmap, oldMapInfo);
+       }
+       nav_msgs::OccupancyGrid::_data_type::iterator startIt;
+       size_t mapUpdateBBXMinX = std::max(0, (int(m_updateBBXMin[0]) - int(m_paddedMinKey[0]))/int(m_multires2DScale));
+       size_t mapUpdateBBXMinY = std::max(0, (int(m_updateBBXMin[1]) - int(m_paddedMinKey[1]))/int(m_multires2DScale));
+       size_t mapUpdateBBXMaxX = std::min(int(m_gridmap.info.width-1), (int(m_updateBBXMax[0]) - int(m_paddedMinKey[0]))/int(m_multires2DScale));
+       size_t mapUpdateBBXMaxY = std::min(int(m_gridmap.info.height-1), (int(m_updateBBXMax[1]) - int(m_paddedMinKey[1]))/int(m_multires2DScale));
+       
+//        size_t numCols = (m_updateBBXMax[0] - m_paddedMinKey[0])/m_multires2DScale - colStart +1;
+//        size_t endRow = std::min(m_gridmap.info.height-1, (m_updateBBXMax[1] - m_paddedMinKey[1]) /m_multires2DScale);
+       
+       // reset proj. 2D map in bounding box:
+       //std::cout << mapUpdateBBXMinX << " " << mapUpdateBBXMaxX << " " << mapUpdateBBXMinY << " " << mapUpdateBBXMaxY << std::endl;
+       //std::cout <<" map size is " << m_gridmap.data.size() << std::endl;
+       for (unsigned int j = mapUpdateBBXMinY; j <= mapUpdateBBXMaxY; ++j){
+          //startIt = m_gridmap.data.begin() + mapIdx(colStart, j);
+          //std::fill_n(startIt, numCols, -1);
+          //std::fill_n(m_gridmap.data.begin() + mapUpdateBBXMinX + m_gridmap.info.width * j, mapUpdateBBXMaxX-mapUpdateBBXMinX, -1);
+          
+          
+          for(unsigned int i = mapUpdateBBXMinX; i <= mapUpdateBBXMaxX; ++i) {
+             //std::cout << i << " " << j << std::endl;
+             uint idx = m_gridmap.info.width*j+i;
+             //if ( idx >= m_gridmap.data.size() )
+//                 ROS_ERROR("Index not valid: %d (max index %d for size %d x %d) i: %d j: %d: colStart: %d numCols: %d", idx, m_gridmap.data.size(), m_gridmap.info.width, m_gridmap.info.height, i, j, colStart, numCols );
+             m_gridmap.data.at(idx) = -1;
+          } 
+          
+       }
+
     }
+       
 
 
   }
