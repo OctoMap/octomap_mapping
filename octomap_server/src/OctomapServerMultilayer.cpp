@@ -168,7 +168,7 @@ void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
     it->map.header = m_gridmap.header;
     it->map.info = m_gridmap.info;
     it->map.info.origin.position.z = it->z;
-    if (m_resolutionChanged){
+    if (m_projectCompleteMap){
       ROS_INFO("Map resolution changed, rebuilding complete 2D maps");
       it->map.data.clear();
       // init to unknown:

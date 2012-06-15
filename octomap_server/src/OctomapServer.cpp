@@ -69,7 +69,8 @@ OctomapServer::OctomapServer()
   m_minSizeX(0.0), m_minSizeY(0.0),
   m_filterSpeckles(false), m_filterGroundPlane(false),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
-  m_compressMap(true)
+  m_compressMap(true),
+  m_incrementalUpdate(false)
 {
   ros::NodeHandle private_nh("~");
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
@@ -101,6 +102,7 @@ OctomapServer::OctomapServer()
   private_nh.param("sensor_model/min", m_thresMin, m_thresMin);
   private_nh.param("sensor_model/max", m_thresMax, m_thresMax);
   private_nh.param("compress_map", m_compressMap, m_compressMap);
+  private_nh.param("incremental_2D_projection", m_incrementalUpdate, m_incrementalUpdate);
 
   if (m_filterGroundPlane && (m_pointcloudMinZ > 0.0 || m_pointcloudMaxZ < 0.0)){
 	  ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
@@ -844,7 +846,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     octomap::point3d origin;
     m_octoMap->octree.genCoords(m_paddedMinKey, m_treeDepth, origin);
     double gridRes = m_octoMap->octree.getNodeSize(m_maxTreeDepth);
-    m_resolutionChanged = std::abs(gridRes-m_gridmap.info.resolution) > 1e-6;
+    m_projectCompleteMap = (!m_incrementalUpdate || (std::abs(gridRes-m_gridmap.info.resolution) > 1e-6));
     m_gridmap.info.resolution = gridRes;
     m_gridmap.info.origin.position.x = origin.x() - gridRes*0.5;
     m_gridmap.info.origin.position.y = origin.y() - gridRes*0.5;
@@ -856,11 +858,11 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     // workaround for  multires. projection not working properly for inner nodes:
     // force re-building complete map
     if (m_maxTreeDepth < m_treeDepth)
-      m_resolutionChanged = true;
+      m_projectCompleteMap = true;
 
 
-    if(m_resolutionChanged){
-      ROS_INFO("Map resolution changed, rebuilding complete 2D map");
+    if(m_projectCompleteMap){
+      ROS_DEBUG("Rebuilding complete 2D map");
       m_gridmap.data.clear();
       // init to unknown:
       m_gridmap.data.resize(m_gridmap.info.width * m_gridmap.info.height, -1);
@@ -876,27 +878,21 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
        size_t mapUpdateBBXMinY = std::max(0, (int(m_updateBBXMin[1]) - int(m_paddedMinKey[1]))/int(m_multires2DScale));
        size_t mapUpdateBBXMaxX = std::min(int(m_gridmap.info.width-1), (int(m_updateBBXMax[0]) - int(m_paddedMinKey[0]))/int(m_multires2DScale));
        size_t mapUpdateBBXMaxY = std::min(int(m_gridmap.info.height-1), (int(m_updateBBXMax[1]) - int(m_paddedMinKey[1]))/int(m_multires2DScale));
-       
-//        size_t numCols = (m_updateBBXMax[0] - m_paddedMinKey[0])/m_multires2DScale - colStart +1;
-//        size_t endRow = std::min(m_gridmap.info.height-1, (m_updateBBXMax[1] - m_paddedMinKey[1]) /m_multires2DScale);
-       
+
+       assert(mapUpdateBBXMaxX > mapUpdateBBXMinX);
+       assert(mapUpdateBBXMaxY > mapUpdateBBXMinY);
+
+       size_t numCols = mapUpdateBBXMaxX-mapUpdateBBXMinX +1;
+
+       // test for max idx:
+       uint max_idx = m_gridmap.info.width*mapUpdateBBXMaxY + mapUpdateBBXMaxX;
+       if (max_idx  >= m_gridmap.data.size())
+         ROS_ERROR("BBX index not valid: %d (max index %zu for size %d x %d) update-BBX is: [%zu %zu]-[%zu %zu]", max_idx, m_gridmap.data.size(), m_gridmap.info.width, m_gridmap.info.height, mapUpdateBBXMinX, mapUpdateBBXMinY, mapUpdateBBXMaxX, mapUpdateBBXMaxY);
+
        // reset proj. 2D map in bounding box:
-       //std::cout << mapUpdateBBXMinX << " " << mapUpdateBBXMaxX << " " << mapUpdateBBXMinY << " " << mapUpdateBBXMaxY << std::endl;
-       //std::cout <<" map size is " << m_gridmap.data.size() << std::endl;
        for (unsigned int j = mapUpdateBBXMinY; j <= mapUpdateBBXMaxY; ++j){
-          //startIt = m_gridmap.data.begin() + mapIdx(colStart, j);
-          //std::fill_n(startIt, numCols, -1);
-          //std::fill_n(m_gridmap.data.begin() + mapUpdateBBXMinX + m_gridmap.info.width * j, mapUpdateBBXMaxX-mapUpdateBBXMinX, -1);
-          
-          
-          for(unsigned int i = mapUpdateBBXMinX; i <= mapUpdateBBXMaxX; ++i) {
-             //std::cout << i << " " << j << std::endl;
-             uint idx = m_gridmap.info.width*j+i;
-             //if ( idx >= m_gridmap.data.size() )
-//                 ROS_ERROR("Index not valid: %d (max index %d for size %d x %d) i: %d j: %d: colStart: %d numCols: %d", idx, m_gridmap.data.size(), m_gridmap.info.width, m_gridmap.info.height, i, j, colStart, numCols );
-             m_gridmap.data.at(idx) = -1;
-          } 
-          
+          std::fill_n(m_gridmap.data.begin() + m_gridmap.info.width*j+mapUpdateBBXMinX,
+                      numCols, -1);
        }
 
     }
@@ -915,28 +911,28 @@ void OctomapServer::handlePostNodeTraversal(const ros::Time& rostime){
 
 void OctomapServer::handleOccupiedNode(const OcTreeROS::OcTreeType::iterator& it){
 
-  if (m_publish2DMap && m_resolutionChanged){
+  if (m_publish2DMap && m_projectCompleteMap){
     update2DMap(it, true);
   }
 }
 
 void OctomapServer::handleFreeNode(const OcTreeROS::OcTreeType::iterator& it){
 
-  if (m_publish2DMap && m_resolutionChanged){
+  if (m_publish2DMap && m_projectCompleteMap){
     update2DMap(it, false);
   }
 }
 
 void OctomapServer::handleOccupiedNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
 
-  if (m_publish2DMap && !m_resolutionChanged){
+  if (m_publish2DMap && !m_projectCompleteMap){
     update2DMap(it, true);
   }
 }
 
 void OctomapServer::handleFreeNodeInBBX(const OcTreeROS::OcTreeType::iterator& it){
 
-  if (m_publish2DMap && !m_resolutionChanged){
+  if (m_publish2DMap && !m_projectCompleteMap){
     update2DMap(it, false);
   }
 }
