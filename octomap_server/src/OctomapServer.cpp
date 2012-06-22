@@ -287,6 +287,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 
 
 OcTreeKey getIndexKey(const OcTreeKey & key, unsigned short depth ) {
+   // TODO: replace with helper function from next octomap (> 1.5)
    unsigned short int mask = 65535 << (16 - depth);
    OcTreeKey result = key;
    result[0] &= mask;
@@ -386,7 +387,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   octomap::point3d minPt, maxPt;
   ROS_DEBUG_STREAM("Bounding box keys (before): " << m_updateBBXMin[0] << " " <<m_updateBBXMin[1] << " " << m_updateBBXMin[2] << " / " <<m_updateBBXMax[0] << " "<<m_updateBBXMax[1] << " "<< m_updateBBXMax[2]);
 
-  // TODO: snap max / min keys to larger voxesl by m_maxTreeDepth 
+  // TODO: snap max / min keys to larger voxels by m_maxTreeDepth
 //   if (m_maxTreeDepth < 16)
 //   {
 //      OcTreeKey tmpMin = getIndexKey(m_updateBBXMin, m_maxTreeDepth); // this should give us the first key at depth m_maxTreeDepth that is smaller or equal to m_updateBBXMin (i.e. lower left in 2D grid coordinates)
