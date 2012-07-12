@@ -159,11 +159,11 @@ OctomapServer::OctomapServer(const std::string& filename)
 }
 
 OctomapServer::~OctomapServer(){
-  if (m_pointCloudSub)
-    delete m_pointCloudSub;
-
   if (m_tfPointCloudSub)
     delete m_tfPointCloudSub;
+  
+  if (m_pointCloudSub)
+    delete m_pointCloudSub;
 
   if (m_octoMap)
     delete m_octoMap;
