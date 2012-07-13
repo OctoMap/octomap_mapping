@@ -1,7 +1,7 @@
 <package>
   <description brief="octomap_server - map server for the OctoMap 3D maps">
 
-     octomap_server loads a 3D map (as Octree-based OctoMap) and distributes it to other nodes in a compact binary format. 
+   octomap_server loads a 3D map (as Octree-based OctoMap) and distributes it to other nodes in a compact binary format. 
 	 See octomap_saver on how to request or save a map file. A visualization of the occupied cells is sent as MarkerArray.
 
   </description>
@@ -11,7 +11,7 @@
   <url>http://www.ros.org/wiki/octomap_server</url>
   
   <export>
-    <cpp cflags="-I${prefix}/include"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_server"/>
+    <cpp cflags="-I${prefix}/include -I${prefix}/cfg/cpp"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_server"/>
   </export>
   
   <depend package="octomap"/>
