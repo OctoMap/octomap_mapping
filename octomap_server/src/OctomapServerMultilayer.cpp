@@ -224,7 +224,7 @@ void OctomapServerMultilayer::handlePostNodeTraversal(const ros::Time& rostime){
   }
 
 }
-void OctomapServerMultilayer::update2DMap(const OcTreeROS::OcTreeType::iterator& it, bool occupied){
+void OctomapServerMultilayer::update2DMap(const OcTreeT::iterator& it, bool occupied){
   double z = it.getZ();
   double s2 = it.getSize()/2.0;
 

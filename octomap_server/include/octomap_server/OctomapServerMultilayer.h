@@ -54,7 +54,7 @@ protected:
   virtual void handlePreNodeTraversal(const ros::Time& rostime);
 
   /// updates the downprojected 2D map as either occupied or free
-  virtual void update2DMap(const octomap::OcTreeROS::OcTreeType::iterator& it, bool occupied);
+  virtual void update2DMap(const OcTreeT::iterator& it, bool occupied);
 
   /// hook that is called after traversing all nodes
   virtual void handlePostNodeTraversal(const ros::Time& rostime);

@@ -11,12 +11,13 @@
   <url>http://www.ros.org/wiki/octomap_server</url>
   
   <export>
-    <cpp cflags="-I${prefix}/include"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_server"/>
+    <cpp cflags="-I${prefix}/include -I${prefix}/cfg/cpp"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_server"/>
   </export>
   
   <depend package="visualization_msgs"/> 
 <!--  <depend package="octomap_msgs"/> -->
   <depend package="octomap_ros"/>
+  <depend package="sensor_msgs"/>
   <depend package="pcl_ros"/>
   <depend package="nav_msgs"/>
   <depend package="arm_navigation_msgs"/>

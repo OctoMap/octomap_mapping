@@ -63,7 +63,7 @@
 #include <tf/transform_listener.h>
 #include <tf/message_filter.h>
 #include <message_filters/subscriber.h>
-#if ROS_VERSION_MINIMUM(1,8,0) // test for Fuerte (newer PCL)
+#if ROS_VERSION_MINIMUM(1,8,0) // test for Fuerte (new build system, separate stacks)
   #include <octomap_msgs/OctomapBinary.h>
   #include <octomap_msgs/GetOctomap.h>
   #include <octomap_msgs/BoundingBoxQuery.h>
@@ -73,7 +73,8 @@
   #include <octomap_ros/ClearBBXRegion.h>
 #endif
 
-#include <octomap_ros/OctomapROS.h>
+#include <octomap_ros/conversions.h>
+#include <octomap/octomap.h>
 #include <octomap/OcTreeKey.h>
 
 
@@ -90,6 +91,7 @@ public:
   typedef octomap_ros::ClearBBXRegion BBXSrv;
 #endif
 
+  typedef octomap::OcTree OcTreeT;
 
   OctomapServer();
   virtual ~OctomapServer();
@@ -146,28 +148,28 @@ protected:
   virtual void handlePreNodeTraversal(const ros::Time& rostime);
 
   /// hook that is called when traversing all nodes of the updated Octree (does nothing here)
-  virtual void handleNode(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
+  virtual void handleNode(const OcTreeT::iterator& it) {};
 
   /// hook that is called when traversing all nodes of the updated Octree in the updated area (does nothing here)
-  virtual void handleNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it) {};
+  virtual void handleNodeInBBX(const OcTreeT::iterator& it) {};
 
   /// hook that is called when traversing occupied nodes of the updated Octree
-  virtual void handleOccupiedNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  virtual void handleOccupiedNode(const OcTreeT::iterator& it);
 
   /// hook that is called when traversing occupied nodes in the updated area (updates 2D map projection here)
-  virtual void handleOccupiedNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  virtual void handleOccupiedNodeInBBX(const OcTreeT::iterator& it);
 
   /// hook that is called when traversing free nodes of the updated Octree
-  virtual void handleFreeNode(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  virtual void handleFreeNode(const OcTreeT::iterator& it);
 
   /// hook that is called when traversing free nodes in the updated area (updates 2D map projection here)
-  virtual void handleFreeNodeInBBX(const octomap::OcTreeROS::OcTreeType::iterator& it);
+  virtual void handleFreeNodeInBBX(const OcTreeT::iterator& it);
 
   /// hook that is called after traversing all nodes
   virtual void handlePostNodeTraversal(const ros::Time& rostime);
 
   /// updates the downprojected 2D map as either occupied or free
-  virtual void update2DMap(const octomap::OcTreeROS::OcTreeType::iterator& it, bool occupied);
+  virtual void update2DMap(const OcTreeT::iterator& it, bool occupied);
 
   inline unsigned mapIdx(int i, int j) const{
     return m_gridmap.info.width*j + i;
@@ -203,7 +205,7 @@ protected:
   tf::TransformListener m_tfListener;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
 
-  octomap::OcTreeROS *m_octoMap;
+  octomap::OcTree* m_octree;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
   octomap::OcTreeKey m_updateBBXMin;
   octomap::OcTreeKey m_updateBBXMax;

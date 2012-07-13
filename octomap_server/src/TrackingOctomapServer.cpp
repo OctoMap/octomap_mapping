@@ -39,10 +39,10 @@ TrackingOctomapServer::TrackingOctomapServer(const std::string& filename) :
 {
   //read tree if necessary
   if (filename != "") {
-    if (m_octoMap->octree.readBinary(filename)) {
-      ROS_INFO("Octomap file %s loaded (%zu nodes).", filename.c_str(), m_octoMap->octree.size());
-      m_treeDepth = m_octoMap->octree.getTreeDepth();
-      m_res = m_octoMap->octree.getResolution();
+    if (m_octree->readBinary(filename)) {
+      ROS_INFO("Octomap file %s loaded (%zu nodes).", filename.c_str(), m_octree->size());
+      m_treeDepth = m_octree->getTreeDepth();
+      m_res = m_octree->getResolution();
       m_gridmap.info.resolution = m_res;
 
       publishAll();
@@ -70,7 +70,7 @@ TrackingOctomapServer::TrackingOctomapServer(const std::string& filename) :
     ROS_INFO("starting server");
     pubChangeSet = private_nh.advertise<sensor_msgs::PointCloud2>(
         changeSetTopic, 1);
-    m_octoMap->octree.enableChangeDetection(true);
+    m_octree->enableChangeDetection(true);
   }
 
   if (listen_changes) {
@@ -92,17 +92,17 @@ void TrackingOctomapServer::insertScan(const tf::Point & sensorOrigin, const PCL
 }
 
 void TrackingOctomapServer::trackChanges() {
-  KeyBoolMap::const_iterator startPnt = m_octoMap->octree.changedKeysBegin();
-  KeyBoolMap::const_iterator endPnt = m_octoMap->octree.changedKeysEnd();
+  KeyBoolMap::const_iterator startPnt = m_octree->changedKeysBegin();
+  KeyBoolMap::const_iterator endPnt = m_octree->changedKeysEnd();
 
   pcl::PointCloud<pcl::PointXYZI> changedCells = pcl::PointCloud<pcl::PointXYZI>();
 
   int c = 0;
   for (KeyBoolMap::const_iterator iter = startPnt; iter != endPnt; ++iter) {
     c++;
-    OcTreeNode* node = m_octoMap->octree.search(iter->first);
+    OcTreeNode* node = m_octree->search(iter->first);
 
-    bool occupied = m_octoMap->octree.isNodeOccupied(node);
+    bool occupied = m_octree->isNodeOccupied(node);
 
     pcl::PointXYZI pnt;
     pnt.x = iter->first.k[0];
@@ -126,8 +126,8 @@ void TrackingOctomapServer::trackChanges() {
   pubChangeSet.publish(changed);
   ROS_DEBUG("[server] sending %d changed entries", (int)changedCells.size());
 
-  m_octoMap->octree.resetChangeDetection();
-  ROS_DEBUG("[server] octomap size after updating: %d", (int)m_octoMap->octree.calcNumNodes());
+  m_octree->resetChangeDetection();
+  ROS_DEBUG("[server] octomap size after updating: %d", (int)m_octree->calcNumNodes());
 }
 
 void TrackingOctomapServer::trackCallback(sensor_msgs::PointCloud2Ptr cloud) {
@@ -137,11 +137,11 @@ void TrackingOctomapServer::trackCallback(sensor_msgs::PointCloud2Ptr cloud) {
 
   for (size_t i = 0; i < cells.points.size(); i++) {
     pcl::PointXYZI& pnt = cells.points[i];
-    m_octoMap->octree.updateNode(OcTreeKey(pnt.x, pnt.y, pnt.z), pnt.intensity, false);
+    m_octree->updateNode(OcTreeKey(pnt.x, pnt.y, pnt.z), pnt.intensity, false);
   }
 
-  m_octoMap->octree.updateInnerOccupancy();
-  ROS_DEBUG("[client] octomap size after updating: %d", (int)m_octoMap->octree.calcNumNodes());
+  m_octree->updateInnerOccupancy();
+  ROS_DEBUG("[client] octomap size after updating: %d", (int)m_octree->calcNumNodes());
 }
 
 } /* namespace octomap */
