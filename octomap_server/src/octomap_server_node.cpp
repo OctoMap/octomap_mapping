@@ -59,8 +59,10 @@ int main(int argc, char** argv){
 
   if (argc == 2){
     mapFilename = std::string(argv[1]);
-    if (!server.openFile(mapFilename))
+    if (!server.openFile(mapFilename)){
+      ROS_ERROR("Could not open file %s", mapFilename.c_str());
       exit(1);
+    }
   }
 
 

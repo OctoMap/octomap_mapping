@@ -181,9 +181,30 @@ OctomapServer::~OctomapServer(){
 }
 
 bool OctomapServer::openFile(const std::string& filename){
-  if (!m_octree->readBinary(filename)){
-    // TODO: read .ot through factory
+  if (filename.length() <= 3)
+    return false;
 
+  std::string suffix = filename.substr(filename.length()-3, 3);
+  if (suffix== ".bt"){
+    if (!m_octree->readBinary(filename)){
+      return false;
+    }
+  } else if (suffix == ".ot"){
+    AbstractOcTree* tree = AbstractOcTree::read(filename);
+    if (!tree){
+      return false;
+    }
+    if (m_octree){
+      delete m_octree;
+      m_octree = NULL;
+    }
+    m_octree = dynamic_cast<OcTree*>(tree);
+    if (!m_octree){
+      ROS_ERROR("Could not read OcTree in file, currently there are no other types supported in .ot");
+      return false;
+    }
+
+  } else{
     return false;
   }
 
