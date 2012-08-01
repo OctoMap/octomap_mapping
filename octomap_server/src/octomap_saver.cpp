@@ -79,18 +79,13 @@ public:
       octomap::OcTree* octree = NULL;
 
       if (full){
-        // TODO: new conversion fct.
-        std::stringstream datastream;
-        assert(resp.map.data.size() > 0);
-        datastream.write((const char*) &resp.map.data[0], resp.map.data.size());
-        AbstractOcTree* tree = AbstractOcTree::read(datastream);
+        AbstractOcTree* tree = octomap_msgs::fullMsgDataToMap(resp.map.data);
         if (tree){
           octree = dynamic_cast<OcTree*>(tree);
         }
 
       } else{
-        octree = new OcTree(0.1);
-        octomap::octomapMsgToMap(resp.map, *octree);
+        octree = octomap_msgs::binaryMsgDataToMap(resp.map.data);
       }
 
       if (octree){

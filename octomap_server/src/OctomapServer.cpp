@@ -38,12 +38,7 @@
 #include <octomap_server/OctomapServer.h>
 
 using namespace octomap;
-#if ROS_VERSION_MINIMUM(1,8,0)
-  using octomap_msgs::OctomapBinary;
-#else
-  using octomap_ros::OctomapBinary;
-#endif
-
+using octomap_msgs::OctomapBinary;
 
 namespace octomap_server{
 
@@ -637,7 +632,8 @@ bool OctomapServer::octomapBinarySrv(OctomapSrv::Request  &req,
   ROS_INFO("Sending binary map data on service request");
   res.map.header.frame_id = m_worldFrameId;
   res.map.header.stamp = ros::Time::now();
-  octomap::octomapMapToMsgData(*m_octree, res.map.data);
+  if (!octomap_msgs::binaryMapToMsgData(*m_octree, res.map.data))
+    return false;
 
   return true;
 }
@@ -649,15 +645,9 @@ bool OctomapServer::octomapFullSrv(OctomapSrv::Request  &req,
   res.map.header.frame_id = m_worldFrameId;
   res.map.header.stamp = ros::Time::now();
 
-  // TODO: conversion fct, replace:
-  //octomap::octomapMapToMsgData(*m_octree, res.map.data);
-  std::stringstream datastream;
 
-  if (!m_octree->write(datastream))
+  if (!octomap_msgs::fullMapToMsgData(*m_octree, res.map.data))
     return false;
-
-  std::string datastring = datastream.str();
-  res.map.data = std::vector<int8_t>(datastring.begin(), datastring.end());
 
   return true;
 }
@@ -718,9 +708,10 @@ void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const{
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
-  octomap::octomapMapToMsgData(*m_octree, map.data);
-
-  m_binaryMapPub.publish(map);
+  if (octomap_msgs::binaryMapToMsgData(*m_octree, map.data))
+    m_binaryMapPub.publish(map);
+  else
+    ROS_ERROR("Error serializing OctoMap");
 }
 
 void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const{
@@ -729,14 +720,11 @@ void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const{
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
-  // TODO: create new conversion fct.
-  //octomap::octomapMapToMsgData(*m_octree, map.data);
-  std::stringstream datastream;
-  m_octree->write(datastream);
-  std::string datastring = datastream.str();
-  map.data = std::vector<int8_t>(datastring.begin(), datastring.end());
+  if (octomap_msgs::fullMapToMsgData(*m_octree, map.data))
+    m_fullMapPub.publish(map);
+  else
+    ROS_ERROR("Error serializing OctoMap");
 
-  m_fullMapPub.publish(map);
 }
 
 
