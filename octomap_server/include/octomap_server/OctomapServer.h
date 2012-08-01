@@ -95,7 +95,8 @@ public:
 
   OctomapServer();
   virtual ~OctomapServer();
-  virtual bool serviceCallback(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
+  virtual bool octomapBinarySrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
+  virtual bool octomapFullSrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
   bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
@@ -121,7 +122,8 @@ protected:
 
 
   void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
-  void publishMap(const ros::Time& rostime = ros::Time::now()) const;
+  void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
+  void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishAll(const ros::Time& rostime = ros::Time::now());
 
   /**
@@ -198,10 +200,10 @@ protected:
 
   static std_msgs::ColorRGBA heightMapColor(double h);
   ros::NodeHandle m_nh;
-  ros::Publisher m_markerPub, m_binaryMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub;
+  ros::Publisher m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
-  ros::ServiceServer m_octomapService, m_clearBBXService, m_resetService;
+  ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
 

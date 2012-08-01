@@ -48,19 +48,23 @@
   using octomap_ros::GetOctomap;
 #endif
 
-#define USAGE "\nUSAGE: octomap_saver <map.bt>\n" \
-		"  map.bt: filename of map to be saved\n"
+#define USAGE "\nUSAGE: octomap_saver [-f] <mapfile.[bt|ot]>\n" \
+                "  -f: Query for the full occupancy octree, instead of just the compact binary one\n" \
+		"  mapfile.bt: filename of map to be saved (.bt: binary tree, .ot: general octree)\n"
 
 using namespace std;
+using namespace octomap;
 
 /**
 * @brief Map generation node.
 */
 class MapSaver{
 public:
-  MapSaver(const std::string& mapname){
+  MapSaver(const std::string& mapname, bool full){
     ros::NodeHandle n;
-    const static std::string servname = "octomap_binary";
+    std::string servname = "octomap_binary";
+    if (full)
+      servname = "octomap_full";
     ROS_INFO("Requesting the map from %s...", n.resolveName(servname).c_str());
     GetOctomap::Request req;
     GetOctomap::Response resp;
@@ -72,21 +76,44 @@ public:
 
     if (n.ok()){ // skip when CTRL-C
       ROS_INFO("Map received, saving to %s", mapname.c_str());
-      ofstream mapfile(mapname.c_str(), ios_base::binary);
+      octomap::OcTree* octree = NULL;
 
-      if (!mapfile.is_open()){
-        ROS_ERROR("Could not open file %s for writing", mapname.c_str());
-      } else {
-        octomap::OcTree octomap(0.1);
-        octomap::octomapMsgToMap(resp.map, octomap);
-        octomap.writeBinary(mapname);
+      if (full){
+        // TODO: new conversion fct.
+        std::stringstream datastream;
+        assert(resp.map.data.size() > 0);
+        datastream.write((const char*) &resp.map.data[0], resp.map.data.size());
+        AbstractOcTree* tree = AbstractOcTree::read(datastream);
+        if (tree){
+          octree = dynamic_cast<OcTree*>(tree);
+        }
 
-        ROS_INFO("Finished writing %zu nodes to file %s (res: %f)", octomap.size(), mapname.c_str(), octomap.getResolution());
-
-        // write out stream directly (old format, no header)
-        //mapfile.write((char*)&resp.map.data[0], resp.map.data.size());
-        //mapfile.close();
+      } else{
+        octree = new OcTree(0.1);
+        octomap::octomapMsgToMap(resp.map, *octree);
       }
+
+      if (octree){
+        std::string suffix = mapname.substr(mapname.length()-3, 3);
+        if (suffix== ".bt"){
+          if (!octree->writeBinary(mapname)){
+            ROS_ERROR("Error writing to file %s", mapname.c_str());
+          }
+        } else if (suffix == ".ot"){
+          if (!octree->write(mapname)){
+            ROS_ERROR("Error writing to file %s", mapname.c_str());
+          }
+        } else{
+          ROS_ERROR("Unknown file extension, must be either .bt or .ot");
+        }
+
+
+      } else{
+        ROS_ERROR("Error reading OcTree from stream");
+      }
+
+      delete octree;
+
     }
   }
 };
@@ -94,21 +121,25 @@ public:
 int main(int argc, char** argv){
   ros::init(argc, argv, "octomap_saver");
   std::string mapFilename("");
-  if (argc == 2)
+  bool fullmap = false;
+  if (argc == 3 && strcmp(argv[1], "-f")==0){
+    fullmap = true;
+    mapFilename = std::string(argv[2]);
+  } else if (argc == 2)
     mapFilename = std::string(argv[1]);
   else{
     ROS_ERROR("%s", USAGE);
-    exit(-1);
+    exit(1);
   }
 
   try{
-    MapSaver ms(mapFilename);
+    MapSaver ms(mapFilename, fullmap);
   }catch(std::runtime_error& e){
     ROS_ERROR("map_saver exception: %s", e.what());
-    return -1;
+    exit(2);
   }
 
-  return 0;
+  exit(0);
 }
 
 

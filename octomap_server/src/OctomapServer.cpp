@@ -141,6 +141,7 @@ OctomapServer::OctomapServer()
 
   m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
   m_binaryMapPub = m_nh.advertise<OctomapBinary>("octomap_binary", 1, m_latchedTopics);
+  m_fullMapPub = m_nh.advertise<OctomapBinary>("octomap_full", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
   m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
@@ -151,7 +152,8 @@ OctomapServer::OctomapServer()
   m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
   m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
 
-  m_octomapService = m_nh.advertiseService("octomap_binary", &OctomapServer::serviceCallback, this);
+  m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
+  m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
   m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
 
@@ -453,7 +455,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   bool publishCollisionObject = (m_latchedTopics || m_collisionObjectPub.getNumSubscribers() > 0);
   bool publishMarkerArray = (m_latchedTopics || m_markerPub.getNumSubscribers() > 0);
   bool publishPointCloud = (m_latchedTopics || m_pointCloudPub.getNumSubscribers() > 0);
-  bool publishOctoMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
+  bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
+  bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
   m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
 
   // init collision object:
@@ -616,8 +619,11 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   if (publishCollisionMap)
     m_cmapPub.publish(collisionMap);
 
-  if (publishOctoMap)
-    publishMap(rostime);
+  if (publishBinaryMap)
+    publishBinaryOctoMap(rostime);
+
+  if (publishFullMap)
+    publishFullOctoMap(rostime);
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
@@ -625,13 +631,33 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 }
 
 
-bool OctomapServer::serviceCallback(OctomapSrv::Request  &req,
+bool OctomapServer::octomapBinarySrv(OctomapSrv::Request  &req,
                                     OctomapSrv::Response &res)
 {
-  ROS_INFO("Sending map data on service request");
+  ROS_INFO("Sending binary map data on service request");
   res.map.header.frame_id = m_worldFrameId;
   res.map.header.stamp = ros::Time::now();
   octomap::octomapMapToMsgData(*m_octree, res.map.data);
+
+  return true;
+}
+
+bool OctomapServer::octomapFullSrv(OctomapSrv::Request  &req,
+                                    OctomapSrv::Response &res)
+{
+  ROS_INFO("Sending full map data on service request");
+  res.map.header.frame_id = m_worldFrameId;
+  res.map.header.stamp = ros::Time::now();
+
+  // TODO: conversion fct, replace:
+  //octomap::octomapMapToMsgData(*m_octree, res.map.data);
+  std::stringstream datastream;
+
+  if (!m_octree->write(datastream))
+    return false;
+
+  std::string datastring = datastream.str();
+  res.map.data = std::vector<int8_t>(datastring.begin(), datastring.end());
 
   return true;
 }
@@ -670,7 +696,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   ROS_INFO("Cleared octomap");
   publishAll(rostime);
 
-  publishMap(rostime);
+  publishBinaryOctoMap(rostime);
   for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
 
     occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
@@ -686,7 +712,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   return true;
 }
 
-void OctomapServer::publishMap(const ros::Time& rostime) const{
+void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const{
 
   OctomapBinary map;
   map.header.frame_id = m_worldFrameId;
@@ -695,6 +721,22 @@ void OctomapServer::publishMap(const ros::Time& rostime) const{
   octomap::octomapMapToMsgData(*m_octree, map.data);
 
   m_binaryMapPub.publish(map);
+}
+
+void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const{
+
+  OctomapBinary map;
+  map.header.frame_id = m_worldFrameId;
+  map.header.stamp = rostime;
+
+  // TODO: create new conversion fct.
+  //octomap::octomapMapToMsgData(*m_octree, map.data);
+  std::stringstream datastream;
+  m_octree->write(datastream);
+  std::string datastring = datastream.str();
+  map.data = std::vector<int8_t>(datastring.begin(), datastring.end());
+
+  m_fullMapPub.publish(map);
 }
 
 
