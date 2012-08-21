@@ -79,13 +79,13 @@ public:
       octomap::OcTree* octree = NULL;
 
       if (full){
-        AbstractOcTree* tree = octomap_msgs::fullMsgDataToMap(resp.map.data);
+        AbstractOcTree* tree = octomap_msgs::fullMsgToMap(resp.map);
         if (tree){
           octree = dynamic_cast<OcTree*>(tree);
         }
 
       } else{
-        octree = octomap_msgs::binaryMsgDataToMap(resp.map.data);
+        octree = octomap_msgs::binaryMsgToMap(resp.map);
       }
 
       if (octree){

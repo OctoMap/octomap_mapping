@@ -632,7 +632,7 @@ bool OctomapServer::octomapBinarySrv(OctomapSrv::Request  &req,
   ROS_INFO("Sending binary map data on service request");
   res.map.header.frame_id = m_worldFrameId;
   res.map.header.stamp = ros::Time::now();
-  if (!octomap_msgs::binaryMapToMsgData(*m_octree, res.map.data))
+  if (!octomap_msgs::binaryMapToMsg(*m_octree, res.map))
     return false;
 
   return true;
@@ -646,7 +646,7 @@ bool OctomapServer::octomapFullSrv(OctomapSrv::Request  &req,
   res.map.header.stamp = ros::Time::now();
 
 
-  if (!octomap_msgs::fullMapToMsgData(*m_octree, res.map.data))
+  if (!octomap_msgs::fullMapToMsg(*m_octree, res.map))
     return false;
 
   return true;
@@ -708,7 +708,7 @@ void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const{
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
-  if (octomap_msgs::binaryMapToMsgData(*m_octree, map.data))
+  if (octomap_msgs::binaryMapToMsg(*m_octree, map))
     m_binaryMapPub.publish(map);
   else
     ROS_ERROR("Error serializing OctoMap");
@@ -720,7 +720,7 @@ void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const{
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
-  if (octomap_msgs::fullMapToMsgData(*m_octree, map.data))
+  if (octomap_msgs::fullMapToMsg(*m_octree, map))
     m_fullMapPub.publish(map);
   else
     ROS_ERROR("Error serializing OctoMap");
