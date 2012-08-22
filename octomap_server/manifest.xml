@@ -15,7 +15,6 @@
   </export>
   
   <depend package="visualization_msgs"/> 
-<!--  <depend package="octomap_msgs"/> -->
   <depend package="octomap_ros"/>
   <depend package="sensor_msgs"/>
   <depend package="pcl_ros"/>

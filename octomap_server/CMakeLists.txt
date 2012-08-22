@@ -37,13 +37,13 @@ gencfg()
 rosbuild_add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp)
 
 rosbuild_add_executable(octomap_server_node src/octomap_server_node.cpp)
-target_link_libraries(octomap_server_node ${PROJECT_NAME})
+target_link_libraries(octomap_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
 
 rosbuild_add_executable(octomap_server_multilayer src/octomap_server_multilayer.cpp)
-target_link_libraries(octomap_server_multilayer ${PROJECT_NAME})
+target_link_libraries(octomap_server_multilayer ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
 
 rosbuild_add_executable(octomap_saver src/octomap_saver.cpp)
-target_link_libraries(octomap_saver ${PROJECT_NAME})
+target_link_libraries(octomap_saver ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
 
 rosbuild_add_executable(octomap_tracking_server_node src/octomap_tracking_server_node.cpp)
-target_link_libraries(octomap_tracking_server_node ${PROJECT_NAME})
+target_link_libraries(octomap_tracking_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})

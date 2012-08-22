@@ -216,13 +216,14 @@ bool OctomapServer::openFile(const std::string& filename){
   m_octree->getMetricMin(minX, minY, minZ);
   m_octree->getMetricMax(maxX, maxY, maxZ);
 
-  m_octree->genKeyValue(minX, m_updateBBXMin[0]);
-  m_octree->genKeyValue(minY, m_updateBBXMin[1]);
-  m_octree->genKeyValue(minZ, m_updateBBXMin[2]);
-  m_octree->genKeyValue(maxX, m_updateBBXMax[0]);
-  m_octree->genKeyValue(maxY, m_updateBBXMax[1]);
-  m_octree->genKeyValue(maxZ, m_updateBBXMax[2]);
-
+  m_updateBBXMin[0] = m_octree->coordToKey(minX);
+  m_updateBBXMin[1] = m_octree->coordToKey(minY);
+  m_updateBBXMin[2] = m_octree->coordToKey(minZ);
+  
+  m_updateBBXMax[0] = m_octree->coordToKey(maxX);
+  m_updateBBXMax[1] = m_octree->coordToKey(maxY);
+  m_updateBBXMax[2] = m_octree->coordToKey(maxZ);
+  
   publishAll();
 
   return true;
@@ -325,8 +326,8 @@ OcTreeKey getIndexKey(const OcTreeKey & key, unsigned short depth ) {
 void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
 
-  if (!m_octree->genKey(sensorOrigin, m_updateBBXMin)
-      || !m_octree->genKey(sensorOrigin, m_updateBBXMax))
+  if (!m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMin)
+    || !m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMax))
   {
     ROS_ERROR_STREAM("Could not generate Key for origin "<<sensorOrigin);
   }
@@ -349,7 +350,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
     }
 
     octomap::OcTreeKey endKey;
-    if (m_octree->genKey(point, endKey)){
+    if (m_octree->coordToKeyChecked(point, endKey)){
       updateMinKey(endKey, m_updateBBXMin);
       updateMaxKey(endKey, m_updateBBXMax);
     } else{
@@ -369,7 +370,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
       }
       // occupied endpoint
       OcTreeKey key;
-      if (m_octree->genKey(point, key)){
+      if (m_octree->coordToKeyChecked(point, key)){
         occupied_cells.insert(key);
 
         updateMinKey(key, m_updateBBXMin);
@@ -381,7 +382,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
 
         octomap::OcTreeKey endKey;
-        if (m_octree->genKey(new_end, endKey)){
+        if (m_octree->coordToKeyChecked(new_end, endKey)){
           updateMinKey(endKey, m_updateBBXMin);
           updateMaxKey(endKey, m_updateBBXMax);
         } else{
@@ -424,8 +425,8 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 //   }
 
   // TODO: we could also limit the bbx to be within the map bounds here (see publishing check)
-  m_octree->genCoords(m_updateBBXMin, m_octree->getTreeDepth(), minPt);
-  m_octree->genCoords(m_updateBBXMax, m_octree->getTreeDepth(), maxPt);
+  minPt = m_octree->keyToCoord(m_updateBBXMin);
+  maxPt = m_octree->keyToCoord(m_updateBBXMax);
   ROS_DEBUG_STREAM("Updated area bounding box: "<< minPt << " - "<<maxPt);
   ROS_DEBUG_STREAM("Bounding box keys (after): " << m_updateBBXMin[0] << " " <<m_updateBBXMin[1] << " " << m_updateBBXMin[2] << " / " <<m_updateBBXMax[0] << " "<<m_updateBBXMax[1] << " "<< m_updateBBXMax[2]);
 
@@ -851,19 +852,9 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
 
     octomap::point3d minPt(minX, minY, minZ);
     octomap::point3d maxPt(maxX, maxY, maxZ);
-    octomap::OcTreeKey minKey, maxKey, curKey;
-    if (!m_octree->genKey(minPt, minKey)){
-      ROS_ERROR("Could not create min OcTree key at %f %f %f", minPt.x(), minPt.y(), minPt.z());
-      return;
-    }
-
-    if (!m_octree->genKey(maxPt, maxKey)){
-      ROS_ERROR("Could not create max OcTree key at %f %f %f", maxPt.x(), maxPt.y(), maxPt.z());
-      return;
-    }
-    m_octree->genKeyAtDepth(minKey, m_maxTreeDepth, minKey);
-    m_octree->genKeyAtDepth(maxKey, m_maxTreeDepth, maxKey);
-
+    octomap::OcTreeKey minKey = m_octree->coordToKey(minPt, m_maxTreeDepth);
+    octomap::OcTreeKey maxKey = m_octree->coordToKey(maxPt, m_maxTreeDepth);
+    
     ROS_DEBUG("MinKey: %d %d %d / MaxKey: %d %d %d", minKey[0], minKey[1], minKey[2], maxKey[0], maxKey[1], maxKey[2]);
 
     // add padding if requested (= new min/maxPts in x&y):
@@ -877,16 +868,14 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     maxPt = octomap::point3d(maxX, maxY, maxZ);
 
     OcTreeKey paddedMaxKey;
-    if (!m_octree->genKey(minPt, m_paddedMinKey)){
+    if (!m_octree->coordToKeyChecked(minPt, m_maxTreeDepth, m_paddedMinKey)){
       ROS_ERROR("Could not create padded min OcTree key at %f %f %f", minPt.x(), minPt.y(), minPt.z());
       return;
     }
-    if (!m_octree->genKey(maxPt, paddedMaxKey)){
+    if (!m_octree->coordToKeyChecked(maxPt, m_maxTreeDepth, paddedMaxKey)){
       ROS_ERROR("Could not create padded max OcTree key at %f %f %f", maxPt.x(), maxPt.y(), maxPt.z());
       return;
     }
-    m_octree->genKeyAtDepth(m_paddedMinKey, m_maxTreeDepth, m_paddedMinKey);
-    m_octree->genKeyAtDepth(paddedMaxKey, m_maxTreeDepth, paddedMaxKey);
 
     ROS_DEBUG("Padded MinKey: %d %d %d / padded MaxKey: %d %d %d", m_paddedMinKey[0], m_paddedMinKey[1], m_paddedMinKey[2], paddedMaxKey[0], paddedMaxKey[1], paddedMaxKey[2]);
     assert(paddedMaxKey[0] >= maxKey[0] && paddedMaxKey[1] >= maxKey[1]);
@@ -900,8 +889,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     assert(mapOriginX >= 0 && mapOriginY >= 0);
 
     // might not exactly be min / max of octree:
-    octomap::point3d origin;
-    m_octree->genCoords(m_paddedMinKey, m_treeDepth, origin);
+    octomap::point3d origin = m_octree->keyToCoord(m_paddedMinKey, m_treeDepth);
     double gridRes = m_octree->getNodeSize(m_maxTreeDepth);
     m_projectCompleteMap = (!m_incrementalUpdate || (std::abs(gridRes-m_gridmap.info.resolution) > 1e-6));
     m_gridmap.info.resolution = gridRes;
