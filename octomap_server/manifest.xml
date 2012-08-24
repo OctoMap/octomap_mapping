@@ -19,7 +19,7 @@
   <depend package="sensor_msgs"/>
   <depend package="pcl_ros"/>
   <depend package="nav_msgs"/>
-  <depend package="arm_navigation_msgs"/>
+  <depend package="arm_navigation_msgs"/> -->
   <depend package="std_msgs"/>
   <depend package="std_srvs"/>
   

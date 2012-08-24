@@ -38,7 +38,7 @@
 #include <octomap_server/OctomapServer.h>
 
 using namespace octomap;
-using octomap_msgs::OctomapBinary;
+using octomap_msgs::Octomap;
 
 namespace octomap_server{
 
@@ -135,8 +135,8 @@ OctomapServer::OctomapServer()
     ROS_INFO("Publishing non-latched (topics are only prepared as needed, will only be re-published on map change");
 
   m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
-  m_binaryMapPub = m_nh.advertise<OctomapBinary>("octomap_binary", 1, m_latchedTopics);
-  m_fullMapPub = m_nh.advertise<OctomapBinary>("octomap_full", 1, m_latchedTopics);
+  m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
+  m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
   m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
@@ -705,7 +705,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
 
 void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const{
 
-  OctomapBinary map;
+  Octomap map;
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 
@@ -717,7 +717,7 @@ void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const{
 
 void OctomapServer::publishFullOctoMap(const ros::Time& rostime) const{
 
-  OctomapBinary map;
+  Octomap map;
   map.header.frame_id = m_worldFrameId;
   map.header.stamp = rostime;
 

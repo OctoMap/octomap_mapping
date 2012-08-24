@@ -36,17 +36,12 @@
  */
 
 #include <ros/ros.h>
-#include <octomap_ros/conversions.h>
+#include <octomap_msgs/conversions.h>
 #include <octomap/octomap.h>
 #include <fstream>
 
-#if ROS_VERSION_MINIMUM(1,8,0)
-  #include <octomap_msgs/GetOctomap.h>
-  using octomap_msgs::GetOctomap;
-#else
-  #include <octomap_ros/GetOctomap.h>
-  using octomap_ros::GetOctomap;
-#endif
+#include <octomap_msgs/GetOctomap.h>
+using octomap_msgs::GetOctomap;
 
 #define USAGE "\nUSAGE: octomap_saver [-f] <mapfile.[bt|ot]>\n" \
                 "  -f: Query for the full occupancy octree, instead of just the compact binary one\n" \

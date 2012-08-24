@@ -42,8 +42,11 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
+
 #include <arm_navigation_msgs/CollisionObject.h>
 #include <arm_navigation_msgs/CollisionMap.h>
+// #include <moveit_msgs/CollisionObject.h>
+// #include <moveit_msgs/CollisionMap.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
 #include <dynamic_reconfigure/server.h>
@@ -63,7 +66,7 @@
 #include <tf/transform_listener.h>
 #include <tf/message_filter.h>
 #include <message_filters/subscriber.h>
-#include <octomap_msgs/OctomapBinary.h>
+#include <octomap_msgs/Octomap.h>
 #include <octomap_msgs/GetOctomap.h>
 #include <octomap_msgs/BoundingBoxQuery.h>
 #include <octomap_msgs/conversions.h>
