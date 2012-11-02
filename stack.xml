@@ -9,13 +9,15 @@ providing data structures and mapping algorithms based on octrees. This
   <license>BSD</license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/octomap_mapping</url>
-  <depend stack="octomap_msgs" />
-  <depend stack="octomap_ros" />
+
   <depend stack="arm_navigation" /> <!-- arm_navigation_msgs -->
   <depend stack="common_msgs" /> <!-- nav_msgs, sensor_msgs, geometry_msgs, visualization_msgs -->
   <depend stack="geometry" /> <!-- tf -->
   <depend stack="perception_pcl" /> <!-- pcl, pcl_ros -->
   <depend stack="ros" />
   <depend stack="ros_comm" /> <!-- std_srvs, std_msgs, roscpp -->
-
+  
+  <depends>octomap</depends>
+  <depends>octomap_ros</depends>
+  <depends>octomap_msgs</depends>
 </stack>

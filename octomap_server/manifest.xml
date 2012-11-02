@@ -15,16 +15,17 @@
   </export>
   
   <depend package="visualization_msgs"/> 
-  <depend package="octomap_ros"/>
   <depend package="sensor_msgs"/>
   <depend package="pcl_ros"/>
   <depend package="nav_msgs"/>
-  <depend package="arm_navigation_msgs"/> -->
+  <depend package="arm_navigation_msgs"/> 
   <depend package="std_msgs"/>
   <depend package="std_srvs"/>
   
-  <rosdep name="octomap" />
   <depend package="dynamic_reconfigure"/>
+  <rosdep name="octomap" />
+  <rosdep name="octomap_ros" />
+  <rosdep name="octomap_msgs" />
   
 </package>
 
