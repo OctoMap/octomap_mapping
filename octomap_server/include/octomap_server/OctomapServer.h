@@ -81,13 +81,8 @@ class OctomapServer{
 
 public:
   typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
-#if ROS_VERSION_MINIMUM(1,8,0)
   typedef octomap_msgs::GetOctomap OctomapSrv;
   typedef octomap_msgs::BoundingBoxQuery BBXSrv;
-#else
-  typedef octomap_ros::GetOctomap OctomapSrv;
-  typedef octomap_ros::ClearBBXRegion BBXSrv;
-#endif
 
   typedef octomap::OcTree OcTreeT;
 

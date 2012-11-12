@@ -21,10 +21,10 @@
   <depend package="arm_navigation_msgs"/> 
   <depend package="std_msgs"/>
   <depend package="std_srvs"/>
+  <depend package="octomap_ros" />
   
   <depend package="dynamic_reconfigure"/>
   <rosdep name="octomap" />
-  <rosdep name="octomap_ros" />
   <rosdep name="octomap_msgs" />
   
 </package>
