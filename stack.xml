@@ -16,6 +16,7 @@ providing data structures and mapping algorithms based on octrees. This
   <depend stack="perception_pcl" /> <!-- pcl, pcl_ros -->
   <depend stack="ros" />
   <depend stack="ros_comm" /> <!-- std_srvs, std_msgs, roscpp -->
+  <depend stack="dynamic_reconfigure" />
   
   <depends>octomap</depends>
   <depends>octomap_ros</depends>
