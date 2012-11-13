@@ -18,7 +18,7 @@ providing data structures and mapping algorithms based on octrees. This
   <depend stack="ros_comm" /> <!-- std_srvs, std_msgs, roscpp -->
   <depend stack="dynamic_reconfigure" />
   
-  <depends>octomap</depends>
-  <depends>octomap_ros</depends>
-  <depends>octomap_msgs</depends>
+  <depend stack="octomap" />
+  <depend stack="octomap_ros" />
+  <depend stack="octomap_msgs" />
 </stack>
