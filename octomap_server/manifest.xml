@@ -12,6 +12,7 @@
   
   <export>
     <cpp cflags="-I${prefix}/include -I${prefix}/cfg/cpp"  lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -loctomap_server"/>
+    <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
   </export>
   
   <depend package="visualization_msgs"/> 
@@ -23,9 +24,10 @@
   <depend package="arm_navigation_msgs"/>
   <depend package="std_msgs"/>
   <depend package="std_srvs"/>
+  <depend package="dynamic_reconfigure"/>
+  <depend package="nodelet"/>
   
   <rosdep name="octomap" />
-  <depend package="dynamic_reconfigure"/>
   
 </package>
 
