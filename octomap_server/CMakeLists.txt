@@ -16,6 +16,9 @@ find_package(octomap REQUIRED)
 include_directories(${OCTOMAP_INCLUDE_DIRS})
 link_directories(${OCTOMAP_LIBRARY_DIRS})
 link_libraries(${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
+# required fix / workaround for catkin?
+# REMOVE WHEN COMPILING WITH PLAIN CMAKE OCTOMAP
+set (OCTOMAP_LIBRARIES ${octomap_LIBRARIES})
 
 find_package(PCL REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
