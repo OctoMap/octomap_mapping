@@ -70,7 +70,6 @@ public:
     }
 
     if (n.ok()){ // skip when CTRL-C
-      ROS_INFO("Map received, saving to %s", mapname.c_str());
       octomap::OcTree* octree = NULL;
 
       if (full){
@@ -84,6 +83,8 @@ public:
       }
 
       if (octree){
+        ROS_INFO("Map with %zu nodes received, saving to %s", octree->size(), mapname.c_str());
+        
         std::string suffix = mapname.substr(mapname.length()-3, 3);
         if (suffix== ".bt"){
           if (!octree->writeBinary(mapname)){

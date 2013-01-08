@@ -15,14 +15,20 @@ rosbuild_init()
 find_package(octomap REQUIRED)
 include_directories(${OCTOMAP_INCLUDE_DIRS})
 link_directories(${OCTOMAP_LIBRARY_DIRS})
-link_libraries(${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
-# required fix / workaround for catkin?
-# REMOVE WHEN COMPILING WITH PLAIN CMAKE OCTOMAP
-#set (OCTOMAP_LIBRARIES ${octomap_LIBRARIES})
+add_definitions(-DOCTOMAP_NODEBUGOUT)
 
 find_package(PCL REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
-link_libraries(${PROJECT_NAME} ${PCL_COMMON_LIBRARIES})
+
+find_package(nodelet REQUIRED)
+include_directories(${nodelet_INCLUDE_DIRS})
+
+link_libraries(
+  ${PROJECT_NAME}
+  ${PCL_COMMON_LIBRARIES}
+  ${OCTOMAP_LIBRARIES}
+  ${nodelet_LIBRARIES}
+)
 
 #set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -54,3 +60,7 @@ target_link_libraries(octomap_saver ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
 
 rosbuild_add_executable(octomap_tracking_server_node src/octomap_tracking_server_node.cpp)
 target_link_libraries(octomap_tracking_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
+
+# Nodelet
+rosbuild_add_library(octomap_server_nodelet src/octomap_server_nodelet.cpp)
+target_link_libraries(octomap_server_nodelet ${PROJECT_NAME})
