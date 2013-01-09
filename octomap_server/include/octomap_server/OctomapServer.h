@@ -86,7 +86,7 @@ public:
 
   typedef octomap::OcTree OcTreeT;
 
-  OctomapServer(ros::NodeHandle nh = ros::NodeHandle("~"));
+  OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
   virtual ~OctomapServer();
   virtual bool octomapBinarySrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
   virtual bool octomapFullSrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);

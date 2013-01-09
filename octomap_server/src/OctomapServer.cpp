@@ -42,7 +42,7 @@ using octomap_msgs::Octomap;
 
 namespace octomap_server{
 
-OctomapServer::OctomapServer(ros::NodeHandle nh)
+OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 : m_nh(),
   m_pointCloudSub(NULL),
   m_tfPointCloudSub(NULL),
@@ -67,7 +67,7 @@ OctomapServer::OctomapServer(ros::NodeHandle nh)
   m_compressMap(true),
   m_incrementalUpdate(false)
 {
-  ros::NodeHandle private_nh(nh);
+  ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
   private_nh.param("base_frame_id", m_baseFrameId, m_baseFrameId);
   private_nh.param("height_map", m_useHeightMap, m_useHeightMap);

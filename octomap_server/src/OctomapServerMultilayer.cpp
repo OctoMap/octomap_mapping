@@ -35,8 +35,8 @@ namespace octomap_server{
 
 
 
-OctomapServerMultilayer::OctomapServerMultilayer()
-: OctomapServer(),
+OctomapServerMultilayer::OctomapServerMultilayer(ros::NodeHandle private_nh_)
+: OctomapServer(private_nh_),
   m_haveAttachedObject(false)
 {
 
