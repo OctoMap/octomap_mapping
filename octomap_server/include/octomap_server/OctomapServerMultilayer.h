@@ -36,7 +36,7 @@ namespace octomap_server {
 class OctomapServerMultilayer : public OctomapServer{
 
 public:
-  OctomapServerMultilayer();
+  OctomapServerMultilayer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
   virtual ~OctomapServerMultilayer();
   void attachedCallback(const arm_navigation_msgs::AttachedCollisionObjectConstPtr& msg);
 
