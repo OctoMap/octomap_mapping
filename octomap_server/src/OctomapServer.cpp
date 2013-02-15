@@ -52,6 +52,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_useHeightMap(true),
   m_colorFactor(0.8),
   m_latchedTopics(true),
+  m_publishFreeSpace(false),
   m_res(0.05),
   m_treeDepth(0),
   m_maxTreeDepth(0),
@@ -128,6 +129,17 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_color.b = b;
   m_color.a = a;
 
+  private_nh.param("color_free/r", r, 0.0);
+  private_nh.param("color_free/g", g, 1.0);
+  private_nh.param("color_free/b", b, 0.0);
+  private_nh.param("color_free/a", a, 1.0);
+  m_colorFree.r = r;
+  m_colorFree.g = g;
+  m_colorFree.b = b;
+  m_colorFree.a = a;
+
+  private_nh.param("publish_free_space", m_publishFreeSpace, m_publishFreeSpace);
+
   private_nh.param("latch", m_latchedTopics, m_latchedTopics);
   if (m_latchedTopics){
     ROS_INFO("Publishing latched (single publish will take longer, all topics are prepared)");
@@ -141,7 +153,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1, m_latchedTopics);
   m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
   m_cmapPub = m_nh.advertise<arm_navigation_msgs::CollisionMap>("collision_map_out", 1, m_latchedTopics);
-
+  m_fmapPub = m_nh.advertise<arm_navigation_msgs::CollisionMap>("free_map_out", 1, m_latchedTopics);	
+  m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
   m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
@@ -446,6 +459,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     return;
   }
 
+  bool publishFreeMap = m_publishFreeSpace && (m_latchedTopics || m_fmapPub.getNumSubscribers() > 0);
+  bool publishFreeMarkerArray = m_publishFreeSpace && (m_latchedTopics || m_fmarkerPub.getNumSubscribers() > 0);
   bool publishCollisionMap = (m_latchedTopics || m_cmapPub.getNumSubscribers() > 0);
   bool publishCollisionObject = (m_latchedTopics || m_collisionObjectPub.getNumSubscribers() > 0);
   bool publishMarkerArray = (m_latchedTopics || m_markerPub.getNumSubscribers() > 0);
@@ -463,6 +478,22 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   collObjBox.axis.x = collObjBox.axis.y = 0.0;
   collObjBox.axis.z = 1.0;
   collObjBox.angle = 0.0;
+
+  // init free map and box:
+  arm_navigation_msgs::CollisionMap freeMap;
+  freeMap.header.frame_id = m_worldFrameId;
+  freeMap.header.stamp = rostime;
+  arm_navigation_msgs::OrientedBoundingBox freeObjBox;
+  freeObjBox.axis.x = freeObjBox.axis.y = 0.0;
+  freeObjBox.axis.z = 1.0;
+  freeObjBox.angle = 0.0;
+
+  // init markers for free space:
+  visualization_msgs::MarkerArray freeNodesVis;
+  // each array stores all cubes of a different size, one for each depth level:
+  freeNodesVis.markers.resize(m_treeDepth+1);
+
+
 
   //init collision map:
   arm_navigation_msgs::CollisionMap collisionMap;
@@ -515,7 +546,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         if (inUpdateBBX)
           handleOccupiedNodeInBBX(it);
 
-
         // create collision object:
         if (publishCollisionObject){
           collObjShape.dimensions[0] = collObjShape.dimensions[1] = collObjShape.dimensions[2] = size;
@@ -532,7 +562,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
           collObjBox.center.x = x;
           collObjBox.center.y = y;
           collObjBox.center.z = z;
-
           collisionMap.boxes.push_back(collObjBox);
 
         }
@@ -564,9 +593,40 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
       }
     } else{ // node not occupied => mark as free in 2D map if unknown so far
-      handleFreeNode(it);
-      if (inUpdateBBX)
-        handleFreeNodeInBBX(it);
+      double z = it.getZ();
+      if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
+      {
+        handleFreeNode(it);
+        if (inUpdateBBX)
+          handleFreeNodeInBBX(it);
+
+        if (m_publishFreeSpace){
+          double x = it.getX();
+          double y = it.getY();
+
+          if (publishFreeMap){
+            freeObjBox.extents.x = freeObjBox.extents.y = freeObjBox.extents.z = it.getSize();
+            freeObjBox.center.x = x;
+            freeObjBox.center.y = y;
+            freeObjBox.center.z = z;
+            freeMap.boxes.push_back(freeObjBox);
+          }
+
+          //create marker for free space:
+          if (publishFreeMarkerArray){
+            unsigned idx = it.getDepth();
+            assert(idx < freeNodesVis.markers.size());
+
+            geometry_msgs::Point cubeCenter;
+            cubeCenter.x = x;
+            cubeCenter.y = y;
+            cubeCenter.z = z;
+
+            freeNodesVis.markers[idx].points.push_back(cubeCenter);
+          }
+        }
+
+      }
     }
   }
 
@@ -595,9 +655,35 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
     }
 
-
     m_markerPub.publish(occupiedNodesVis);
   }
+
+
+  // finish FreeMarkerArray:
+  if (publishFreeMarkerArray){
+    for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i){
+      double size = m_octree->getNodeSize(i);
+
+      freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
+      freeNodesVis.markers[i].header.stamp = rostime;
+      freeNodesVis.markers[i].ns = "map";
+      freeNodesVis.markers[i].id = i;
+      freeNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
+      freeNodesVis.markers[i].scale.x = size;
+      freeNodesVis.markers[i].scale.y = size;
+      freeNodesVis.markers[i].scale.z = size;
+      freeNodesVis.markers[i].color = m_colorFree;
+
+
+      if (freeNodesVis.markers[i].points.size() > 0)
+        freeNodesVis.markers[i].action = visualization_msgs::Marker::ADD;
+      else
+        freeNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
+    }
+
+    m_fmarkerPub.publish(freeNodesVis);
+  }
+
 
   // finish pointcloud:
   if (publishPointCloud){
@@ -619,6 +705,11 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
   if (publishFullMap)
     publishFullOctoMap(rostime);
+
+  if (publishFreeMap)
+    m_fmapPub.publish(freeMap);
+
+
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
@@ -699,6 +790,22 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
 
 
   m_markerPub.publish(occupiedNodesVis);
+
+
+  visualization_msgs::MarkerArray freeNodesVis;
+  freeNodesVis.markers.resize(m_treeDepth +1);
+
+  for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i){
+
+    freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
+    freeNodesVis.markers[i].header.stamp = rostime;
+    freeNodesVis.markers[i].ns = "map";
+    freeNodesVis.markers[i].id = i;
+    freeNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
+    freeNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
+  }
+  m_fmarkerPub.publish(freeNodesVis);
+
   return true;
 }
 
