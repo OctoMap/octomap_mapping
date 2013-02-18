@@ -193,7 +193,7 @@ protected:
 
   static std_msgs::ColorRGBA heightMapColor(double h);
   ros::NodeHandle m_nh;
-  ros::Publisher m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub;
+  ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
@@ -210,9 +210,11 @@ protected:
   std::string m_baseFrameId; // base of the robot for ground plane filtering
   bool m_useHeightMap;
   std_msgs::ColorRGBA m_color;
+  std_msgs::ColorRGBA m_colorFree;
   double m_colorFactor;
 
   bool m_latchedTopics;
+  bool m_publishFreeSpace;
 
   double m_res;
   unsigned m_treeDepth;
