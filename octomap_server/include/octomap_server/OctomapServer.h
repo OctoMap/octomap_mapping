@@ -108,11 +108,15 @@ protected:
   };
  
   /// Test if key is within update area of map (2D, ignores height)
-  inline bool isInUpdateBBX(const octomap::OcTreeKey& key) const{
-    return (key[0] >= m_updateBBXMin[0] && key[1] >= m_updateBBXMin[1]
-         && key[0] <= m_updateBBXMax[0] && key[1] <= m_updateBBXMax[1]);
+  inline bool isInUpdateBBX(const octomap::OcTree::iterator& it) const{
+    // 2^(tree_depth-depth) voxels wide:
+    unsigned voxelWidth = (1 << (m_maxTreeDepth - it.getDepth()));
+    octomap::OcTreeKey key = it.getIndexKey(); // lower corner of voxel
+    return (key[0]+voxelWidth >= m_updateBBXMin[0]
+         && key[1]+voxelWidth >= m_updateBBXMin[1]
+         && key[0] <= m_updateBBXMax[0]
+         && key[1] <= m_updateBBXMax[1]);
   }
-
 
   void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;

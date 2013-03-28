@@ -522,7 +522,7 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth),
       end = m_octree->end(); it != end; ++it)
   {
-    bool inUpdateBBX = isInUpdateBBX(it.getKey());
+    bool inUpdateBBX = isInUpdateBBX(it);
 
     // call general hook:
     handleNode(it);
