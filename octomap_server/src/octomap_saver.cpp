@@ -50,9 +50,6 @@ using octomap_msgs::GetOctomap;
 using namespace std;
 using namespace octomap;
 
-/**
-* @brief Map generation node.
-*/
 class MapSaver{
 public:
   MapSaver(const std::string& mapname, bool full){
@@ -70,16 +67,11 @@ public:
     }
 
     if (n.ok()){ // skip when CTRL-C
-      octomap::OcTree* octree = NULL;
 
-      if (full){
-        AbstractOcTree* tree = octomap_msgs::fullMsgToMap(resp.map);
-        if (tree){
-          octree = dynamic_cast<OcTree*>(tree);
-        }
-
-      } else{
-        octree = octomap_msgs::binaryMsgToMap(resp.map);
+      AbstractOcTree* tree = octomap_msgs::msgToMap(resp.map);
+      AbstractOccupancyOcTree* octree = NULL;
+      if (tree){
+        octree = dynamic_cast<AbstractOccupancyOcTree*>(tree);
       }
 
       if (octree){
@@ -126,7 +118,7 @@ int main(int argc, char** argv){
   try{
     MapSaver ms(mapFilename, fullmap);
   }catch(std::runtime_error& e){
-    ROS_ERROR("map_saver exception: %s", e.what());
+    ROS_ERROR("octomap_saver exception: %s", e.what());
     exit(2);
   }
 
