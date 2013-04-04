@@ -51,7 +51,14 @@ using namespace octomap;
 
 class OctomapServerStatic{
 public:
-  OctomapServerStatic(const std::string& filename){
+  OctomapServerStatic(const std::string& filename)
+    : m_octree(NULL), m_worldFrameId("/map")
+  {
+
+    ros::NodeHandle private_nh("~");
+    private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
+
+
     // open file:
     if (filename.length() <= 3){
       ROS_ERROR("Octree file does not have .ot extension");
@@ -60,8 +67,12 @@ public:
 
     std::string suffix = filename.substr(filename.length()-3, 3);
 
-    // only .ot files for now (testing)
-    if (suffix == ".ot"){
+    // .bt files only as OcTree, all other classes need to be in .ot files:
+    if (suffix == ".bt"){
+      OcTree* octree = new OcTree(filename);
+
+      m_octree = octree;
+    } else if (suffix == ".ot"){
       AbstractOcTree* tree = AbstractOcTree::read(filename);
       if (!tree){
         ROS_ERROR("Could not read octree from file");
@@ -69,21 +80,28 @@ public:
       }
 
       m_octree = dynamic_cast<AbstractOccupancyOcTree*>(tree);
-      if (!m_octree){
-        ROS_ERROR("Could not read right octree class in file");
-        exit(1);
-      }
 
     } else{
-      ROS_ERROR("Octree file does not have .ot extension");
+      ROS_ERROR("Octree file does not have .bt or .ot extension");
       exit(1);
     }
 
-    ROS_INFO("Read octree type %s from file %s", m_octree->getTreeType().c_str(), filename.c_str());
+    if (!m_octree ){
+      ROS_ERROR("Could not read right octree class in file");
+      exit(1);
+    }
+
+    ROS_INFO("Read octree type \"%s\" from file %s", m_octree->getTreeType().c_str(), filename.c_str());
+    ROS_INFO("Octree resultion: %f, size: %zu", m_octree->getResolution(), m_octree->size());
 
 
     m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServerStatic::octomapBinarySrv, this);
     m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServerStatic::octomapFullSrv, this);
+
+  }
+
+  ~OctomapServerStatic(){
+
 
   }
 

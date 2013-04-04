@@ -75,14 +75,14 @@ public:
       }
 
       if (octree){
-        ROS_INFO("Map with %zu nodes received, saving to %s", octree->size(), mapname.c_str());
+        ROS_INFO("Map received (%zu nodes, %f m res), saving to %s", octree->size(), octree->getResolution(), mapname.c_str());
         
         std::string suffix = mapname.substr(mapname.length()-3, 3);
-        if (suffix== ".bt"){
+        if (suffix== ".bt"){ // write to binary file:
           if (!octree->writeBinary(mapname)){
             ROS_ERROR("Error writing to file %s", mapname.c_str());
           }
-        } else if (suffix == ".ot"){
+        } else if (suffix == ".ot"){ // write to full .ot file:
           if (!octree->write(mapname)){
             ROS_ERROR("Error writing to file %s", mapname.c_str());
           }
