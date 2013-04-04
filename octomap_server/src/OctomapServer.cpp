@@ -323,19 +323,6 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   publishAll(cloud->header.stamp);
 }
 
-
-OcTreeKey getIndexKey(const OcTreeKey & key, unsigned short depth ) {
-   // TODO: replace with helper function from next octomap (> 1.5)
-   unsigned short int mask = 65535 << (16 - depth);
-   OcTreeKey result = key;
-   result[0] &= mask;
-   result[1] &= mask;
-   result[2] &= mask;
-   return result;
-}
-
-
-
 void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
 
