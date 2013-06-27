@@ -1,6 +1,6 @@
 <stack>
   <description brief="Mapping tools to be used with the OctoMap library">
-    The <a href="http://octomap.sourceforge.net/">OctoMap library</a> implements a 3D occupancy grid mapping approach,
+    The <a href="http://octomap.github.io/">OctoMap library</a> implements a 3D occupancy grid mapping approach,
 providing data structures and mapping algorithms based on octrees. This
     stack provides mapping tools, most notably octomap_server to build and
     distribute 3D maps.
