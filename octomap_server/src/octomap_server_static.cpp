@@ -1,11 +1,3 @@
-/**
-* octomap_server_static: Simple map server for static maps in ROS
-*
-* @author A. Hornung, University of Freiburg, Copyright (C) 2013.
-* @see http://octomap.sourceforge.net/
-* License: BSD
-*/
-
 /*
  * Copyright (c) 2013, A. Hornung, University of Freiburg
  * All rights reserved.

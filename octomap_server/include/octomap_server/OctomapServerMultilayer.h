@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2011, A. Hornung, M. Philips
+ * Copyright (c) 2010-2013, A. Hornung, M. Philips
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

@@ -1,13 +1,5 @@
-/**
-* octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
-* (inspired by the ROS map_saver)
-* @author A. Hornung, University of Freiburg, Copyright (C) 2010-2012.
-* @see http://octomap.sourceforge.net/
-* License: BSD
-*/
-
 /*
- * Copyright (c) 2010-2012, A. Hornung, University of Freiburg
+ * Copyright (c) 2010-2013, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
