@@ -1,65 +1,80 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 2.8)
+project(octomap_server)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-set(ROS_BUILD_TYPE RelWithDebInfo)
-#set(ROS_BUILD_TYPE Release)
 
-rosbuild_init()
-
-find_package(octomap REQUIRED)
-include_directories(${OCTOMAP_INCLUDE_DIRS})
-link_directories(${OCTOMAP_LIBRARY_DIRS})
-add_definitions(-DOCTOMAP_NODEBUGOUT)
-
-find_package(PCL REQUIRED)
-include_directories(${PCL_INCLUDE_DIRS})
-
-find_package(nodelet REQUIRED)
-include_directories(${nodelet_INCLUDE_DIRS})
-
-link_libraries(
-  ${PROJECT_NAME}
-  ${PCL_COMMON_LIBRARIES}
-  ${OCTOMAP_LIBRARIES}
-  ${nodelet_LIBRARIES}
+find_package(catkin REQUIRED COMPONENTS
+  dynamic_reconfigure
+  nodelet
+  octomap_ros
+  octomap_msgs
+  pcl_conversions
 )
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+find_package(PCL REQUIRED QUIET COMPONENTS common)
+
+find_package(octomap REQUIRED)
+add_definitions(-DOCTOMAP_NODEBUGOUT)
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+  ${PCL_COMMON_INCLUDE_DIRS}
+  ${OCTOMAP_INCLUDE_DIRS}
+)
 
 
-#add dynamic reconfigure api
-rosbuild_find_ros_package(dynamic_reconfigure)
-include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
-gencfg()
+generate_dynamic_reconfigure_options(cfg/OctomapServer.cfg)
 
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS dynamic_reconfigure nodelet octomap_ros octomap_msgs pcl_conversions 
+  DEPENDS octomap PCL
+)
 
-#common commands for building c++ executables and libraries
-rosbuild_add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp)
+add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp)
+target_link_libraries(${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
-rosbuild_add_executable(octomap_server_node src/octomap_server_node.cpp)
-target_link_libraries(octomap_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
+add_executable(octomap_server_node src/octomap_server_node.cpp)
+target_link_libraries(octomap_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
-rosbuild_add_executable(octomap_server_static src/octomap_server_static.cpp)
-target_link_libraries(octomap_server_static ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
+add_executable(octomap_server_static src/octomap_server_static.cpp)
+target_link_libraries(octomap_server_static ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
-rosbuild_add_executable(octomap_server_multilayer src/octomap_server_multilayer.cpp)
-target_link_libraries(octomap_server_multilayer ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
+add_executable(octomap_server_multilayer src/octomap_server_multilayer.cpp)
+target_link_libraries(octomap_server_multilayer ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
-rosbuild_add_executable(octomap_saver src/octomap_saver.cpp)
-target_link_libraries(octomap_saver ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
+add_executable(octomap_saver src/octomap_saver.cpp)
+target_link_libraries(octomap_saver ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
-rosbuild_add_executable(octomap_tracking_server_node src/octomap_tracking_server_node.cpp)
-target_link_libraries(octomap_tracking_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
+add_executable(octomap_tracking_server_node src/octomap_tracking_server_node.cpp)
+target_link_libraries(octomap_tracking_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
 
 # Nodelet
-rosbuild_add_library(octomap_server_nodelet src/octomap_server_nodelet.cpp)
-target_link_libraries(octomap_server_nodelet ${PROJECT_NAME})
+add_library(octomap_server_nodelet src/octomap_server_nodelet.cpp)
+target_link_libraries(octomap_server_nodelet ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+
+# install targets:
+install(TARGETS ${PROJECT_NAME}
+  octomap_server_node
+  octomap_server_static
+  octomap_server_multilayer
+  octomap_saver
+  octomap_tracking_server_node
+  octomap_server_nodelet
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+  PATTERN ".svn" EXCLUDE
+)
+
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE
+)

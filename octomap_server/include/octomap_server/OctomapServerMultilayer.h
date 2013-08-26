@@ -30,7 +30,6 @@
 #define OCTOMAP_SERVER_OCTOMAPSERVERMULTILAYER_H
 
 #include <octomap_server/OctomapServer.h>
-#include <arm_navigation_msgs/AttachedCollisionObject.h>
 
 namespace octomap_server {
 class OctomapServerMultilayer : public OctomapServer{
@@ -38,7 +37,6 @@ class OctomapServerMultilayer : public OctomapServer{
 public:
   OctomapServerMultilayer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
   virtual ~OctomapServerMultilayer();
-  void attachedCallback(const arm_navigation_msgs::AttachedCollisionObjectConstPtr& msg);
 
 protected:
   struct ProjectedMap{
@@ -62,10 +60,6 @@ protected:
   std::vector<ros::Publisher*> m_multiMapPub;
   ros::Subscriber m_attachedObjectsSub;
 
-  std::string m_attachedFrame;
-  double m_attachedMaxOffset;
-  double m_attachedMinOffset;
-  bool m_haveAttachedObject;
   std::vector<std::string> m_armLinks;
   std::vector<double> m_armLinkOffsets;
 
