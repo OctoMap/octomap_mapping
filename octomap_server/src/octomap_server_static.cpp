@@ -43,8 +43,8 @@
 #include <octomap_msgs/GetOctomap.h>
 using octomap_msgs::GetOctomap;
 
-#define USAGE "\nUSAGE: octomap_server <mapfile.[bt|ot]>\n" \
-		"  mapfile.bt: filename of map to be saved (.bt: binary tree, .ot: general octree)\n"
+#define USAGE "\nUSAGE: octomap_server_static <mapfile.[bt|ot]>\n" \
+		"  mapfile.bt: OctoMap filename to be loaded (.bt: binary tree, .ot: general octree)\n"
 
 using namespace std;
 using namespace octomap;
