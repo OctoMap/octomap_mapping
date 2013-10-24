@@ -1,13 +1,5 @@
-/**
-* octomap_saver: Simple example which requests binary octomaps and stores them to a file.
-*
-* @author A. Hornung, University of Freiburg, Copyright (C) 2009.
-* @see http://octomap.sourceforge.net/
-* License: BSD
-*/
-
 /*
- * Copyright (c) 2010, A. Hornung, University of Freiburg
+ * Copyright (c) 2010-2013, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

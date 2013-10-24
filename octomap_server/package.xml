@@ -1,0 +1,51 @@
+<package>
+  <name>octomap_server</name>
+  <version>0.5.0</version>
+  <description>
+    octomap_server loads a 3D map (as Octree-based OctoMap) and distributes it to other nodes in a compact binary format.
+    It also allows to incrementally build 3D OctoMaps, and provides map saving in the node octomap_saver.
+  </description>
+  <author>Armin Hornung</author>
+  <maintainer email="hornunga@informatik.uni-freiburg.de">Armin Hornung</maintainer>
+  <license>BSD</license>
+  <url>http://www.ros.org/wiki/octomap_server</url>
+  <url type="bugtracker">https://github.com/OctoMap/octomap_mapping/issues</url>
+  <url type="repository">https://github.com/OctoMap/octomap_mapping</url>
+  
+  <export>
+    <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
+  </export>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>std_srvs</build_depend>
+  <build_depend>octomap</build_depend>
+  <build_depend>octomap_msgs</build_depend>  
+  <build_depend>octomap_ros</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>nodelet</build_depend>
+
+ <run_depend>roscpp</run_depend>
+ <run_depend>visualization_msgs</run_depend>
+ <run_depend>sensor_msgs</run_depend>
+ <run_depend>pcl_ros</run_depend>
+ <run_depend>pcl_conversions</run_depend>
+ <run_depend>nav_msgs</run_depend>
+ <run_depend>std_msgs</run_depend>
+ <run_depend>std_srvs</run_depend>
+ <run_depend>octomap</run_depend>
+ <run_depend>octomap_msgs</run_depend>
+ <run_depend>octomap_ros</run_depend>
+ <run_depend>dynamic_reconfigure</run_depend>
+ <run_depend>nodelet</run_depend>
+ 
+</package>
+
+

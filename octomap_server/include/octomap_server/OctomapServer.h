@@ -1,13 +1,5 @@
-/**
-* octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
-* (inspired by the ROS map_saver)
-* @author A. Hornung, University of Freiburg, Copyright (C) 2010-2012.
-* @see http://octomap.sourceforge.net/
-* License: BSD
-*/
-
 /*
- * Copyright (c) 2010-2012, A. Hornung, University of Freiburg
+ * Copyright (c) 2010-2013, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,8 +35,6 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
 
-#include <arm_navigation_msgs/CollisionObject.h>
-#include <arm_navigation_msgs/CollisionMap.h>
 // #include <moveit_msgs/CollisionObject.h>
 // #include <moveit_msgs/CollisionMap.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -53,7 +43,7 @@
 #include <octomap_server/OctomapServerConfig.h>
 
 #include <pcl/point_types.h>
-#include <pcl/ros/conversions.h>
+#include <pcl/conversions.h>
 #include <pcl_ros/transforms.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -61,6 +51,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 
 #include <tf/transform_listener.h>

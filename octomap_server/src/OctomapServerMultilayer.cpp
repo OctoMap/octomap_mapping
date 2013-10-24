@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, A. Hornung, M. Philips
+ * Copyright (c) 2011-2013, A. Hornung, M. Philips
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,11 +36,11 @@ namespace octomap_server{
 
 
 OctomapServerMultilayer::OctomapServerMultilayer(ros::NodeHandle private_nh_)
-: OctomapServer(private_nh_),
-  m_haveAttachedObject(false)
+: OctomapServer(private_nh_)
 {
 
-  m_attachedObjectsSub = m_nh.subscribe("attached_collision_object", 1, &OctomapServerMultilayer::attachedCallback, this);
+  // TODO: callback for arm_navigation attached objects was removed, is
+  // there a replacement functionality?
 
   // TODO: param maps, limits
   // right now 0: base, 1: spine, 2: arms
@@ -101,16 +101,6 @@ OctomapServerMultilayer::~OctomapServerMultilayer(){
 
 }
 
-void OctomapServerMultilayer::attachedCallback(const arm_navigation_msgs::AttachedCollisionObjectConstPtr& msg){
-  ROS_DEBUG("AttachedCollisionObjects received");
-  m_haveAttachedObject = (msg->object.operation.operation == arm_navigation_msgs::CollisionObjectOperation::ATTACH_AND_REMOVE_AS_OBJECT);
-  if(m_haveAttachedObject){
-    m_attachedFrame = msg->link_name;
-    m_attachedMaxOffset = msg->object.poses.back().position.z + msg->object.shapes.back().dimensions[1];
-    m_attachedMinOffset = msg->object.poses.back().position.z - msg->object.shapes.back().dimensions[1];
-  }
-}
-
 void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
   // multilayer server always publishes 2D maps:
   m_publish2DMap = true;
@@ -129,15 +119,6 @@ void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
 
   double minArmHeight = 2.0;
   double maxArmHeight = 0.0;
-  if(m_haveAttachedObject){
-    printf("adjust for attached object\n");
-    vin.header.frame_id = m_attachedFrame;
-    geometry_msgs::PointStamped vout;
-    m_tfListener.transformPoint("base_footprint",vin,vout);
-    //ROS_ERROR("link %s with height %f\n",arm_links[i],vout.point.z);
-    maxArmHeight = vout.point.z + (m_attachedMaxOffset + link_padding);
-    minArmHeight = vout.point.z - (m_attachedMinOffset + link_padding);
-  }
 
   for (unsigned i = 0; i < m_armLinks.size(); ++i){
     vin.header.frame_id = m_armLinks[i];

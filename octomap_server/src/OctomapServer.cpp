@@ -1,13 +1,5 @@
-/**
-* octomap_server: A Tool to serve 3D OctoMaps in ROS (binary and as visualization)
-* (inspired by the ROS map_saver)
-* @author A. Hornung, University of Freiburg, Copyright (C) 2010-2012.
-* @see http://octomap.sourceforge.net/
-* License: BSD
-*/
-
 /*
- * Copyright (c) 2010-2012, A. Hornung, University of Freiburg
+ * Copyright (c) 2010-2013, A. Hornung, University of Freiburg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -150,10 +142,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
-  m_collisionObjectPub = m_nh.advertise<arm_navigation_msgs::CollisionObject>("octomap_collision_object", 1, m_latchedTopics);
-  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
-  m_cmapPub = m_nh.advertise<arm_navigation_msgs::CollisionMap>("collision_map_out", 1, m_latchedTopics);
-  m_fmapPub = m_nh.advertise<arm_navigation_msgs::CollisionMap>("free_map_out", 1, m_latchedTopics);	
+  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);	
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
@@ -447,49 +436,17 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     return;
   }
 
-  bool publishFreeMap = m_publishFreeSpace && (m_latchedTopics || m_fmapPub.getNumSubscribers() > 0);
   bool publishFreeMarkerArray = m_publishFreeSpace && (m_latchedTopics || m_fmarkerPub.getNumSubscribers() > 0);
-  bool publishCollisionMap = (m_latchedTopics || m_cmapPub.getNumSubscribers() > 0);
-  bool publishCollisionObject = (m_latchedTopics || m_collisionObjectPub.getNumSubscribers() > 0);
   bool publishMarkerArray = (m_latchedTopics || m_markerPub.getNumSubscribers() > 0);
   bool publishPointCloud = (m_latchedTopics || m_pointCloudPub.getNumSubscribers() > 0);
   bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
   bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
   m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
 
-  // init collision object:
-  arm_navigation_msgs::CollisionObject collisionObject;
-  collisionObject.header.frame_id = m_worldFrameId;
-  collisionObject.header.stamp = rostime;
-  collisionObject.id = "map";
-  arm_navigation_msgs::OrientedBoundingBox collObjBox;
-  collObjBox.axis.x = collObjBox.axis.y = 0.0;
-  collObjBox.axis.z = 1.0;
-  collObjBox.angle = 0.0;
-
-  // init free map and box:
-  arm_navigation_msgs::CollisionMap freeMap;
-  freeMap.header.frame_id = m_worldFrameId;
-  freeMap.header.stamp = rostime;
-  arm_navigation_msgs::OrientedBoundingBox freeObjBox;
-  freeObjBox.axis.x = freeObjBox.axis.y = 0.0;
-  freeObjBox.axis.z = 1.0;
-  freeObjBox.angle = 0.0;
-
   // init markers for free space:
   visualization_msgs::MarkerArray freeNodesVis;
   // each array stores all cubes of a different size, one for each depth level:
   freeNodesVis.markers.resize(m_treeDepth+1);
-
-
-
-  //init collision map:
-  arm_navigation_msgs::CollisionMap collisionMap;
-  collisionMap.header.frame_id = m_worldFrameId;
-  collisionMap.header.stamp = rostime;
-  arm_navigation_msgs::Shape collObjShape;
-  collObjShape.type = arm_navigation_msgs::Shape::BOX;
-  collObjShape.dimensions.resize(3);
 
   geometry_msgs::Pose pose;
   pose.orientation = tf::createQuaternionMsgFromYaw(0.0);
@@ -534,25 +491,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         if (inUpdateBBX)
           handleOccupiedNodeInBBX(it);
 
-        // create collision object:
-        if (publishCollisionObject){
-          collObjShape.dimensions[0] = collObjShape.dimensions[1] = collObjShape.dimensions[2] = size;
-          collisionObject.shapes.push_back(collObjShape);
-          pose.position.x = x;
-          pose.position.y = y;
-          pose.position.z = z;
-          collisionObject.poses.push_back(pose);
-        }
-
-        if (publishCollisionMap){
-          collObjBox.extents.x = collObjBox.extents.y = collObjBox.extents.z = size;
-
-          collObjBox.center.x = x;
-          collObjBox.center.y = y;
-          collObjBox.center.z = z;
-          collisionMap.boxes.push_back(collObjBox);
-
-        }
 
         //create marker:
         if (publishMarkerArray){
@@ -591,14 +529,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         if (m_publishFreeSpace){
           double x = it.getX();
           double y = it.getY();
-
-          if (publishFreeMap){
-            freeObjBox.extents.x = freeObjBox.extents.y = freeObjBox.extents.z = it.getSize();
-            freeObjBox.center.x = x;
-            freeObjBox.center.y = y;
-            freeObjBox.center.z = z;
-            freeMap.boxes.push_back(freeObjBox);
-          }
 
           //create marker for free space:
           if (publishFreeMarkerArray){
@@ -682,21 +612,11 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     m_pointCloudPub.publish(cloud);
   }
 
-  if (publishCollisionObject)
-    m_collisionObjectPub.publish(collisionObject);
-
-  if (publishCollisionMap)
-    m_cmapPub.publish(collisionMap);
-
   if (publishBinaryMap)
     publishBinaryOctoMap(rostime);
 
   if (publishFullMap)
     publishFullOctoMap(rostime);
-
-  if (publishFreeMap)
-    m_fmapPub.publish(freeMap);
-
 
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
