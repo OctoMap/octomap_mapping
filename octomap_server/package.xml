@@ -4,12 +4,13 @@
   <description>
     octomap_server loads a 3D map (as Octree-based OctoMap) and distributes it to other nodes in a compact binary format.
     It also allows to incrementally build 3D OctoMaps, and provides map saving in the node octomap_saver.
-    A visualization of the occupied cells is sent as MarkerArray.
   </description>
   <author>Armin Hornung</author>
   <maintainer email="hornunga@informatik.uni-freiburg.de">Armin Hornung</maintainer>
   <license>BSD</license>
   <url>http://www.ros.org/wiki/octomap_server</url>
+  <url type="bugtracker">https://github.com/OctoMap/octomap_mapping/issues</url>
+  <url type="repository">https://github.com/OctoMap/octomap_mapping</url>
   
   <export>
     <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
