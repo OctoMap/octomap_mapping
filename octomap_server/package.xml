@@ -13,7 +13,7 @@
   <url type="repository">https://github.com/OctoMap/octomap_mapping</url>
   
   <export>
-    <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
   </export>
 
   <buildtool_depend>catkin</buildtool_depend>
