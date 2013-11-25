@@ -2,6 +2,10 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.1 (2013-11-25)
+------------------
+* Fix missing nodelet plugin from install
+
 0.5.0 (2013-10-24)
 ------------------
 * Small fix in octomap_server_static usage

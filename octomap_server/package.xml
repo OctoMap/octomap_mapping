@@ -1,6 +1,6 @@
 <package>
   <name>octomap_server</name>
-  <version>0.5.0</version>
+  <version>0.5.1</version>
   <description>
     octomap_server loads a 3D map (as Octree-based OctoMap) and distributes it to other nodes in a compact binary format.
     It also allows to incrementally build 3D OctoMaps, and provides map saving in the node octomap_saver.
@@ -13,7 +13,7 @@
   <url type="repository">https://github.com/OctoMap/octomap_mapping</url>
   
   <export>
-    <nodelet plugin="${prefix}/plugins/nodelet_plugins.xml" />
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
   </export>
 
   <buildtool_depend>catkin</buildtool_depend>
