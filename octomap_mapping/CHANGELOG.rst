@@ -2,6 +2,9 @@
 Changelog for package octomap_mapping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.5.0 (2013-10-24)
 ------------------
 * URLs in package.xml
