@@ -2,6 +2,10 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fixing PCL linking errors on build farm
+
 0.5.1 (2013-11-25)
 ------------------
 * Fix missing nodelet plugin from install
