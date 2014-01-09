@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.5.2 (2014-01-09)
+------------------
 * Fixing PCL linking errors on build farm
 
 0.5.1 (2013-11-25)
