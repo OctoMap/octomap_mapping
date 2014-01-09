@@ -2,17 +2,24 @@ cmake_minimum_required(VERSION 2.8)
 project(octomap_server)
 
 set(PACKAGE_DEPENDENCIES
-  dynamic_reconfigure
-  nodelet
+  roscpp
+  visualization_msgs
+  sensor_msgs
+  pcl_ros
+  pcl_conversions
+  nav_msgs
+  std_msgs
+  std_srvs
   octomap_ros
   octomap_msgs
-  pcl_conversions
+  dynamic_reconfigure
+  nodelet  
 )
 
 
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 
-find_package(PCL REQUIRED QUIET COMPONENTS common)
+find_package(PCL REQUIRED QUIET COMPONENTS common sample_consensus io segmentation filters)
 
 find_package(octomap REQUIRED)
 add_definitions(-DOCTOMAP_NODEBUGOUT)
