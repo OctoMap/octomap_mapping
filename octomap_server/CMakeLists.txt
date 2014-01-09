@@ -1,14 +1,16 @@
 cmake_minimum_required(VERSION 2.8)
 project(octomap_server)
 
-
-find_package(catkin REQUIRED COMPONENTS
+set(PACKAGE_DEPENDENCIES
   dynamic_reconfigure
   nodelet
   octomap_ros
   octomap_msgs
   pcl_conversions
 )
+
+
+find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 
 find_package(PCL REQUIRED QUIET COMPONENTS common)
 
@@ -18,7 +20,7 @@ add_definitions(-DOCTOMAP_NODEBUGOUT)
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${PCL_COMMON_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
   ${OCTOMAP_INCLUDE_DIRS}
 )
 
@@ -28,32 +30,38 @@ generate_dynamic_reconfigure_options(cfg/OctomapServer.cfg)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS dynamic_reconfigure nodelet octomap_ros octomap_msgs pcl_conversions 
+  CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
   DEPENDS octomap PCL
 )
 
+set(LINK_LIBS
+  ${OCTOMAP_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
 add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp)
-target_link_libraries(${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 add_executable(octomap_server_node src/octomap_server_node.cpp)
-target_link_libraries(octomap_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(octomap_server_node ${PROJECT_NAME} ${LINK_LIBS})
 
 add_executable(octomap_server_static src/octomap_server_static.cpp)
-target_link_libraries(octomap_server_static ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(octomap_server_static ${PROJECT_NAME} ${LINK_LIBS})
 
 add_executable(octomap_server_multilayer src/octomap_server_multilayer.cpp)
-target_link_libraries(octomap_server_multilayer ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(octomap_server_multilayer ${PROJECT_NAME} ${LINK_LIBS})
 
 add_executable(octomap_saver src/octomap_saver.cpp)
-target_link_libraries(octomap_saver ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(octomap_saver ${PROJECT_NAME} ${LINK_LIBS})
 
 add_executable(octomap_tracking_server_node src/octomap_tracking_server_node.cpp)
-target_link_libraries(octomap_tracking_server_node ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(octomap_tracking_server_node ${PROJECT_NAME} ${LINK_LIBS})
 
 # Nodelet
 add_library(octomap_server_nodelet src/octomap_server_nodelet.cpp)
-target_link_libraries(octomap_server_nodelet ${PROJECT_NAME} ${OCTOMAP_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(octomap_server_nodelet ${PROJECT_NAME} ${LINK_LIBS})
 
 # install targets:
 install(TARGETS ${PROJECT_NAME}
