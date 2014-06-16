@@ -203,6 +203,7 @@ protected:
   double m_maxRange;
   std::string m_worldFrameId; // the map frame
   std::string m_baseFrameId; // base of the robot for ground plane filtering
+  std::string m_sensorFrameId; // the sensor frame
   bool m_useHeightMap;
   std_msgs::ColorRGBA m_color;
   std_msgs::ColorRGBA m_colorFree;
@@ -223,6 +224,9 @@ protected:
   double m_pointcloudMaxZ;
   double m_occupancyMinZ;
   double m_occupancyMaxZ;
+  double m_occupancyGrid2DMinZ;
+  double m_occupancyGrid2DMaxZ;
+  bool m_occupancyGrid2DInitializedAsFree;
   double m_minSizeX;
   double m_minSizeY;
   bool m_filterSpeckles;
@@ -233,6 +237,7 @@ protected:
   double m_groundFilterPlaneDistance;
 
   bool m_compressMap;
+  size_t m_numberCloudsPublished;
 
   // downprojected 2D map:
   bool m_incrementalUpdate;

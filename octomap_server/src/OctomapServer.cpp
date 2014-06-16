@@ -38,6 +38,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 : m_nh(),
   m_pointCloudSub(NULL),
   m_tfPointCloudSub(NULL),
+  m_tfListener(ros::Duration(30)),
   m_octree(NULL),
   m_maxRange(-1.0),
   m_worldFrameId("/map"), m_baseFrameId("base_footprint"),
@@ -54,15 +55,20 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_pointcloudMaxZ(std::numeric_limits<double>::max()),
   m_occupancyMinZ(-std::numeric_limits<double>::max()),
   m_occupancyMaxZ(std::numeric_limits<double>::max()),
+  m_occupancyGrid2DMinZ(-std::numeric_limits<double>::max()),
+  m_occupancyGrid2DMaxZ(std::numeric_limits<double>::max()),
+  m_occupancyGrid2DInitializedAsFree(false),
   m_minSizeX(0.0), m_minSizeY(0.0),
   m_filterSpeckles(false), m_filterGroundPlane(false),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
   m_compressMap(true),
+  m_numberCloudsPublished(0),
   m_incrementalUpdate(false)
 {
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
   private_nh.param("base_frame_id", m_baseFrameId, m_baseFrameId);
+  private_nh.param("sensor_frame_id", m_sensorFrameId, m_sensorFrameId);
   private_nh.param("height_map", m_useHeightMap, m_useHeightMap);
   private_nh.param("color_factor", m_colorFactor, m_colorFactor);
 
@@ -70,6 +76,9 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("pointcloud_max_z", m_pointcloudMaxZ,m_pointcloudMaxZ);
   private_nh.param("occupancy_min_z", m_occupancyMinZ,m_occupancyMinZ);
   private_nh.param("occupancy_max_z", m_occupancyMaxZ,m_occupancyMaxZ);
+  private_nh.param("occupancy_grid_2d_min_z", m_occupancyGrid2DMinZ, m_occupancyGrid2DMinZ);
+  private_nh.param("occupancy_grid_2d_max_z", m_occupancyGrid2DMaxZ, m_occupancyGrid2DMaxZ);
+  private_nh.param("occupancy_grid_2d_initialized_as_free", m_occupancyGrid2DInitializedAsFree, m_occupancyGrid2DInitializedAsFree);
   private_nh.param("min_x_size", m_minSizeX,m_minSizeX);
   private_nh.param("min_y_size", m_minSizeY,m_minSizeY);
 
@@ -241,10 +250,11 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   //
   PCLPointCloud pc; // input cloud for filtering and ground-detection
   pcl::fromROSMsg(*cloud, pc);
+  bool cloudAlreadyInWorldFrameId = cloud->header.frame_id == m_worldFrameId;
 
   tf::StampedTransform sensorToWorldTf;
   try {
-    m_tfListener.lookupTransform(m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
+    m_tfListener.lookupTransform(m_worldFrameId, cloudAlreadyInWorldFrameId ? m_sensorFrameId : cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
   } catch(tf::TransformException& ex){
     ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
     return;
@@ -291,7 +301,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
     pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
   } else {
     // directly transform to map frame:
-    pcl::transformPointCloud(pc, pc, sensorToWorld);
+    if (!cloudAlreadyInWorldFrameId) pcl::transformPointCloud(pc, pc, sensorToWorld);
 
     // just filter height range:
     pass.setInputCloud(pc.makeShared());
@@ -456,8 +466,37 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   // each array stores all cubes of a different size, one for each depth level:
   occupiedNodesVis.markers.resize(m_treeDepth+1);
 
-  // init pointcloud:
-  pcl::PointCloud<pcl::PointXYZ> pclCloud;
+// init pointcloud:
+  sensor_msgs::PointCloud2Ptr cloud = sensor_msgs::PointCloud2Ptr(new sensor_msgs::PointCloud2());
+  size_t numberPointsInCloud = 0;
+  size_t numberReservedPoints = m_octree->size();
+  float* pointcloudDataPosition = NULL;
+  if (publishPointCloud) {
+    cloud->header.seq = m_numberCloudsPublished++;
+    cloud->header.stamp = rostime;
+    cloud->header.frame_id = m_worldFrameId;
+    cloud->height = 1;
+    cloud->width = 0;
+    cloud->fields.clear();
+    cloud->fields.resize(3);
+    cloud->fields[0].name = "x";
+    cloud->fields[0].offset = 0;
+    cloud->fields[0].datatype = sensor_msgs::PointField::FLOAT32;
+    cloud->fields[0].count = 1;
+    cloud->fields[1].name = "y";
+    cloud->fields[1].offset = 4;
+    cloud->fields[1].datatype = sensor_msgs::PointField::FLOAT32;
+    cloud->fields[1].count = 1;
+    cloud->fields[2].name = "z";
+    cloud->fields[2].offset = 8;
+    cloud->fields[2].datatype = sensor_msgs::PointField::FLOAT32;
+    cloud->fields[2].count = 1;
+    cloud->point_step = 12;
+
+    if (numberReservedPoints < 1) numberReservedPoints = 8;
+    cloud->data.resize(numberReservedPoints * cloud->point_step); // resize to fit all points and avoid memory moves
+    pointcloudDataPosition = (float*)(&cloud->data[0]);
+  }
 
   // call pre-traversal hook:
   handlePreNodeTraversal(rostime);
@@ -514,8 +553,18 @@ void OctomapServer::publishAll(const ros::Time& rostime){
         }
 
         // insert into pointcloud:
-        if (publishPointCloud)
-          pclCloud.push_back(pcl::PointXYZ(x, y, z));
+        if (publishPointCloud) {
+          if (numberPointsInCloud >= numberReservedPoints) {
+            numberReservedPoints += 16;
+            cloud->data.resize(numberReservedPoints * cloud->point_step);
+            pointcloudDataPosition = (float*)(&cloud->data[numberPointsInCloud * cloud->point_step]);
+          }
+
+          *pointcloudDataPosition++ = (float)x;
+          *pointcloudDataPosition++ = (float)y;
+          *pointcloudDataPosition++ = (float)z;
+          ++numberPointsInCloud;
+        }
 
       }
     } else{ // node not occupied => mark as free in 2D map if unknown so far
@@ -604,11 +653,10 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
 
   // finish pointcloud:
-  if (publishPointCloud){
-    sensor_msgs::PointCloud2 cloud;
-    pcl::toROSMsg (pclCloud, cloud);
-    cloud.header.frame_id = m_worldFrameId;
-    cloud.header.stamp = rostime;
+  if (publishPointCloud) {
+    cloud->width = numberPointsInCloud;
+    cloud->row_step = cloud->width * cloud->point_step;
+    cloud->data.resize(cloud->height * cloud->row_step); // resize to shrink the vector size to the real number of points inserted
     m_pointCloudPub.publish(cloud);
   }
 
@@ -863,6 +911,8 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     double minX, minY, minZ, maxX, maxY, maxZ;
     m_octree->getMetricMin(minX, minY, minZ);
     m_octree->getMetricMax(maxX, maxY, maxZ);
+    if (m_occupancyGrid2DMinZ > minZ) minZ = m_occupancyGrid2DMinZ;
+    if (m_occupancyGrid2DMaxZ < maxZ) maxZ = m_occupancyGrid2DMaxZ;
 
     octomap::point3d minPt(minX, minY, minZ);
     octomap::point3d maxPt(maxX, maxY, maxZ);
@@ -924,7 +974,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
       ROS_DEBUG("Rebuilding complete 2D map");
       m_gridmap.data.clear();
       // init to unknown:
-      m_gridmap.data.resize(m_gridmap.info.width * m_gridmap.info.height, -1);
+      m_gridmap.data.resize(m_gridmap.info.width * m_gridmap.info.height, m_occupancyGrid2DInitializedAsFree ? 0 : -1);
 
     } else {
 
@@ -950,8 +1000,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
 
        // reset proj. 2D map in bounding box:
        for (unsigned int j = mapUpdateBBXMinY; j <= mapUpdateBBXMaxY; ++j){
-          std::fill_n(m_gridmap.data.begin() + m_gridmap.info.width*j+mapUpdateBBXMinX,
-                      numCols, -1);
+          std::fill_n(m_gridmap.data.begin() + m_gridmap.info.width*j+mapUpdateBBXMinX, numCols, m_occupancyGrid2DInitializedAsFree ? 0 : -1);
        }
 
     }
@@ -997,34 +1046,33 @@ void OctomapServer::handleFreeNodeInBBX(const OcTreeT::iterator& it){
 }
 
 void OctomapServer::update2DMap(const OcTreeT::iterator& it, bool occupied){
-
   // update 2D map (occupied always overrides):
+  double z = it.getZ();
+  if (z >= m_occupancyGrid2DMinZ && z <= m_occupancyGrid2DMaxZ) {
+    if (it.getDepth() == m_maxTreeDepth){
+      unsigned idx = mapIdx(it.getKey());
+      if (occupied)
+        m_gridmap.data[mapIdx(it.getKey())] = 100;
+      else if (m_gridmap.data[idx] == -1){
+        m_gridmap.data[idx] = 0;
+      }
 
-  if (it.getDepth() == m_maxTreeDepth){
-    unsigned idx = mapIdx(it.getKey());
-    if (occupied)
-      m_gridmap.data[mapIdx(it.getKey())] = 100;
-    else if (m_gridmap.data[idx] == -1){
-      m_gridmap.data[idx] = 0;
-    }
-
-  } else{
-    int intSize = 1 << (m_maxTreeDepth - it.getDepth());
-    octomap::OcTreeKey minKey=it.getIndexKey();
-    for(int dx=0; dx < intSize; dx++){
-      int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
-      for(int dy=0; dy < intSize; dy++){
-        unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
-        if (occupied)
-          m_gridmap.data[idx] = 100;
-        else if (m_gridmap.data[idx] == -1){
-          m_gridmap.data[idx] = 0;
+    } else{
+      int intSize = 1 << (m_maxTreeDepth - it.getDepth());
+      octomap::OcTreeKey minKey=it.getIndexKey();
+      for(int dx=0; dx < intSize; dx++){
+        int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
+        for(int dy=0; dy < intSize; dy++){
+          unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
+          if (occupied)
+            m_gridmap.data[idx] = 100;
+          else if (m_gridmap.data[idx] == -1){
+            m_gridmap.data[idx] = 0;
+          }
         }
       }
     }
   }
-
-
 }
 
 
@@ -1080,7 +1128,7 @@ void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::
 
   map.data.clear();
   // init to unknown:
-  map.data.resize(map.info.width * map.info.height, -1);
+  map.data.resize(map.info.width * map.info.height, m_occupancyGrid2DInitializedAsFree ? 0 : -1);
 
   nav_msgs::OccupancyGrid::_data_type::iterator fromStart, fromEnd, toStart;
 
