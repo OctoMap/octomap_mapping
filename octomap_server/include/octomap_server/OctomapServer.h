@@ -237,7 +237,6 @@ protected:
   double m_groundFilterPlaneDistance;
 
   bool m_compressMap;
-  size_t m_numberCloudsPublished;
 
   // downprojected 2D map:
   bool m_incrementalUpdate;

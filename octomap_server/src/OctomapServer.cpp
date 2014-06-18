@@ -38,7 +38,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 : m_nh(),
   m_pointCloudSub(NULL),
   m_tfPointCloudSub(NULL),
-  m_tfListener(ros::Duration(30)),
+  m_tfListener(ros::Duration(60)),
   m_octree(NULL),
   m_maxRange(-1.0),
   m_worldFrameId("/map"), m_baseFrameId("base_footprint"),
@@ -62,7 +62,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_filterSpeckles(false), m_filterGroundPlane(false),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
   m_compressMap(true),
-  m_numberCloudsPublished(0),
   m_incrementalUpdate(false)
 {
   ros::NodeHandle private_nh(private_nh_);
@@ -248,20 +247,26 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   //
   // ground filtering in base frame
   //
-  PCLPointCloud pc; // input cloud for filtering and ground-detection
-  pcl::fromROSMsg(*cloud, pc);
-  bool cloudAlreadyInWorldFrameId = cloud->header.frame_id == m_worldFrameId;
+  PCLPointCloud::Ptr pc(new PCLPointCloud()); // input cloud for filtering and ground-detection
+  pcl::fromROSMsg(*cloud, *pc);
 
-  tf::StampedTransform sensorToWorldTf;
+  bool cloudAlreadyInWorldFrameId = cloud->header.frame_id == m_worldFrameId;
+  std::string targetFrame = cloud->header.frame_id;
+  if (cloudAlreadyInWorldFrameId && !m_sensorFrameId.empty()) {
+	  targetFrame = m_sensorFrameId;
+  }
+
+  tf::StampedTransform cloudToWorldTf;
   try {
-    m_tfListener.lookupTransform(m_worldFrameId, cloudAlreadyInWorldFrameId ? m_sensorFrameId : cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
+	m_tfListener.waitForTransform(m_worldFrameId, targetFrame, cloud->header.stamp, ros::Duration(0.2));
+    m_tfListener.lookupTransform(m_worldFrameId, targetFrame, cloud->header.stamp, cloudToWorldTf);
   } catch(tf::TransformException& ex){
     ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
     return;
   }
 
-  Eigen::Matrix4f sensorToWorld;
-  pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
+  Eigen::Matrix4f cloudToWorld;
+  pcl_ros::transformAsMatrix(cloudToWorldTf, cloudToWorld);
 
 
   // set up filter for height range, also removes NANs:
@@ -269,14 +274,15 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   pass.setFilterFieldName("z");
   pass.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
 
-  PCLPointCloud pc_ground; // segmented ground plane
-  PCLPointCloud pc_nonground; // everything else
+  PCLPointCloud::Ptr pc_ground(new PCLPointCloud()); // segmented ground plane
+  PCLPointCloud::Ptr pc_nonground(new PCLPointCloud()); // everything else
+
+  tf::StampedTransform cloudToBaseTf, baseToWorldTf;
 
   if (m_filterGroundPlane){
-    tf::StampedTransform sensorToBaseTf, baseToWorldTf;
     try{
       m_tfListener.waitForTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, ros::Duration(0.2));
-      m_tfListener.lookupTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToBaseTf);
+      m_tfListener.lookupTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, cloudToBaseTf);
       m_tfListener.lookupTransform(m_worldFrameId, m_baseFrameId, cloud->header.stamp, baseToWorldTf);
 
 
@@ -286,38 +292,43 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
     }
 
 
-    Eigen::Matrix4f sensorToBase, baseToWorld;
-    pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
+    Eigen::Matrix4f cloudToBase, baseToWorld;
+    pcl_ros::transformAsMatrix(cloudToBaseTf, cloudToBase);
     pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
 
-    // transform pointcloud from sensor frame to fixed robot frame
-    pcl::transformPointCloud(pc, pc, sensorToBase);
-    pass.setInputCloud(pc.makeShared());
-    pass.filter(pc);
-    filterGroundPlane(pc, pc_ground, pc_nonground);
+    // transform pointcloud from cloud frame to fixed robot frame
+    pcl::transformPointCloud(*pc, *pc, cloudToBase);
+    pass.setInputCloud(pc);
+    pass.filter(*pc);
+    filterGroundPlane(*pc, *pc_ground, *pc_nonground);
 
     // transform clouds to world frame for insertion
-    pcl::transformPointCloud(pc_ground, pc_ground, baseToWorld);
-    pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
+    pcl::transformPointCloud(*pc_ground, *pc_ground, baseToWorld);
+    pcl::transformPointCloud(*pc_nonground, *pc_nonground, baseToWorld);
   } else {
     // directly transform to map frame:
-    if (!cloudAlreadyInWorldFrameId) pcl::transformPointCloud(pc, pc, sensorToWorld);
+    if (!cloudAlreadyInWorldFrameId) pcl::transformPointCloud(*pc, *pc, cloudToWorld);
 
     // just filter height range:
-    pass.setInputCloud(pc.makeShared());
-    pass.filter(pc);
+    pass.setInputCloud(pc);
+    pass.filter(*pc);
 
-    pc_nonground = pc;
+    pc_nonground = pc; // switch pointers
     // pc_nonground is empty without ground segmentation
-    pc_ground.header = pc.header;
-    pc_nonground.header = pc.header;
+    pc_ground->header = pc->header;
+    pc_nonground->header = pc->header;
   }
 
+  // change sensor origin to the frame specified
+  if (!m_sensorFrameId.empty() && m_sensorFrameId != targetFrame) {
+	  m_tfListener.waitForTransform(m_worldFrameId, m_sensorFrameId, cloud->header.stamp, ros::Duration(0.2));
+	  m_tfListener.lookupTransform(m_worldFrameId, m_sensorFrameId, cloud->header.stamp, cloudToWorldTf);
+  }
 
-  insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
+  insertScan(cloudToWorldTf.getOrigin(), *pc_ground, *pc_nonground);
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-  ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
+  ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground->size(), pc_nonground->size(), total_elapsed);
 
   publishAll(cloud->header.stamp);
 }
@@ -469,10 +480,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 // init pointcloud:
   sensor_msgs::PointCloud2Ptr cloud = sensor_msgs::PointCloud2Ptr(new sensor_msgs::PointCloud2());
   size_t numberPointsInCloud = 0;
-  size_t numberReservedPoints = m_octree->size();
-  float* pointcloudDataPosition = NULL;
+  size_t numberReservedPoints = m_octree->getNumLeafNodes();
   if (publishPointCloud) {
-    cloud->header.seq = m_numberCloudsPublished++;
     cloud->header.stamp = rostime;
     cloud->header.frame_id = m_worldFrameId;
     cloud->height = 1;
@@ -493,9 +502,7 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     cloud->fields[2].count = 1;
     cloud->point_step = 12;
 
-    if (numberReservedPoints < 1) numberReservedPoints = 8;
-    cloud->data.resize(numberReservedPoints * cloud->point_step); // resize to fit all points and avoid memory moves
-    pointcloudDataPosition = (float*)(&cloud->data[0]);
+    cloud->data.reserve(numberReservedPoints * cloud->point_step); // reserve memory to avoid reallocations
   }
 
   // call pre-traversal hook:
@@ -554,15 +561,13 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
         // insert into pointcloud:
         if (publishPointCloud) {
-          if (numberPointsInCloud >= numberReservedPoints) {
-            numberReservedPoints += 16;
-            cloud->data.resize(numberReservedPoints * cloud->point_step);
-            pointcloudDataPosition = (float*)(&cloud->data[numberPointsInCloud * cloud->point_step]);
-          }
+          float pointData[3];
+          pointData[0] = x;
+          pointData[1] = y;
+          pointData[2] = z;
+          unsigned char* pointDataBytes = (unsigned char*)(&pointData[0]);
+          cloud->data.insert(cloud->data.end(), &pointDataBytes[0], &pointDataBytes[3 * sizeof(float)]);
 
-          *pointcloudDataPosition++ = (float)x;
-          *pointcloudDataPosition++ = (float)y;
-          *pointcloudDataPosition++ = (float)z;
           ++numberPointsInCloud;
         }
 
@@ -658,6 +663,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     cloud->row_step = cloud->width * cloud->point_step;
     cloud->data.resize(cloud->height * cloud->row_step); // resize to shrink the vector size to the real number of points inserted
     m_pointCloudPub.publish(cloud);
+
+    ROS_DEBUG_STREAM("Published pointcloud with " << numberPointsInCloud << " points");
   }
 
   if (publishBinaryMap)
