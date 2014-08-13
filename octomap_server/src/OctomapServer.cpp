@@ -1104,14 +1104,13 @@ bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
   return neighborFound;
 }
 
-void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level){
-  if (m_maxTreeDepth != unsigned(config.max_depth)){
-    m_maxTreeDepth = unsigned(config.max_depth);
-
-    publishAll();
-  }
-
-
+void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level) {
+	if (m_maxTreeDepth != config.max_depth || m_occupancyGrid2DMinZ != config.occupancy_grid_2d_min_z || m_occupancyGrid2DMaxZ != config.occupancy_grid_2d_max_z) {
+		m_maxTreeDepth = config.max_depth;
+		m_occupancyGrid2DMinZ = config.occupancy_grid_2d_min_z;
+		m_occupancyGrid2DMaxZ = config.occupancy_grid_2d_max_z;
+		publishAll();
+	}
 }
 
 void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const{
