@@ -99,15 +99,17 @@ void TrackingOctomapServer::trackChanges() {
 
   int c = 0;
   for (KeyBoolMap::const_iterator iter = startPnt; iter != endPnt; ++iter) {
-    c++;
+    ++c;
     OcTreeNode* node = m_octree->search(iter->first);
 
     bool occupied = m_octree->isNodeOccupied(node);
 
+    point3d center = m_octree->keyToCoord(iter->first);
+
     pcl::PointXYZI pnt;
-    pnt.x = iter->first.k[0];
-    pnt.y = iter->first.k[1];
-    pnt.z = iter->first.k[2];
+    pnt.x = center(0);
+    pnt.y = center(1);
+    pnt.z = center(2);
 
     if (occupied) {
       pnt.intensity = 1000;
@@ -119,15 +121,22 @@ void TrackingOctomapServer::trackChanges() {
     changedCells.push_back(pnt);
   }
 
-  sensor_msgs::PointCloud2 changed;
-  pcl::toROSMsg(changedCells, changed);
-  changed.header.frame_id = "/talker/changes";
-  changed.header.stamp = ros::Time().now();
-  pubChangeSet.publish(changed);
-  ROS_DEBUG("[server] sending %d changed entries", (int)changedCells.size());
+  // TODO : could set a threshold different than 0 here
+  // through ROS param srv
+  //
+  // TODO : !!!! rosparam to set up that ptcloud frame
+  if (c != 0)
+  {
+    sensor_msgs::PointCloud2 changed;
+    pcl::toROSMsg(changedCells, changed);
+    changed.header.frame_id = "map";
+    changed.header.stamp = ros::Time().now();
+    pubChangeSet.publish(changed);
+    ROS_DEBUG("[server] sending %d changed entries", (int)changedCells.size());
 
-  m_octree->resetChangeDetection();
-  ROS_DEBUG("[server] octomap size after updating: %d", (int)m_octree->calcNumNodes());
+    m_octree->resetChangeDetection();
+    ROS_DEBUG("[server] octomap size after updating: %d", (int)m_octree->calcNumNodes());
+  }
 }
 
 void TrackingOctomapServer::trackCallback(sensor_msgs::PointCloud2Ptr cloud) {
@@ -137,7 +146,7 @@ void TrackingOctomapServer::trackCallback(sensor_msgs::PointCloud2Ptr cloud) {
 
   for (size_t i = 0; i < cells.points.size(); i++) {
     pcl::PointXYZI& pnt = cells.points[i];
-    m_octree->updateNode(OcTreeKey(pnt.x, pnt.y, pnt.z), pnt.intensity, false);
+    m_octree->updateNode(m_octree->coordToKey(pnt.x, pnt.y, pnt.z), pnt.intensity, false);
   }
 
   m_octree->updateInnerOccupancy();
