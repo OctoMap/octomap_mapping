@@ -55,8 +55,10 @@ TrackingOctomapServer::TrackingOctomapServer(const std::string& filename) :
   ros::NodeHandle private_nh("~");
 
   std::string changeSetTopic = "changes";
+  std::string changeIdFrame = "/talker/changes";
 
   private_nh.param("topic_changes", changeSetTopic, changeSetTopic);
+  private_nh.param("change_id_frame", change_id_frame, changeIdFrame);
   private_nh.param("track_changes", track_changes, false);
   private_nh.param("listen_changes", listen_changes, false);
   private_nh.param("min_change_pub", min_change_pub, 0);
@@ -122,12 +124,11 @@ void TrackingOctomapServer::trackChanges() {
     changedCells.push_back(pnt);
   }
 
-  // TODO : !!!! rosparam to set up that ptcloud frame
   if (c > min_change_pub)
   {
     sensor_msgs::PointCloud2 changed;
     pcl::toROSMsg(changedCells, changed);
-    changed.header.frame_id = "map";
+    changed.header.frame_id = change_id_frame;
     changed.header.stamp = ros::Time().now();
     pubChangeSet.publish(changed);
     ROS_DEBUG("[server] sending %d changed entries", (int)changedCells.size());
