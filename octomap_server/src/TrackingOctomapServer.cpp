@@ -59,6 +59,7 @@ TrackingOctomapServer::TrackingOctomapServer(const std::string& filename) :
   private_nh.param("topic_changes", changeSetTopic, changeSetTopic);
   private_nh.param("track_changes", track_changes, false);
   private_nh.param("listen_changes", listen_changes, false);
+  private_nh.param("min_change_pub", min_change_pub, 0);
 
   if (track_changes && listen_changes) {
     ROS_WARN("OctoMapServer: It might not be useful to publish changes and at the same time listen to them."
@@ -121,11 +122,8 @@ void TrackingOctomapServer::trackChanges() {
     changedCells.push_back(pnt);
   }
 
-  // TODO : could set a threshold different than 0 here
-  // through ROS param srv
-  //
   // TODO : !!!! rosparam to set up that ptcloud frame
-  if (c != 0)
+  if (c > min_change_pub)
   {
     sensor_msgs::PointCloud2 changed;
     pcl::toROSMsg(changedCells, changed);
