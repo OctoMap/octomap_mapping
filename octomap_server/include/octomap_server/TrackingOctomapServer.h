@@ -47,6 +47,8 @@ protected:
 
   bool listen_changes;
   bool track_changes;
+  int min_change_pub;
+  std::string change_id_frame;
   ros::Publisher pubFreeChangeSet;
   ros::Publisher pubChangeSet;
   ros::Subscriber subChangeSet;
