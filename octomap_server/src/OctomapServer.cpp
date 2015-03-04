@@ -180,6 +180,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
+  m_octomapPublishAllService  = m_nh.advertiseService("octomap_publish_all", &OctomapServer::octomapPublishAllSrv, this);
   m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
 
@@ -779,6 +780,13 @@ bool OctomapServer::octomapFullSrv(OctomapSrv::Request  &req,
 
   return true;
 }
+
+
+bool OctomapServer::octomapPublishAllSrv(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response) {
+	publishAll(ros::Time::now(), true);
+	return true;
+}
+
 
 bool OctomapServer::clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp){
   point3d min = pointMsgToOctomap(req.min);
