@@ -93,9 +93,9 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("incremental_2D_projection", m_incrementalUpdate, m_incrementalUpdate);
 
   if (m_filterGroundPlane && (m_pointcloudMinZ > 0.0 || m_pointcloudMaxZ < 0.0)){
-	  ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
-			  <<m_pointcloudMinZ <<", "<< m_pointcloudMaxZ << "], excluding the ground level z=0. "
-			  << "This will not work.");
+    ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
+              <<m_pointcloudMinZ <<", "<< m_pointcloudMaxZ << "], excluding the ground level z=0. "
+              << "This will not work.");
 
   }
 
@@ -142,7 +142,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
-  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);	
+  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
@@ -221,11 +221,11 @@ bool OctomapServer::openFile(const std::string& filename){
   m_updateBBXMin[0] = m_octree->coordToKey(minX);
   m_updateBBXMin[1] = m_octree->coordToKey(minY);
   m_updateBBXMin[2] = m_octree->coordToKey(minZ);
-  
+
   m_updateBBXMax[0] = m_octree->coordToKey(maxX);
   m_updateBBXMax[1] = m_octree->coordToKey(maxY);
   m_updateBBXMax[2] = m_octree->coordToKey(maxZ);
-  
+
   publishAll();
 
   return true;
@@ -696,9 +696,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
     occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
   }
 
-
   m_markerPub.publish(occupiedNodesVis);
-
 
   visualization_msgs::MarkerArray freeNodesVis;
   freeNodesVis.markers.resize(m_treeDepth +1);
@@ -868,7 +866,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     octomap::point3d maxPt(maxX, maxY, maxZ);
     octomap::OcTreeKey minKey = m_octree->coordToKey(minPt, m_maxTreeDepth);
     octomap::OcTreeKey maxKey = m_octree->coordToKey(maxPt, m_maxTreeDepth);
-    
+
     ROS_DEBUG("MinKey: %d %d %d / MaxKey: %d %d %d", minKey[0], minKey[1], minKey[2], maxKey[0], maxKey[1], maxKey[2]);
 
     // add padding if requested (= new min/maxPts in x&y):
@@ -913,7 +911,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
       m_gridmap.info.origin.position.x -= m_res/2.0;
       m_gridmap.info.origin.position.y -= m_res/2.0;
     }
-    
+
     // workaround for  multires. projection not working properly for inner nodes:
     // force re-building complete map
     if (m_maxTreeDepth < m_treeDepth)
@@ -955,7 +953,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
        }
 
     }
-       
+
 
 
   }
@@ -1052,11 +1050,23 @@ bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
 void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level){
   if (m_maxTreeDepth != unsigned(config.max_depth)){
     m_maxTreeDepth = unsigned(config.max_depth);
-
     publishAll();
   }
-
-
+  else{
+    m_pointcloudMinZ = config.pointcloud_min_z;
+    m_pointcloudMaxZ = config.pointcloud_max_z;
+    m_occupancyMinZ = config.occupancy_min_z;
+    m_occupancyMaxZ = config.occupancy_max_z;
+    m_filterSpeckles = config.filter_speckles;
+    m_filterGroundPlane = config.filter_ground;
+    m_groundFilterDistance = config.distance;
+    m_groundFilterAngle = config.angle;
+    m_groundFilterPlaneDistance = config.plane_distance;
+    m_maxRange = config.max_range;
+    m_compressMap = config.compress_map;
+    m_incrementalUpdate = config.incremental_2D_projection;
+    //resetOctomapServer();
+  }
 }
 
 void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const{
