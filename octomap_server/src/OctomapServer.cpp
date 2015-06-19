@@ -1048,25 +1048,23 @@ bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
 }
 
 void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level){
-  if (m_maxTreeDepth != unsigned(config.max_depth)){
+  if (m_maxTreeDepth != unsigned(config.max_depth))
     m_maxTreeDepth = unsigned(config.max_depth);
-    publishAll();
-  }
   else{
-    m_pointcloudMinZ = config.pointcloud_min_z;
-    m_pointcloudMaxZ = config.pointcloud_max_z;
-    m_occupancyMinZ = config.occupancy_min_z;
-    m_occupancyMaxZ = config.occupancy_max_z;
-    m_filterSpeckles = config.filter_speckles;
-    m_filterGroundPlane = config.filter_ground;
-    m_groundFilterDistance = config.distance;
-    m_groundFilterAngle = config.angle;
-    m_groundFilterPlaneDistance = config.plane_distance;
-    m_maxRange = config.max_range;
-    m_compressMap = config.compress_map;
-    m_incrementalUpdate = config.incremental_2D_projection;
-    //resetOctomapServer();
+    m_pointcloudMinZ            = config.pointcloud_min_z;
+    m_pointcloudMaxZ            = config.pointcloud_max_z;
+    m_occupancyMinZ             = config.occupancy_min_z;
+    m_occupancyMaxZ             = config.occupancy_max_z;
+    m_filterSpeckles            = config.filter_speckles;
+    m_filterGroundPlane         = config.filter_ground;
+    m_groundFilterDistance      = config.ground_filter_distance;
+    m_groundFilterAngle         = config.ground_filter_angle;
+    m_groundFilterPlaneDistance = config.ground_filter_plane_distance;
+    m_maxRange                  = config.sensor_model_max_range;
+    m_compressMap               = config.compress_map;
+    m_incrementalUpdate         = config.incremental_2D_projection;
   }
+  publishAll();
 }
 
 void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const{
