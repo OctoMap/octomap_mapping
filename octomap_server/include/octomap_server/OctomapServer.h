@@ -92,12 +92,12 @@ protected:
     for (unsigned i=0; i<3; ++i)
       min[i] = std::min(in[i], min[i]);
   };
-  
+
   inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& max){
     for (unsigned i=0; i<3; ++i)
       max[i] = std::max(in[i], max[i]);
   };
- 
+
   /// Test if key is within update area of map (2D, ignores height)
   inline bool isInUpdateBBX(const octomap::OcTree::iterator& it) const{
     // 2^(tree_depth-depth) voxels wide:
