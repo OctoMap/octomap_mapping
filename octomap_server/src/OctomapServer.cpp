@@ -1061,6 +1061,10 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
     m_groundFilterAngle         = config.ground_filter_angle;
     m_groundFilterPlaneDistance = config.ground_filter_plane_distance;
     m_maxRange                  = config.sensor_model_max_range;
+    m_probHit                   = config.sensor_model_hit;
+    m_probMiss                  = config.sensor_model_miss;
+    m_thresMin                  = config.sensor_model_min;
+    m_thresMax                  = config.sensor_model_max;
     m_compressMap               = config.compress_map;
     m_incrementalUpdate         = config.incremental_2D_projection;
   }
