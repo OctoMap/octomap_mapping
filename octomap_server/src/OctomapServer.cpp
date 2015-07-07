@@ -48,8 +48,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_res(0.05),
   m_treeDepth(0),
   m_maxTreeDepth(0),
-  m_probHit(0.7), m_probMiss(0.4),
-  m_thresMin(0.12), m_thresMax(0.97),
   m_pointcloudMinZ(-std::numeric_limits<double>::max()),
   m_pointcloudMaxZ(std::numeric_limits<double>::max()),
   m_occupancyMinZ(-std::numeric_limits<double>::max()),
@@ -60,6 +58,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_compressMap(true),
   m_incrementalUpdate(false)
 {
+  double probHit, probMiss, thresMin, thresMax;
+
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
   private_nh.param("base_frame_id", m_baseFrameId, m_baseFrameId);
@@ -85,10 +85,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("sensor_model/max_range", m_maxRange, m_maxRange);
 
   private_nh.param("resolution", m_res, m_res);
-  private_nh.param("sensor_model/hit", m_probHit, m_probHit);
-  private_nh.param("sensor_model/miss", m_probMiss, m_probMiss);
-  private_nh.param("sensor_model/min", m_thresMin, m_thresMin);
-  private_nh.param("sensor_model/max", m_thresMax, m_thresMax);
+  private_nh.param("sensor_model/hit", probHit, 0.7);
+  private_nh.param("sensor_model/miss", probMiss, 0.4);
+  private_nh.param("sensor_model/min", thresMin, 0.12);
+  private_nh.param("sensor_model/max", thresMax, 0.97);
   private_nh.param("compress_map", m_compressMap, m_compressMap);
   private_nh.param("incremental_2D_projection", m_incrementalUpdate, m_incrementalUpdate);
 
@@ -96,17 +96,14 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
     ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
               <<m_pointcloudMinZ <<", "<< m_pointcloudMaxZ << "], excluding the ground level z=0. "
               << "This will not work.");
-
   }
-
-
 
   // initialize octomap object & params
   m_octree = new OcTree(m_res);
-  m_octree->setProbHit(m_probHit);
-  m_octree->setProbMiss(m_probMiss);
-  m_octree->setClampingThresMin(m_thresMin);
-  m_octree->setClampingThresMax(m_thresMax);
+  m_octree->setProbHit(probHit);
+  m_octree->setProbMiss(probMiss);
+  m_octree->setClampingThresMin(thresMin);
+  m_octree->setClampingThresMax(thresMax);
   m_treeDepth = m_octree->getTreeDepth();
   m_maxTreeDepth = m_treeDepth;
   m_gridmap.info.resolution = m_res;
@@ -655,10 +652,11 @@ bool OctomapServer::clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp){
   point3d min = pointMsgToOctomap(req.min);
   point3d max = pointMsgToOctomap(req.max);
 
+  double thresMin = m_octree->getClampingThresMin();
   for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(min,max),
       end=m_octree->end_leafs_bbx(); it!= end; ++it){
 
-    it->setLogOdds(octomap::logodds(m_thresMin));
+    it->setLogOdds(octomap::logodds(thresMin));
     //			m_octree->updateNode(it.getKey(), -6.0f);
   }
   // TODO: eval which is faster (setLogOdds+updateInner or updateNode)
@@ -1061,12 +1059,13 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
     m_groundFilterAngle         = config.ground_filter_angle;
     m_groundFilterPlaneDistance = config.ground_filter_plane_distance;
     m_maxRange                  = config.sensor_model_max_range;
-    m_probHit                   = config.sensor_model_hit;
-    m_probMiss                  = config.sensor_model_miss;
-    m_thresMin                  = config.sensor_model_min;
-    m_thresMax                  = config.sensor_model_max;
     m_compressMap               = config.compress_map;
     m_incrementalUpdate         = config.incremental_2D_projection;
+
+    m_octree->setProbHit(config.sensor_model_hit);
+    m_octree->setProbMiss(config.sensor_model_miss);
+    m_octree->setClampingThresMin(config.sensor_model_min);
+    m_octree->setClampingThresMax(config.sensor_model_max);
   }
   publishAll();
 }
