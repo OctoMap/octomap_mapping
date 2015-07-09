@@ -27,8 +27,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef OCTOMAP_SERVER_OCTOMAPSERVER_H
-#define OCTOMAP_SERVER_OCTOMAPSERVER_H
+#ifndef OCTOMAP_COLOR_SERVER_OCTOMAPSERVER_H
+#define OCTOMAP_COLOR_SERVER_OCTOMAPSERVER_H
 
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -64,21 +64,23 @@
 
 #include <octomap_ros/conversions.h>
 #include <octomap/octomap.h>
+#include <octomap/ColorOcTree.h>
 #include <octomap/OcTreeKey.h>
 
 
-namespace octomap_server {
-class OctomapServer{
+namespace octomap_color_server {
+class ColorOctomapServer{
 
 public:
-  typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
+  typedef pcl::PointXYZRGB PCLPoint;
+  typedef pcl::PointCloud<pcl::PointXYZRGB> PCLPointCloud;
   typedef octomap_msgs::GetOctomap OctomapSrv;
   typedef octomap_msgs::BoundingBoxQuery BBXSrv;
 
-  typedef octomap::OcTree OcTreeT;
+  typedef octomap::ColorOcTree OcTreeT; // wxm: changed in order to make ColorOcTree possible
 
-  OctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
-  virtual ~OctomapServer();
+  ColorOctomapServer(ros::NodeHandle private_nh_ = ros::NodeHandle("~"));
+  virtual ~ColorOctomapServer();
   virtual bool octomapBinarySrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
   virtual bool octomapFullSrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
   bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
@@ -99,7 +101,7 @@ protected:
   };
  
   /// Test if key is within update area of map (2D, ignores height)
-  inline bool isInUpdateBBX(const octomap::OcTree::iterator& it) const{
+  inline bool isInUpdateBBX(const octomap::ColorOcTree::iterator& it) const{ // wxm: changed in order to make ColorOcTree possible
     // 2^(tree_depth-depth) voxels wide:
     unsigned voxelWidth = (1 << (m_maxTreeDepth - it.getDepth()));
     octomap::OcTreeKey key = it.getIndexKey(); // lower corner of voxel
@@ -109,7 +111,7 @@ protected:
          && key[1] <= m_updateBBXMax[1]);
   }
 
-  void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
+  //void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishAll(const ros::Time& rostime = ros::Time::now());
@@ -193,9 +195,9 @@ protected:
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
-  dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
+  //dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer; // TODO: reactivate
 
-  octomap::OcTree* m_octree;
+  octomap::ColorOcTree* m_octree; // wxm: changed in order to make ColorOcTree possible
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
   octomap::OcTreeKey m_updateBBXMin;
   octomap::OcTreeKey m_updateBBXMax;
@@ -204,6 +206,7 @@ protected:
   std::string m_worldFrameId; // the map frame
   std::string m_baseFrameId; // base of the robot for ground plane filtering
   bool m_useHeightMap;
+  bool m_useColoredMap;
   std_msgs::ColorRGBA m_color;
   std_msgs::ColorRGBA m_colorFree;
   double m_colorFactor;
