@@ -487,6 +487,8 @@ void OctomapServer::insertReferenceOccupancyGrid(const nav_msgs::OccupancyGridCo
 
 		size_t data_position = 0;
 		double new_x, new_y;
+
+		// insert free
 		for (unsigned int y = 0; y < map_height; ++y) {
 			float x_map = 0.0;
 			float y_map = (float)y * map_resolution;
@@ -494,10 +496,30 @@ void OctomapServer::insertReferenceOccupancyGrid(const nav_msgs::OccupancyGridCo
 				x_map = (float)x * map_resolution;
 				new_x = static_cast<float> (transform (0, 0) * x_map + transform (0, 1) * y_map + transform (0, 3));
 				new_y = static_cast<float> (transform (1, 0) * x_map + transform (1, 1) * y_map + transform (1, 3));
-				if (occupancy_grid_msg->data[data_position] >= 0) {
-					double cell_occupation_probability = ((double)occupancy_grid_msg->data[data_position]) / 100.0;
+				double cell_occupation_probability = ((double)occupancy_grid_msg->data[data_position]) / 100.0;
+				if (cell_occupation_probability >= 0.0 && cell_occupation_probability < 0.5) {
 					m_octree->setNodeValue(new_x, new_y, 0.0, cell_occupation_probability);
-					m_octree->updateNode(new_x, new_y, 0.0, cell_occupation_probability > 0.5);
+					m_octree->updateNode(new_x, new_y, 0.0, cell_occupation_probability >= 0.5);
+				}
+
+				++data_position;
+			}
+		}
+
+		data_position = 0;
+
+		// insert occupied (after inserting free cells in order to preserve all the occupied cells -> avoids free cells overwriting occupied cells)
+		for (unsigned int y = 0; y < map_height; ++y) {
+			float x_map = 0.0;
+			float y_map = (float)y * map_resolution;
+			for (unsigned int x = 0; x < map_width; ++x) {
+				x_map = (float)x * map_resolution;
+				new_x = static_cast<float> (transform (0, 0) * x_map + transform (0, 1) * y_map + transform (0, 3));
+				new_y = static_cast<float> (transform (1, 0) * x_map + transform (1, 1) * y_map + transform (1, 3));
+				double cell_occupation_probability = ((double)occupancy_grid_msg->data[data_position]) / 100.0;
+				if (cell_occupation_probability >= 0.5) {
+					m_octree->setNodeValue(new_x, new_y, 0.0, cell_occupation_probability);
+					m_octree->updateNode(new_x, new_y, 0.0, cell_occupation_probability >= 0.5);
 				}
 
 				++data_position;
