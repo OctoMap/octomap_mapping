@@ -67,11 +67,11 @@
 #include <octomap/OcTreeKey.h>
 
 #ifdef COLOR_OCTOMAP_SERVER
- #include <octomap/ColorOcTree.h>
+#include <octomap/ColorOcTree.h>
 #endif
 
 namespace octomap_server {
-class OctomapServer{
+class OctomapServer {
 
 public:
 #ifdef COLOR_OCTOMAP_SERVER
@@ -97,25 +97,25 @@ public:
   virtual bool openFile(const std::string& filename);
 
 protected:
-  inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min){
-    for (unsigned i=0; i<3; ++i)
+  inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min) {
+    for (unsigned i = 0; i < 3; ++i)
       min[i] = std::min(in[i], min[i]);
   };
-  
-  inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& max){
-    for (unsigned i=0; i<3; ++i)
+
+  inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& max) {
+    for (unsigned i = 0; i < 3; ++i)
       max[i] = std::max(in[i], max[i]);
   };
- 
+
   /// Test if key is within update area of map (2D, ignores height)
-  inline bool isInUpdateBBX(const OcTreeT::iterator& it) const{
+  inline bool isInUpdateBBX(const OcTreeT::iterator& it) const {
     // 2^(tree_depth-depth) voxels wide:
     unsigned voxelWidth = (1 << (m_maxTreeDepth - it.getDepth()));
     octomap::OcTreeKey key = it.getIndexKey(); // lower corner of voxel
-    return (key[0]+voxelWidth >= m_updateBBXMin[0]
-         && key[1]+voxelWidth >= m_updateBBXMin[1]
-         && key[0] <= m_updateBBXMax[0]
-         && key[1] <= m_updateBBXMax[1]);
+    return (key[0] + voxelWidth >= m_updateBBXMin[0]
+            && key[1] + voxelWidth >= m_updateBBXMin[1]
+            && key[0] <= m_updateBBXMax[0]
+            && key[1] <= m_updateBBXMax[1]);
   }
 
   void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
@@ -170,13 +170,13 @@ protected:
   /// updates the downprojected 2D map as either occupied or free
   virtual void update2DMap(const OcTreeT::iterator& it, bool occupied);
 
-  inline unsigned mapIdx(int i, int j) const{
-    return m_gridmap.info.width*j + i;
+  inline unsigned mapIdx(int i, int j) const {
+    return m_gridmap.info.width * j + i;
   }
 
-  inline unsigned mapIdx(const octomap::OcTreeKey& key) const{
-    return mapIdx((key[0] - m_paddedMinKey[0])/m_multires2DScale,
-        (key[1] - m_paddedMinKey[1])/m_multires2DScale);
+  inline unsigned mapIdx(const octomap::OcTreeKey& key) const {
+    return mapIdx((key[0] - m_paddedMinKey[0]) / m_multires2DScale,
+                  (key[1] - m_paddedMinKey[1]) / m_multires2DScale);
 
   }
 
@@ -188,11 +188,11 @@ protected:
 
   void adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const;
 
-  inline bool mapChanged(const nav_msgs::MapMetaData& oldMapInfo, const nav_msgs::MapMetaData& newMapInfo){
+  inline bool mapChanged(const nav_msgs::MapMetaData& oldMapInfo, const nav_msgs::MapMetaData& newMapInfo) {
     return (    oldMapInfo.height != newMapInfo.height
-             || oldMapInfo.width !=newMapInfo.width
-             || oldMapInfo.origin.position.x != newMapInfo.origin.position.x
-             || oldMapInfo.origin.position.y != newMapInfo.origin.position.y);
+                || oldMapInfo.width != newMapInfo.width
+                || oldMapInfo.origin.position.x != newMapInfo.origin.position.x
+                || oldMapInfo.origin.position.y != newMapInfo.origin.position.y);
   }
 
   static std_msgs::ColorRGBA heightMapColor(double h);
