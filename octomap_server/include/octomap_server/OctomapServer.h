@@ -66,6 +66,8 @@
 #include <octomap/octomap.h>
 #include <octomap/OcTreeKey.h>
 
+#define COLOR_OCTOMAP_SERVER // TODO: make extra header
+
 #ifdef COLOR_OCTOMAP_SERVER
 #include <octomap/ColorOcTree.h>
 #endif

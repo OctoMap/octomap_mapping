@@ -37,12 +37,12 @@
 
 
 #include <ros/ros.h>
-#include <octomap_server/ColorOctomapServer.h>
+#include <octomap_server/OctomapServer.h>
 
 #define USAGE "\nUSAGE: octomap_color_server <map.[bt|ot]>\n" \
 		"  map.bt: inital octomap 3D map file to read\n"
 
-using namespace octomap_color_server;
+using namespace octomap_server;
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "octomap_color_server");
@@ -54,7 +54,7 @@ int main(int argc, char** argv){
   }
 
 
-  ColorOctomapServer server;
+  OctomapServer server;
   ros::spinOnce();
 
   if (argc == 2){
