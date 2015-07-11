@@ -49,8 +49,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_res(0.05),
   m_treeDepth(0),
   m_maxTreeDepth(0),
-  m_probHit(0.7), m_probMiss(0.4),
-  m_thresMin(0.12), m_thresMax(0.97),
   m_pointcloudMinZ(-std::numeric_limits<double>::max()),
   m_pointcloudMaxZ(std::numeric_limits<double>::max()),
   m_occupancyMinZ(-std::numeric_limits<double>::max()),
@@ -61,6 +59,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_compressMap(true),
   m_incrementalUpdate(false)
 {
+  double probHit, probMiss, thresMin, thresMax;
+
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
   private_nh.param("base_frame_id", m_baseFrameId, m_baseFrameId);
@@ -87,18 +87,17 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("sensor_model/max_range", m_maxRange, m_maxRange);
 
   private_nh.param("resolution", m_res, m_res);
-  private_nh.param("sensor_model/hit", m_probHit, m_probHit);
-  private_nh.param("sensor_model/miss", m_probMiss, m_probMiss);
-  private_nh.param("sensor_model/min", m_thresMin, m_thresMin);
-  private_nh.param("sensor_model/max", m_thresMax, m_thresMax);
+  private_nh.param("sensor_model/hit", probHit, 0.7);
+  private_nh.param("sensor_model/miss", probMiss, 0.4);
+  private_nh.param("sensor_model/min", thresMin, 0.12);
+  private_nh.param("sensor_model/max", thresMax, 0.97);
   private_nh.param("compress_map", m_compressMap, m_compressMap);
   private_nh.param("incremental_2D_projection", m_incrementalUpdate, m_incrementalUpdate);
 
   if (m_filterGroundPlane && (m_pointcloudMinZ > 0.0 || m_pointcloudMaxZ < 0.0)){
-	  ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
-			  <<m_pointcloudMinZ <<", "<< m_pointcloudMaxZ << "], excluding the ground level z=0. "
-			  << "This will not work.");
-
+    ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
+              <<m_pointcloudMinZ <<", "<< m_pointcloudMaxZ << "], excluding the ground level z=0. "
+              << "This will not work.");
   }
 
   if (m_useHeightMap && m_useColoredMap) {
@@ -117,10 +116,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
   // initialize octomap object & params
   m_octree = new OcTreeT(m_res);
-  m_octree->setProbHit(m_probHit);
-  m_octree->setProbMiss(m_probMiss);
-  m_octree->setClampingThresMin(m_thresMin);
-  m_octree->setClampingThresMax(m_thresMax);
+  m_octree->setProbHit(probHit);
+  m_octree->setProbMiss(probMiss);
+  m_octree->setClampingThresMin(thresMin);
+  m_octree->setClampingThresMax(thresMax);
   m_treeDepth = m_octree->getTreeDepth();
   m_maxTreeDepth = m_treeDepth;
   m_gridmap.info.resolution = m_res;
@@ -156,7 +155,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
-  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);	
+  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
@@ -235,11 +234,11 @@ bool OctomapServer::openFile(const std::string& filename){
   m_updateBBXMin[0] = m_octree->coordToKey(minX);
   m_updateBBXMin[1] = m_octree->coordToKey(minY);
   m_updateBBXMin[2] = m_octree->coordToKey(minZ);
-  
+
   m_updateBBXMax[0] = m_octree->coordToKey(maxX);
   m_updateBBXMax[1] = m_octree->coordToKey(maxY);
   m_updateBBXMax[2] = m_octree->coordToKey(maxZ);
-  
+
   publishAll();
 
   return true;
@@ -700,10 +699,11 @@ bool OctomapServer::clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp){
   point3d min = pointMsgToOctomap(req.min);
   point3d max = pointMsgToOctomap(req.max);
 
-  for(OcTreeT::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(min,max),
+  double thresMin = m_octree->getClampingThresMin();
+  for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(min,max),
       end=m_octree->end_leafs_bbx(); it!= end; ++it){
 
-    it->setLogOdds(octomap::logodds(m_thresMin));
+    it->setLogOdds(octomap::logodds(thresMin));
     //			m_octree->updateNode(it.getKey(), -6.0f);
   }
   // TODO: eval which is faster (setLogOdds+updateInner or updateNode)
@@ -741,9 +741,7 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
     occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
   }
 
-
   m_markerPub.publish(occupiedNodesVis);
-
 
   visualization_msgs::MarkerArray freeNodesVis;
   freeNodesVis.markers.resize(m_treeDepth +1);
@@ -913,7 +911,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     octomap::point3d maxPt(maxX, maxY, maxZ);
     octomap::OcTreeKey minKey = m_octree->coordToKey(minPt, m_maxTreeDepth);
     octomap::OcTreeKey maxKey = m_octree->coordToKey(maxPt, m_maxTreeDepth);
-    
+
     ROS_DEBUG("MinKey: %d %d %d / MaxKey: %d %d %d", minKey[0], minKey[1], minKey[2], maxKey[0], maxKey[1], maxKey[2]);
 
     // add padding if requested (= new min/maxPts in x&y):
@@ -958,7 +956,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
       m_gridmap.info.origin.position.x -= m_res/2.0;
       m_gridmap.info.origin.position.y -= m_res/2.0;
     }
-    
+
     // workaround for  multires. projection not working properly for inner nodes:
     // force re-building complete map
     if (m_maxTreeDepth < m_treeDepth)
@@ -1000,7 +998,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
        }
 
     }
-       
+
 
 
   }
@@ -1095,13 +1093,28 @@ bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
 }
 
 void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level){
-  if (m_maxTreeDepth != unsigned(config.max_depth)){
+  if (m_maxTreeDepth != unsigned(config.max_depth))
     m_maxTreeDepth = unsigned(config.max_depth);
+  else{
+    m_pointcloudMinZ            = config.pointcloud_min_z;
+    m_pointcloudMaxZ            = config.pointcloud_max_z;
+    m_occupancyMinZ             = config.occupancy_min_z;
+    m_occupancyMaxZ             = config.occupancy_max_z;
+    m_filterSpeckles            = config.filter_speckles;
+    m_filterGroundPlane         = config.filter_ground;
+    m_groundFilterDistance      = config.ground_filter_distance;
+    m_groundFilterAngle         = config.ground_filter_angle;
+    m_groundFilterPlaneDistance = config.ground_filter_plane_distance;
+    m_maxRange                  = config.sensor_model_max_range;
+    m_compressMap               = config.compress_map;
+    m_incrementalUpdate         = config.incremental_2D_projection;
 
-    publishAll();
+    m_octree->setProbHit(config.sensor_model_hit);
+    m_octree->setProbMiss(config.sensor_model_miss);
+    m_octree->setClampingThresMin(config.sensor_model_min);
+    m_octree->setClampingThresMax(config.sensor_model_max);
   }
-
-
+  publishAll();
 }
 
 void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const{
