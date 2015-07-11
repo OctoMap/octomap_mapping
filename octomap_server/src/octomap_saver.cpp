@@ -64,6 +64,10 @@ public:
       AbstractOccupancyOcTree* octree = NULL;
       if (tree){
         octree = dynamic_cast<AbstractOccupancyOcTree*>(tree);
+      } else {
+        ROS_ERROR("Error creating octree from received message");
+        if (resp.map.id == "ColorOcTree")
+          ROS_WARN("You requested a binary map for a ColorOcTree - this is currently not supported. Please add -f to request a full map");
       }
 
       if (octree){
