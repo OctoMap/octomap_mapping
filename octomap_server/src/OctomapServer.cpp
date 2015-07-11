@@ -700,7 +700,7 @@ bool OctomapServer::clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp){
   point3d max = pointMsgToOctomap(req.max);
 
   double thresMin = m_octree->getClampingThresMin();
-  for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(min,max),
+  for(OcTreeT::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(min,max),
       end=m_octree->end_leafs_bbx(); it!= end; ++it){
 
     it->setLogOdds(octomap::logodds(thresMin));
