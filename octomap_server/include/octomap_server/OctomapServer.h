@@ -225,10 +225,6 @@ protected:
   double m_res;
   unsigned m_treeDepth;
   unsigned m_maxTreeDepth;
-  double m_probHit;
-  double m_probMiss;
-  double m_thresMin;
-  double m_thresMax;
 
   double m_pointcloudMinZ;
   double m_pointcloudMaxZ;
