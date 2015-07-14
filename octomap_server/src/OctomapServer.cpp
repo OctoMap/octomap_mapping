@@ -672,12 +672,15 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 bool OctomapServer::octomapBinarySrv(OctomapSrv::Request  &req,
                                     OctomapSrv::Response &res)
 {
+  ros::WallTime startTime = ros::WallTime::now();
   ROS_INFO("Sending binary map data on service request");
   res.map.header.frame_id = m_worldFrameId;
   res.map.header.stamp = ros::Time::now();
   if (!octomap_msgs::binaryMapToMsg(*m_octree, res.map))
     return false;
 
+  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
+  ROS_INFO("Binary octomap sent in %f sec", total_elapsed);
   return true;
 }
 
