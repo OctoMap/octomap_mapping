@@ -65,6 +65,7 @@
 #include <octomap_ros/conversions.h>
 #include <octomap/octomap.h>
 #include <octomap/OcTreeKey.h>
+#include <string>
 
 
 namespace octomap_server {
@@ -81,6 +82,7 @@ public:
   virtual ~OctomapServer();
   virtual bool octomapBinarySrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
   virtual bool octomapFullSrv(OctomapSrv::Request  &req, OctomapSrv::GetOctomap::Response &res);
+  virtual bool octomapPublishAllSrv(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
   bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
@@ -112,7 +114,9 @@ protected:
   void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
-  void publishAll(const ros::Time& rostime = ros::Time::now());
+  void publishAll(const ros::Time& rostime = ros::Time::now(), bool forceMsgPublish = false);
+
+  void insertReferenceOccupancyGrid(const nav_msgs::OccupancyGridConstPtr& occupancy_grid_msg);
 
   /**
   * @brief update occupancy map with a scan labeled as ground and nonground.
@@ -191,7 +195,8 @@ protected:
   ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
-  ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
+  ros::Subscriber m_OccupancyGridSub_;
+  ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_octomapPublishAllService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
 
@@ -203,6 +208,7 @@ protected:
   double m_maxRange;
   std::string m_worldFrameId; // the map frame
   std::string m_baseFrameId; // base of the robot for ground plane filtering
+  std::string m_sensorFrameId; // the sensor frame
   bool m_useHeightMap;
   std_msgs::ColorRGBA m_color;
   std_msgs::ColorRGBA m_colorFree;
@@ -218,11 +224,17 @@ protected:
   double m_probMiss;
   double m_thresMin;
   double m_thresMax;
+  double m_thresOccupancy;
 
+  bool m_overrideSensorZ;
+  double m_overrideSensorZValue;
   double m_pointcloudMinZ;
   double m_pointcloudMaxZ;
   double m_occupancyMinZ;
   double m_occupancyMaxZ;
+  double m_occupancyGrid2DMinZ;
+  double m_occupancyGrid2DMaxZ;
+  bool m_occupancyGrid2DInitializedAsFree;
   double m_minSizeX;
   double m_minSizeY;
   bool m_filterSpeckles;
@@ -233,6 +245,14 @@ protected:
   double m_groundFilterPlaneDistance;
 
   bool m_compressMap;
+
+
+  ros::Duration m_miniumAmountOfTimeBetweenROSMsgPublishing;
+  int m_minimumNumberOfIntegrationsBeforeROSMsgPublishing;
+  ros::Time m_timeLastPublishedROSMsgs;
+  int m_numberIntegrationsSinceLastPublishedROSMsgs;
+
+
 
   // downprojected 2D map:
   bool m_incrementalUpdate;
