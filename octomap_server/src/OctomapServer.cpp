@@ -49,8 +49,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_res(0.05),
   m_treeDepth(0),
   m_maxTreeDepth(0),
-  m_probHit(0.7), m_probMiss(0.4),
-  m_thresMin(0.12), m_thresMax(0.97),
   m_pointcloudMinX(-std::numeric_limits<double>::max()),
   m_pointcloudMaxX(std::numeric_limits<double>::max()),
   m_pointcloudMinY(-std::numeric_limits<double>::max()),
