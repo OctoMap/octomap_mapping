@@ -112,7 +112,7 @@ protected:
   void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
-  virtual void publishAll(const ros::Time& rostime = ros::Time::now());
+  void publishAll(const ros::Time& rostime = ros::Time::now());
 
   /**
   * @brief update occupancy map with a scan labeled as ground and nonground.
@@ -219,10 +219,6 @@ protected:
   double m_thresMin;
   double m_thresMax;
 
-  double m_pointcloudMinX;
-  double m_pointcloudMaxX;
-  double m_pointcloudMinY;
-  double m_pointcloudMaxY;
   double m_pointcloudMinZ;
   double m_pointcloudMaxZ;
   double m_occupancyMinZ;
