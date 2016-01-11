@@ -218,6 +218,7 @@ protected:
   std_msgs::ColorRGBA m_color;
   std_msgs::ColorRGBA m_colorFree;
   double m_colorFactor;
+  std::string m_map_file;
 
   bool m_latchedTopics;
   bool m_publishFreeSpace;
