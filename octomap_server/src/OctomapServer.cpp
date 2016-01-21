@@ -64,7 +64,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_incrementalUpdate(false)
 {
   double probHit, probMiss, thresMin, thresMax;
-  std::string map_file;
 
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
@@ -72,7 +71,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("height_map", m_useHeightMap, m_useHeightMap);
   private_nh.param("colored_map", m_useColoredMap, m_useColoredMap);
   private_nh.param("color_factor", m_colorFactor, m_colorFactor);
-  private_nh.param("map_file", map_file, map_file);
 
   private_nh.param("pointcloud_min_x", m_pointcloudMinX,m_pointcloudMinX);
   private_nh.param("pointcloud_max_x", m_pointcloudMaxX,m_pointcloudMaxX);
@@ -181,15 +179,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
   f = boost::bind(&OctomapServer::reconfigureCallback, this, _1, _2);
   m_reconfigureServer.setCallback(f);
-
-
-  if (map_file != "") {
-    if (!openFile(map_file)){
-      ROS_WARN("Could not open file %s", map_file.c_str());
-    } else {
-      ROS_INFO("Succeeded to open file %s", map_file.c_str());
-    }
-  }
 }
 
 OctomapServer::~OctomapServer(){
