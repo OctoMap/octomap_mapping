@@ -2,6 +2,16 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2016-03-25)
+------------------
+* Add sensor model parameters to dynamic_reconfigure
+* Load map file from rosparam
+* Add x and y filter for pointcloud
+* Preparations for ColorOctomapServer (compile option, from source)
+* Fix iterator in OctomapServer
+* TrackingOctomapServer: Publish node center rather than index, prevent from publishing empty cloud
+* Contributors: Armin Hornung, Javier V. Gomez, JJeremie Deray, MasakiMurooka, Shohei Fujii, Wolfgang Merkt
+
 0.5.3 (2014-01-09)
 ------------------
 * Fixing PCL linking errors on build farm
