@@ -204,6 +204,7 @@ protected:
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
+  boost::recursive_mutex m_config_mutex;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
 
   OcTreeT* m_octree;
@@ -244,6 +245,8 @@ protected:
   double m_groundFilterPlaneDistance;
 
   bool m_compressMap;
+
+  bool m_initConfig;
 
   // downprojected 2D map:
   bool m_incrementalUpdate;
