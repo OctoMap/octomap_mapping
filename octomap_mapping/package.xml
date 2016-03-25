@@ -5,7 +5,7 @@
     Mapping tools to be used with the <a href="http://octomap.github.io/">OctoMap library</a>, implementing a 3D occupancy grid mapping.
   </description>
   <author>Armin Hornung</author>
-  <maintainer email="hornunga@informatik.uni-freiburg.de">Armin Hornung</maintainer>
+  <maintainer email="armin@hornung.io">Armin Hornung</maintainer>
   <license>BSD</license>  
   
   <url>http://ros.org/wiki/octomap_mapping</url>
