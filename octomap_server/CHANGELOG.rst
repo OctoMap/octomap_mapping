@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.0 (2016-03-25)
+------------------
 * Add sensor model parameters to dynamic_reconfigure
 * Load map file from rosparam
 * Add x and y filter for pointcloud
