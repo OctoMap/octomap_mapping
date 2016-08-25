@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(octomap_server)
 
 set(PACKAGE_DEPENDENCIES
+  cv_bridge
   roscpp
   visualization_msgs
   sensor_msgs
@@ -21,6 +22,8 @@ find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 
 find_package(PCL REQUIRED QUIET COMPONENTS common sample_consensus io segmentation filters)
 
+find_package(OpenCV REQUIRED)
+
 find_package(octomap REQUIRED)
 add_definitions(-DOCTOMAP_NODEBUGOUT)
 
@@ -29,6 +32,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${OCTOMAP_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 
@@ -38,7 +42,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
-  DEPENDS octomap PCL
+  DEPENDS octomap PCL OpenCV
 )
 
 set(LINK_LIBS
@@ -47,7 +51,7 @@ set(LINK_LIBS
   ${PCL_LIBRARIES}
 )
 
-add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp)
+add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/LabelOctomapServer.cpp src/TrackingOctomapServer.cpp)
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
@@ -63,6 +67,9 @@ target_link_libraries(octomap_server_static ${PROJECT_NAME} ${LINK_LIBS})
 add_executable(octomap_server_multilayer src/octomap_server_multilayer.cpp)
 target_link_libraries(octomap_server_multilayer ${PROJECT_NAME} ${LINK_LIBS})
 
+add_executable(label_octomap_server src/label_octomap_server.cpp)
+target_link_libraries(label_octomap_server ${PROJECT_NAME} ${LINK_LIBS})
+
 add_executable(octomap_saver src/octomap_saver.cpp)
 target_link_libraries(octomap_saver ${PROJECT_NAME} ${LINK_LIBS})
 
@@ -75,6 +82,7 @@ target_link_libraries(octomap_server_nodelet ${PROJECT_NAME} ${LINK_LIBS})
 
 # install targets:
 install(TARGETS ${PROJECT_NAME}
+  label_octomap_server
   octomap_server_node
   octomap_server_static
   octomap_server_multilayer
