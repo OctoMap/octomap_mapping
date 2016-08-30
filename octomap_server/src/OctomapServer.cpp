@@ -185,6 +185,12 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   dynamic_reconfigure::Server<OctomapServerConfig>::CallbackType f;
   f = boost::bind(&OctomapServer::reconfigureCallback, this, _1, _2);
   m_reconfigureServer.setCallback(f);
+
+  private_nh.createTimer(
+      ros::Duration(1),
+      &OctomapServer::updateInnerOccupancy,
+      this,
+      /*oneshot=*/false);
 }
 
 OctomapServer::~OctomapServer(){
@@ -476,6 +482,11 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 
 }
 
+
+void OctomapServer::updateInnerOccupancy(const ros::TimerEvent& event)
+{
+  m_octree->updateInnerOccupancy();
+}
 
 
 void OctomapServer::publishAll(const ros::Time& rostime){
