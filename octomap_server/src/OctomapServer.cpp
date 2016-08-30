@@ -409,11 +409,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
         updateMaxKey(key, m_updateBBXMax);
 
 #ifdef COLOR_OCTOMAP_SERVER // NB: Only read and interpret color if it's an occupied node
-        const int rgb = *reinterpret_cast<const int*>(&(it->rgb)); // TODO: there are other ways to encode color than this one
-        colors[0] = ((rgb >> 16) & 0xff);
-        colors[1] = ((rgb >> 8) & 0xff);
-        colors[2] = (rgb & 0xff);
-        m_octree->averageNodeColor(it->x, it->y, it->z, colors[0], colors[1], colors[2]);
+        m_octree->averageNodeColor(it->x, it->y, it->z, /*r=*/it->r, /*g=*/it->g, /*b=*/it->b);
 #endif
       }
     } else {// ray longer than maxrange:;
