@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+rosrun nodelet nodelet standalone octomap_server/OctoMapToMarkerArray __name:=octomap_to_marker_array "$@"

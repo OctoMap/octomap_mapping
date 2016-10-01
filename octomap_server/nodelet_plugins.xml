@@ -4,5 +4,9 @@
       Nodelet for running the Octomap server
     </description>
   </class>
+  <class name="octomap_server/OctoMapToMarkerArray"
+         type="octomap_server::OctoMapToMarkerArray"
+         base_class_type="nodelet::Nodelet">
+  </class>
 </library>
 
