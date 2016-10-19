@@ -2,6 +2,15 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix for Colored Octomap: Use PCLPoint everywhere
+  Fixes compiler error when enabling the define
+  for color.
+* Fixed maxRange bug in OctomapServer.cpp for clearing
+* Adjust maintainer email
+* Contributors: Armin Hornung, Brandon Kinman, Felix Endres
+
 0.6.0 (2016-03-25)
 ------------------
 * Add sensor model parameters to dynamic_reconfigure
