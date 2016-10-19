@@ -1,6 +1,6 @@
 <package>
   <name>octomap_server</name>
-  <version>0.6.0</version>
+  <version>0.6.1</version>
   <description>
     octomap_server loads a 3D map (as Octree-based OctoMap) and distributes it to other nodes in a compact binary format. It also allows to incrementally build 3D OctoMaps, and provides map saving in the node octomap_saver.
   </description>

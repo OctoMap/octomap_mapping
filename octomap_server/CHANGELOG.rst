@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.1 (2016-10-19)
+------------------
 * Fix for Colored Octomap: Use PCLPoint everywhere
   Fixes compiler error when enabling the define
   for color.

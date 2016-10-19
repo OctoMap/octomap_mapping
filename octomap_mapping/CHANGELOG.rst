@@ -2,8 +2,8 @@
 Changelog for package octomap_mapping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.1 (2016-10-19)
+------------------
 * Adjust maintainer email
 * Contributors: Armin Hornung
 
