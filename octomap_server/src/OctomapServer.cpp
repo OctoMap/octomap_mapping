@@ -474,7 +474,13 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   if (m_compressMap)
     m_octree->prune();
 
-
+#ifdef COLOR_OCTOMAP_SERVER
+  if (colors)
+  {
+    delete[] colors;
+    colors = NULL;
+  }
+#endif
 }
 
 
