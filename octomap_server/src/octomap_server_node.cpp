@@ -46,7 +46,8 @@ using namespace octomap_server;
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "octomap_server");
-  const ros::NodeHandle& private_nh = ros::NodeHandle("~");
+  ros::NodeHandle nh;
+  ros::NodeHandle private_nh("~");
   std::string mapFilename(""), mapFilenameParam("");
 
   if (argc > 2 || (argc == 2 && std::string(argv[1]) == "-h")){
@@ -54,7 +55,7 @@ int main(int argc, char** argv){
     exit(-1);
   }
 
-  OctomapServer server;
+  OctomapServer server(nh, private_nh);
   ros::spinOnce();
 
   if (argc == 2){

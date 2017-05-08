@@ -43,7 +43,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle &nh_, const ros::NodeHandle &
 : m_nh(nh_),
   m_pointCloudSub(NULL),
   m_tfPointCloudSub(NULL),
-  m_reconfigureServer(m_config_mutex),
+  m_reconfigureServer(m_config_mutex, private_nh_),
   m_octree(NULL),
   m_maxRange(-1.0),
   m_worldFrameId("/map"), m_baseFrameId("base_footprint"),
