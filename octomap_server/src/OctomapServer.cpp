@@ -39,8 +39,8 @@ bool is_equal (double a, double b, double epsilon = 1.0e-7)
 
 namespace octomap_server{
 
-OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
-: m_nh(),
+OctomapServer::OctomapServer(const ros::NodeHandle &nh_, const ros::NodeHandle &private_nh_)
+: m_nh(nh_),
   m_pointCloudSub(NULL),
   m_tfPointCloudSub(NULL),
   m_reconfigureServer(m_config_mutex),

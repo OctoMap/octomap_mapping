@@ -49,8 +49,9 @@ public:
   virtual void onInit()
   {
     NODELET_DEBUG("Initializing octomap server nodelet ...");
+    ros::NodeHandle& nh = this->getNodeHandle();
     ros::NodeHandle& private_nh = this->getPrivateNodeHandle();
-    server_.reset(new OctomapServer(private_nh));
+    server_.reset(new OctomapServer(nh, private_nh));
 
     std::string mapFilename("");
     if (private_nh.getParam("map_file", mapFilename)) {
