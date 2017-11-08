@@ -17,7 +17,13 @@
 		<param name="sensor_model/max_range" value="5.0" />
 		
 		<!-- data source to integrate (PointCloud2) -->
-		<remap from="cloud_in" to="/narrow_stereo/points_filtered2" />
+		<remap from="cloud_in" to="/camera/depth/points" />
 	
 	</node>
+
+	<node pkg="tf" type="static_transform_publisher" name="octotf" args=" 0 0 0 0 0 0 1 map odom 100"/>
+
+	<!-- lab machine  -->
+	<node pkg="rviz" type="rviz" name="rvizocto" args="-d /home/abhishek/catkin_ws/src/octomap_mapping/octomap_server/octotest.rviz"/> 
+
 </launch>
