@@ -11,7 +11,7 @@
 		<param name="resolution" value="0.05" />
 		
 		<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
-		<param name="frame_id" type="string" value="odom_combined" />
+		<param name="frame_id" type="string" value="map" />
 		
 		<!-- maximum range to integrate (speedup!) -->
 		<param name="sensor_model/max_range" value="5.0" />
