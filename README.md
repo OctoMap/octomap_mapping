@@ -1,5 +1,7 @@
 octomap_mapping
 ===============
+  
+Forked by Yonder Dynamics to implement latest features of octomap lib that allow for a 10x speed up.
 
 ROS stack for mapping with OctoMap, contains the octomap_server package.
 
