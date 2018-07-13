@@ -34,6 +34,8 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/ColorRGBA.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Float32.h>
 
 // #include <moveit_msgs/CollisionObject.h>
 // #include <moveit_msgs/CollisionMap.h>
@@ -95,6 +97,10 @@ public:
   bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
+
+  ///server will not start creating map without receiving this switch
+  void startMapSwitch(const std_msgs::Bool::ConstPtr& map_switch);
+  void OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& request);
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
   virtual bool openFile(const std::string& filename);
 
@@ -124,6 +130,7 @@ protected:
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   virtual void publishAll(const ros::Time& rostime = ros::Time::now());
+
 
   /**
   * @brief update occupancy map with a scan labeled as ground and nonground.
@@ -172,6 +179,8 @@ protected:
   /// updates the downprojected 2D map as either occupied or free
   virtual void update2DMap(const OcTreeT::iterator& it, bool occupied);
 
+  bool getCrossSection(double z, double cross_section_width, nav_msgs::OccupancyGrid &gridmap);
+
   inline unsigned mapIdx(int i, int j) const {
     return m_gridmap.info.width * j + i;
   }
@@ -199,13 +208,15 @@ protected:
 
   static std_msgs::ColorRGBA heightMapColor(double h);
   ros::NodeHandle m_nh;
-  ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub;
+  ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_crossSectional2DMapPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
   boost::recursive_mutex m_config_mutex;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
+
+  ros::Subscriber m_mapSwitchSub, m_crossSectional2DMapRequestSub;
 
   OcTreeT* m_octree;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
@@ -245,8 +256,14 @@ protected:
   double m_groundFilterPlaneDistance;
 
   bool m_compressMap;
+  double m_crossSectionWidth;
 
   bool m_initConfig;
+
+
+  ///if false, no new points from insertCloudCallback are accepted
+  ///if true, new maps will be added to maps
+  bool m_start_making_map;
 
   // downprojected 2D map:
   bool m_incrementalUpdate;
