@@ -54,10 +54,12 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_colorFactor(0.8),
   m_latchedTopics(true),
   m_publishFreeSpace(false),
+  m_publish2DCrossSectionMap(false),
   m_res(0.05),
   m_treeDepth(0),
   m_maxTreeDepth(0),
   m_crossSectionWidth(0.5),
+  m_zCrossSectionLocation(0.25),
   m_pointcloudMinX(-std::numeric_limits<double>::max()),
   m_pointcloudMaxX(std::numeric_limits<double>::max()),
   m_pointcloudMinY(-std::numeric_limits<double>::max()),
@@ -75,11 +77,16 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
 {
   double probHit, probMiss, thresMin, thresMax;
 
+<<<<<<< HEAD
   m_nh_private.param("frame_id", m_worldFrameId, m_worldFrameId);
   m_nh_private.param("base_frame_id", m_baseFrameId, m_baseFrameId);
   m_nh_private.param("height_map", m_useHeightMap, m_useHeightMap);
   m_nh_private.param("colored_map", m_useColoredMap, m_useColoredMap);
   m_nh_private.param("color_factor", m_colorFactor, m_colorFactor);
+
+  m_nh_private.param("start_making_map", m_start_making_map,true);
+  m_nh_private.param("cross_section_width",m_crossSectionWidth,m_crossSectionWidth);
+  m_nh_private.param("z_cross_section_location",m_zCrossSectionLocation,m_zCrossSectionLocation);
 
   m_nh_private.param("pointcloud_min_x", m_pointcloudMinX,m_pointcloudMinX);
   m_nh_private.param("pointcloud_max_x", m_pointcloudMaxX,m_pointcloudMaxX);
@@ -91,10 +98,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_nh_private.param("occupancy_max_z", m_occupancyMaxZ,m_occupancyMaxZ);
   m_nh_private.param("min_x_size", m_minSizeX,m_minSizeX);
   m_nh_private.param("min_y_size", m_minSizeY,m_minSizeY);
-
-  m_nh_private.param("start_making_map", m_start_making_map,true);
-  m_nh_private.param("cross_section_width",m_crossSectionWidth,m_crossSectionWidth);
-
+  
   m_nh_private.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
   m_nh_private.param("filter_ground", m_filterGroundPlane, m_filterGroundPlane);
 
@@ -165,6 +169,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_colorFree.a = a;
 
   m_nh_private.param("publish_free_space", m_publishFreeSpace, m_publishFreeSpace);
+  m_nh_private.param("publish_2d_cross_section_map",m_publish2DCrossSectionMap,m_publish2DCrossSectionMap);
 
   m_nh_private.param("latch", m_latchedTopics, m_latchedTopics);
   if (m_latchedTopics){
@@ -280,6 +285,7 @@ void OctomapServer::OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& req
 	nav_msgs::OccupancyGrid gridmap;
 	gridmap.header.frame_id=m_worldFrameId;
 	gridmap.info.resolution = m_res;
+	m_zCrossSectionLocation=request->data;
 	if(getCrossSection(request->data,m_crossSectionWidth, gridmap)){
 		m_crossSectional2DMapPub.publish(gridmap);
 	}else{
@@ -737,6 +743,17 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
   if (publishFullMap)
     publishFullOctoMap(rostime);
+
+  if (m_publish2DCrossSectionMap){
+	nav_msgs::OccupancyGrid gridmap;
+	gridmap.header.frame_id=m_worldFrameId;
+	gridmap.info.resolution = m_res;
+	if(getCrossSection(m_zCrossSectionLocation,m_crossSectionWidth, gridmap)){
+	  m_crossSectional2DMapPub.publish(gridmap);
+	}else{
+	  ROS_ERROR("Something went wrong while trying to make cross section");
+	}
+  }
 
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
