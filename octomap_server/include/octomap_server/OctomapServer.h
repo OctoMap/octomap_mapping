@@ -256,7 +256,10 @@ protected:
   double m_groundFilterPlaneDistance;
 
   bool m_compressMap;
+
+
   double m_crossSectionWidth;
+  double m_zCrossSectionLocation;
 
   bool m_initConfig;
 
@@ -269,6 +272,7 @@ protected:
   bool m_incrementalUpdate;
   nav_msgs::OccupancyGrid m_gridmap;
   bool m_publish2DMap;
+  bool m_publish2DCrossSectionMap;
   bool m_mapOriginChanged;
   octomap::OcTreeKey m_paddedMinKey;
   unsigned m_multires2DScale;
