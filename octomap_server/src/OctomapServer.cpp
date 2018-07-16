@@ -52,10 +52,12 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_colorFactor(0.8),
   m_latchedTopics(true),
   m_publishFreeSpace(false),
+  m_publish2DCrossSectionMap(false),
   m_res(0.05),
   m_treeDepth(0),
   m_maxTreeDepth(0),
   m_crossSectionWidth(0.5),
+  m_zCrossSectionLocation(0.25),
   m_pointcloudMinX(-std::numeric_limits<double>::max()),
   m_pointcloudMaxX(std::numeric_limits<double>::max()),
   m_pointcloudMinY(-std::numeric_limits<double>::max()),
@@ -82,6 +84,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
   private_nh.param("start_making_map", m_start_making_map,true);
   private_nh.param("cross_section_width",m_crossSectionWidth,m_crossSectionWidth);
+  private_nh.param("z_cross_section_location",m_zCrossSectionLocation,m_zCrossSectionLocation);
 
   private_nh.param("pointcloud_min_x", m_pointcloudMinX,m_pointcloudMinX);
   private_nh.param("pointcloud_max_x", m_pointcloudMaxX,m_pointcloudMaxX);
@@ -163,6 +166,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_colorFree.a = a;
 
   private_nh.param("publish_free_space", m_publishFreeSpace, m_publishFreeSpace);
+  private_nh.param("publish_2d_cross_section_map",m_publish2DCrossSectionMap,m_publish2DCrossSectionMap);
 
   private_nh.param("latch", m_latchedTopics, m_latchedTopics);
   if (m_latchedTopics){
@@ -278,6 +282,7 @@ void OctomapServer::OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& req
 	nav_msgs::OccupancyGrid gridmap;
 	gridmap.header.frame_id=m_worldFrameId;
 	gridmap.info.resolution = m_res;
+	m_zCrossSectionLocation=request->data;
 	if(getCrossSection(request->data,m_crossSectionWidth, gridmap)){
 		m_crossSectional2DMapPub.publish(gridmap);
 	}else{
@@ -726,6 +731,17 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
   if (publishFullMap)
     publishFullOctoMap(rostime);
+
+  if (m_publish2DCrossSectionMap){
+	nav_msgs::OccupancyGrid gridmap;
+	gridmap.header.frame_id=m_worldFrameId;
+	gridmap.info.resolution = m_res;
+	if(getCrossSection(m_zCrossSectionLocation,m_crossSectionWidth, gridmap)){
+	  m_crossSectional2DMapPub.publish(gridmap);
+	}else{
+	  ROS_ERROR("Something went wrong while trying to make cross section");
+	}
+  }
 
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
