@@ -14,10 +14,13 @@
 		<param name="frame_id" type="string" value="world" />
 		
 		<!-- maximum range to integrate (speedup!) -->
-		<param name="sensor_model/max_range" value="5.0" />
+		<param name="sensor_model/max_range" value="20.0" />
 		
 		<!-- data source to integrate (PointCloud2) -->
 		<remap from="cloud_in" to="/sensor_frame_cloud" />
+		
+		<param name="publish_2d_cross_section_map" value="true" />
+		
 	
 	</node>
 </launch>
