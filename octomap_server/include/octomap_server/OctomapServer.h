@@ -258,6 +258,8 @@ protected:
   double m_minSizeY;
   bool m_filterSpeckles;
 
+  bool m_simpleGroundFilter;
+
   bool m_filterGroundPlane;
   double m_groundFilterDistance;
   double m_groundFilterAngle;
