@@ -67,7 +67,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_occupancyMinZ(-std::numeric_limits<double>::max()),
   m_occupancyMaxZ(std::numeric_limits<double>::max()),
   m_minSizeX(0.0), m_minSizeY(0.0),
-  m_filterSpeckles(false), m_filterGroundPlane(false),
+  m_filterSpeckles(false), m_filterGroundPlane(false), m_simpleGroundFilter(true),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
   m_compressMap(true),
   m_incrementalUpdate(false),
@@ -98,6 +98,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("min_y_size", m_minSizeY,m_minSizeY);
 
   private_nh.param("filter_speckles", m_filterSpeckles, m_filterSpeckles);
+  private_nh.param("simple_ground_filter", m_simpleGroundFilter, m_simpleGroundFilter);
   private_nh.param("filter_ground", m_filterGroundPlane, m_filterGroundPlane);
   // distance of points from plane for RANSAC
   private_nh.param("ground_filter/distance", m_groundFilterDistance, m_groundFilterDistance);
@@ -341,26 +342,49 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 		  ROS_ERROR_STREAM( "Transform error for ground plane filter: " << ex.what() << ", quitting callback.\n"
 							"You need to set the base_frame_id or disable filter_ground.");
 		}
+    Eigen::Matrix4f sensorToBase, baseToWorld;
+    pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
+    pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
 
+    // transform pointcloud from sensor frame to fixed robot frame
+    pcl::transformPointCloud(pc, pc, sensorToBase);
+    pass_x.setInputCloud(pc.makeShared());
+    pass_x.filter(pc);
+    pass_y.setInputCloud(pc.makeShared());
+    pass_y.filter(pc);
+    pass_z.setInputCloud(pc.makeShared());
+    pass_z.filter(pc);
+    filterGroundPlane(pc, pc_ground, pc_nonground);
 
-		Eigen::Matrix4f sensorToBase, baseToWorld;
-		pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
-		pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
+    // transform clouds to world frame for insertion
+    pcl::transformPointCloud(pc_ground, pc_ground, baseToWorld);
+    pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
+	  } else if(m_simpleGroundFilter) {
+      // iterate through all the points in world frame
+	    // if a point's Z value lies in the floor plane envelope, it goes in pc_ground
 
-		// transform pointcloud from sensor frame to fixed robot frame
-		pcl::transformPointCloud(pc, pc, sensorToBase);
-		pass_x.setInputCloud(pc.makeShared());
-		pass_x.filter(pc);
-		pass_y.setInputCloud(pc.makeShared());
-		pass_y.filter(pc);
-		pass_z.setInputCloud(pc.makeShared());
-		pass_z.filter(pc);
-		filterGroundPlane(pc, pc_ground, pc_nonground);
+      // directly transform to map frame:
+      pcl::transformPointCloud(pc, pc, sensorToWorld);
 
-		// transform clouds to world frame for insertion
-		pcl::transformPointCloud(pc_ground, pc_ground, baseToWorld);
-		pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
+	    // just filter height range:
+	    pass_x.setInputCloud(pc.makeShared());
+	    pass_x.filter(pc);
+	    pass_y.setInputCloud(pc.makeShared());
+	    pass_y.filter(pc);
+	    pass_z.setInputCloud(pc.makeShared());
+	    pass_z.filter(pc);
+
+      for (PCLPointCloud::const_iterator it = pc.begin(); it != pc.end(); ++it){
+        if(it->z < m_groundFilterDistance && it->z > -m_groundFilterDistance) {
+        pc_ground.push_back(*it);
+        } else {
+          pc_nonground.push_back(*it);
+        }
+      }
+	    pc_ground.header = pc.header;
+	    pc_nonground.header = pc.header;
 	  } else {
+
 		// directly transform to map frame:
 		pcl::transformPointCloud(pc, pc, sensorToWorld);
 
