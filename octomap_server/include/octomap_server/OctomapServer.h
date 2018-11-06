@@ -97,9 +97,6 @@ public:
   bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
-
-  ///server will not start creating map without receiving this switch
-  void startMapSwitch(const std_msgs::Bool::ConstPtr& map_switch);
   void OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& request);
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
   virtual bool openFile(const std::string& filename);
@@ -216,7 +213,7 @@ protected:
   boost::recursive_mutex m_config_mutex;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
 
-  ros::Subscriber m_mapSwitchSub, m_crossSectional2DMapRequestSub;
+  ros::Subscriber m_crossSectional2DMapRequestSub;
 
   OcTreeT* m_octree;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
@@ -259,16 +256,10 @@ protected:
 
   bool m_compressMap;
 
-
   double m_crossSectionWidth;
   double m_zCrossSectionLocation;
 
   bool m_initConfig;
-
-
-  ///if false, no new points from insertCloudCallback are accepted
-  ///if true, new maps will be added to maps
-  bool m_start_making_map;
 
   // downprojected 2D map:
   bool m_incrementalUpdate;

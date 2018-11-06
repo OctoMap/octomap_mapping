@@ -82,7 +82,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("colored_map", m_useColoredMap, m_useColoredMap);
   private_nh.param("color_factor", m_colorFactor, m_colorFactor);
 
-  private_nh.param("start_making_map", m_start_making_map,true);
   private_nh.param("cross_section_width",m_crossSectionWidth,m_crossSectionWidth);
   private_nh.param("z_cross_section_location",m_zCrossSectionLocation,m_zCrossSectionLocation);
 
@@ -187,8 +186,6 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
   m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
 
-  m_mapSwitchSub = m_nh.subscribe<std_msgs::Bool>("map_switch", 1, &OctomapServer::startMapSwitch, this);
-
   m_crossSectional2DMapRequestSub = m_nh.subscribe<std_msgs::Float32>("cross_section_request", 1, &OctomapServer::OnCrossSectionRequest, this);
 
 
@@ -275,10 +272,6 @@ bool OctomapServer::openFile(const std::string& filename){
 }
 
 
-void OctomapServer::startMapSwitch(const std_msgs::Bool::ConstPtr& map_switch){
-	m_start_making_map = map_switch->data;
-}
-
 void OctomapServer::OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& request){
 	nav_msgs::OccupancyGrid gridmap;
 	gridmap.header.frame_id=m_worldFrameId;
@@ -294,122 +287,121 @@ void OctomapServer::OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& req
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
-	if(m_start_making_map){
-	  ros::WallTime startTime = ros::WallTime::now();
+	ros::WallTime startTime = ros::WallTime::now();
 
 
-	  //
-	  // ground filtering in base frame
-	  //
-	  PCLPointCloud pc; // input cloud for filtering and ground-detection
-	  pcl::fromROSMsg(*cloud, pc);
+	//
+	// ground filtering in base frame
+	//
+	PCLPointCloud pc; // input cloud for filtering and ground-detection
+	pcl::fromROSMsg(*cloud, pc);
 
-	  tf::StampedTransform sensorToWorldTf;
-	  try {
-		m_tfListener.lookupTransform(m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
-	  } catch(tf::TransformException& ex){
-		ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
-		return;
-	  }
-
-	  Eigen::Matrix4f sensorToWorld;
-	  pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
-
-
-	  // set up filter for height range, also removes NANs:
-	  pcl::PassThrough<PCLPoint> pass_x;
-	  pass_x.setFilterFieldName("x");
-	  pass_x.setFilterLimits(m_pointcloudMinX, m_pointcloudMaxX);
-	  pcl::PassThrough<PCLPoint> pass_y;
-	  pass_y.setFilterFieldName("y");
-	  pass_y.setFilterLimits(m_pointcloudMinY, m_pointcloudMaxY);
-	  pcl::PassThrough<PCLPoint> pass_z;
-	  pass_z.setFilterFieldName("z");
-	  pass_z.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
-
-	  PCLPointCloud pc_ground; // segmented ground plane
-	  PCLPointCloud pc_nonground; // everything else
-
-	  if (m_filterGroundPlane){
-		tf::StampedTransform sensorToBaseTf, baseToWorldTf;
-		try{
-		  m_tfListener.waitForTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, ros::Duration(0.2));
-		  m_tfListener.lookupTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToBaseTf);
-		  m_tfListener.lookupTransform(m_worldFrameId, m_baseFrameId, cloud->header.stamp, baseToWorldTf);
-
-
-		}catch(tf::TransformException& ex){
-		  ROS_ERROR_STREAM( "Transform error for ground plane filter: " << ex.what() << ", quitting callback.\n"
-							"You need to set the base_frame_id or disable filter_ground.");
-		}
-    Eigen::Matrix4f sensorToBase, baseToWorld;
-    pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
-    pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
-
-    // transform pointcloud from sensor frame to fixed robot frame
-    pcl::transformPointCloud(pc, pc, sensorToBase);
-    pass_x.setInputCloud(pc.makeShared());
-    pass_x.filter(pc);
-    pass_y.setInputCloud(pc.makeShared());
-    pass_y.filter(pc);
-    pass_z.setInputCloud(pc.makeShared());
-    pass_z.filter(pc);
-    filterGroundPlane(pc, pc_ground, pc_nonground);
-
-    // transform clouds to world frame for insertion
-    pcl::transformPointCloud(pc_ground, pc_ground, baseToWorld);
-    pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
-	  } else if(m_simpleGroundFilter) {
-      // iterate through all the points in world frame
-	    // if a point's Z value lies in the floor plane envelope, it goes in pc_ground
-
-      // directly transform to map frame:
-      pcl::transformPointCloud(pc, pc, sensorToWorld);
-
-	    // just filter height range:
-	    pass_x.setInputCloud(pc.makeShared());
-	    pass_x.filter(pc);
-	    pass_y.setInputCloud(pc.makeShared());
-	    pass_y.filter(pc);
-	    pass_z.setInputCloud(pc.makeShared());
-	    pass_z.filter(pc);
-
-      for (PCLPointCloud::const_iterator it = pc.begin(); it != pc.end(); ++it){
-        if(it->z < m_groundFilterDistance && it->z > -m_groundFilterDistance) {
-        pc_ground.push_back(*it);
-        } else {
-          pc_nonground.push_back(*it);
-        }
-      }
-	    pc_ground.header = pc.header;
-	    pc_nonground.header = pc.header;
-	  } else {
-
-		// directly transform to map frame:
-		pcl::transformPointCloud(pc, pc, sensorToWorld);
-
-		// just filter height range:
-		pass_x.setInputCloud(pc.makeShared());
-		pass_x.filter(pc);
-		pass_y.setInputCloud(pc.makeShared());
-		pass_y.filter(pc);
-		pass_z.setInputCloud(pc.makeShared());
-		pass_z.filter(pc);
-
-		pc_nonground = pc;
-		// pc_nonground is empty without ground segmentation
-		pc_ground.header = pc.header;
-		pc_nonground.header = pc.header;
-	  }
-
-
-	  insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
-
-	  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-	  ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
-
-	  publishAll(cloud->header.stamp);
+	tf::StampedTransform sensorToWorldTf;
+	try {
+	m_tfListener.lookupTransform(m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
+	} catch(tf::TransformException& ex){
+	ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
+	return;
 	}
+
+	Eigen::Matrix4f sensorToWorld;
+	pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
+
+
+	// set up filter for height range, also removes NANs:
+	pcl::PassThrough<PCLPoint> pass_x;
+	pass_x.setFilterFieldName("x");
+	pass_x.setFilterLimits(m_pointcloudMinX, m_pointcloudMaxX);
+	pcl::PassThrough<PCLPoint> pass_y;
+	pass_y.setFilterFieldName("y");
+	pass_y.setFilterLimits(m_pointcloudMinY, m_pointcloudMaxY);
+	pcl::PassThrough<PCLPoint> pass_z;
+	pass_z.setFilterFieldName("z");
+	pass_z.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
+
+	PCLPointCloud pc_ground; // segmented ground plane
+	PCLPointCloud pc_nonground; // everything else
+
+	if (m_filterGroundPlane){
+	tf::StampedTransform sensorToBaseTf, baseToWorldTf;
+	try{
+	  m_tfListener.waitForTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, ros::Duration(0.2));
+	  m_tfListener.lookupTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToBaseTf);
+	  m_tfListener.lookupTransform(m_worldFrameId, m_baseFrameId, cloud->header.stamp, baseToWorldTf);
+
+
+	}catch(tf::TransformException& ex){
+	  ROS_ERROR_STREAM( "Transform error for ground plane filter: " << ex.what() << ", quitting callback.\n"
+						"You need to set the base_frame_id or disable filter_ground.");
+	}
+	Eigen::Matrix4f sensorToBase, baseToWorld;
+	pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
+	pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
+
+	// transform pointcloud from sensor frame to fixed robot frame
+	pcl::transformPointCloud(pc, pc, sensorToBase);
+	pass_x.setInputCloud(pc.makeShared());
+	pass_x.filter(pc);
+	pass_y.setInputCloud(pc.makeShared());
+	pass_y.filter(pc);
+	pass_z.setInputCloud(pc.makeShared());
+	pass_z.filter(pc);
+	filterGroundPlane(pc, pc_ground, pc_nonground);
+
+	// transform clouds to world frame for insertion
+	pcl::transformPointCloud(pc_ground, pc_ground, baseToWorld);
+	pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
+	} else if(m_simpleGroundFilter) {
+	// iterate through all the points in world frame
+	// if a point's Z value lies in the floor plane envelope, it goes in pc_ground
+
+	// directly transform to map frame:
+	pcl::transformPointCloud(pc, pc, sensorToWorld);
+
+	// just filter height range:
+	pass_x.setInputCloud(pc.makeShared());
+	pass_x.filter(pc);
+	pass_y.setInputCloud(pc.makeShared());
+	pass_y.filter(pc);
+	pass_z.setInputCloud(pc.makeShared());
+	pass_z.filter(pc);
+
+	for (PCLPointCloud::const_iterator it = pc.begin(); it != pc.end(); ++it){
+	if(it->z < m_groundFilterDistance && it->z > -m_groundFilterDistance) {
+	pc_ground.push_back(*it);
+	} else {
+	  pc_nonground.push_back(*it);
+	}
+	}
+	pc_ground.header = pc.header;
+	pc_nonground.header = pc.header;
+	} else {
+
+	// directly transform to map frame:
+	pcl::transformPointCloud(pc, pc, sensorToWorld);
+
+	// just filter height range:
+	pass_x.setInputCloud(pc.makeShared());
+	pass_x.filter(pc);
+	pass_y.setInputCloud(pc.makeShared());
+	pass_y.filter(pc);
+	pass_z.setInputCloud(pc.makeShared());
+	pass_z.filter(pc);
+
+	pc_nonground = pc;
+	// pc_nonground is empty without ground segmentation
+	pc_ground.header = pc.header;
+	pc_nonground.header = pc.header;
+	}
+
+
+	insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
+
+	double total_elapsed = (ros::WallTime::now() - startTime).toSec();
+	ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
+
+	publishAll(cloud->header.stamp);
+
 }
 
 void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
