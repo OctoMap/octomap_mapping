@@ -30,10 +30,10 @@ include_directories(
 generate_dynamic_reconfigure_options(cfg/OctomapServer.cfg)
 
 catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME}
+  INCLUDE_DIRS include ${OCTOMAP_INCLUDE_DIRS}
+  LIBRARIES ${PROJECT_NAME} ${OCTOMAP_LIBRARIES}
   CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
-  DEPENDS OCTOMAP
+  DEPENDS PCL
 )
 
 set(LINK_LIBS
@@ -103,3 +103,4 @@ install(FILES
   color_nodelet_plugins.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
