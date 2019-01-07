@@ -275,134 +275,129 @@ bool OctomapServer::openFile(const std::string& filename){
 
 
 void OctomapServer::OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& request){
-	nav_msgs::OccupancyGrid gridmap;
-	gridmap.header.frame_id=m_worldFrameId;
-	gridmap.info.resolution = m_res;
-	m_zCrossSectionLocation=request->data;
-	if(getCrossSection(request->data,m_crossSectionWidth, gridmap)){
-		m_crossSectional2DMapPub.publish(gridmap);
-	}else{
-		ROS_ERROR("Something went wrong while trying to make cross section");
-	}
-
-
+  nav_msgs::OccupancyGrid gridmap;
+  gridmap.header.frame_id=m_worldFrameId;
+  gridmap.info.resolution = m_res;
+  m_zCrossSectionLocation=request->data;
+  if(getCrossSection(request->data,m_crossSectionWidth, gridmap)){
+    m_crossSectional2DMapPub.publish(gridmap);
+  }else{
+    ROS_ERROR("Something went wrong while trying to make cross section");
+  }
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
-	ros::WallTime startTime = ros::WallTime::now();
+  ros::WallTime startTime = ros::WallTime::now();
+
+  //
+  // ground filtering in base frame
+  //
+  PCLPointCloud pc; // input cloud for filtering and ground-detection
+  pcl::fromROSMsg(*cloud, pc);
+
+  tf::StampedTransform sensorToWorldTf;
+  try {
+    m_tfListener.lookupTransform(m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
+  } catch(tf::TransformException& ex){
+    ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
+    return;
+  }
+
+  Eigen::Matrix4f sensorToWorld;
+  pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
 
 
-	//
-	// ground filtering in base frame
-	//
-	PCLPointCloud pc; // input cloud for filtering and ground-detection
-	pcl::fromROSMsg(*cloud, pc);
+  // set up filter for height range, also removes NANs:
+  pcl::PassThrough<PCLPoint> pass_x;
+  pass_x.setFilterFieldName("x");
+  pass_x.setFilterLimits(m_pointcloudMinX, m_pointcloudMaxX);
+  pcl::PassThrough<PCLPoint> pass_y;
+  pass_y.setFilterFieldName("y");
+  pass_y.setFilterLimits(m_pointcloudMinY, m_pointcloudMaxY);
+  pcl::PassThrough<PCLPoint> pass_z;
+  pass_z.setFilterFieldName("z");
+  pass_z.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
 
-	tf::StampedTransform sensorToWorldTf;
-	try {
-	m_tfListener.lookupTransform(m_worldFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToWorldTf);
-	} catch(tf::TransformException& ex){
-	ROS_ERROR_STREAM( "Transform error of sensor data: " << ex.what() << ", quitting callback");
-	return;
-	}
+  PCLPointCloud pc_ground; // segmented ground plane
+  PCLPointCloud pc_nonground; // everything else
 
-	Eigen::Matrix4f sensorToWorld;
-	pcl_ros::transformAsMatrix(sensorToWorldTf, sensorToWorld);
+  if (m_filterGroundPlane){
+    tf::StampedTransform sensorToBaseTf, baseToWorldTf;
+    try{
+      m_tfListener.waitForTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, ros::Duration(0.2));
+      m_tfListener.lookupTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToBaseTf);
+      m_tfListener.lookupTransform(m_worldFrameId, m_baseFrameId, cloud->header.stamp, baseToWorldTf);
+    } catch(tf::TransformException& ex){
+      ROS_ERROR_STREAM( "Transform error for ground plane filter: " << ex.what() << ", quitting callback.\n"
+                        "You need to set the base_frame_id or disable filter_ground.");
+    }
+    Eigen::Matrix4f sensorToBase, baseToWorld;
+    pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
+    pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
 
+    // transform pointcloud from sensor frame to fixed robot frame
+    pcl::transformPointCloud(pc, pc, sensorToBase);
+    pass_x.setInputCloud(pc.makeShared());
+    pass_x.filter(pc);
+    pass_y.setInputCloud(pc.makeShared());
+    pass_y.filter(pc);
+    pass_z.setInputCloud(pc.makeShared());
+    pass_z.filter(pc);
+    filterGroundPlane(pc, pc_ground, pc_nonground);
 
-	// set up filter for height range, also removes NANs:
-	pcl::PassThrough<PCLPoint> pass_x;
-	pass_x.setFilterFieldName("x");
-	pass_x.setFilterLimits(m_pointcloudMinX, m_pointcloudMaxX);
-	pcl::PassThrough<PCLPoint> pass_y;
-	pass_y.setFilterFieldName("y");
-	pass_y.setFilterLimits(m_pointcloudMinY, m_pointcloudMaxY);
-	pcl::PassThrough<PCLPoint> pass_z;
-	pass_z.setFilterFieldName("z");
-	pass_z.setFilterLimits(m_pointcloudMinZ, m_pointcloudMaxZ);
+    // transform clouds to world frame for insertion
+    pcl::transformPointCloud(pc_ground, pc_ground, baseToWorld);
+    pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
+  } else if(m_simpleGroundFilter) {
+    // iterate through all the points in world frame
+    // if a point's Z value lies in the floor plane envelope, it goes in pc_ground
 
-	PCLPointCloud pc_ground; // segmented ground plane
-	PCLPointCloud pc_nonground; // everything else
+    // directly transform to map frame:
+    pcl::transformPointCloud(pc, pc, sensorToWorld);
 
-	if (m_filterGroundPlane){
-	tf::StampedTransform sensorToBaseTf, baseToWorldTf;
-	try{
-	  m_tfListener.waitForTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, ros::Duration(0.2));
-	  m_tfListener.lookupTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToBaseTf);
-	  m_tfListener.lookupTransform(m_worldFrameId, m_baseFrameId, cloud->header.stamp, baseToWorldTf);
+    // just filter height range:
+    pass_x.setInputCloud(pc.makeShared());
+    pass_x.filter(pc);
+    pass_y.setInputCloud(pc.makeShared());
+    pass_y.filter(pc);
+    pass_z.setInputCloud(pc.makeShared());
+    pass_z.filter(pc);
 
+    for (PCLPointCloud::const_iterator it = pc.begin(); it != pc.end(); ++it){
+      if(it->z < m_groundFilterDistance && it->z > -m_groundFilterDistance) {
+        pc_ground.push_back(*it);
+      } else {
+        pc_nonground.push_back(*it);
+      }
+    }
+  
+    pc_ground.header = pc.header;
+    pc_nonground.header = pc.header;
+  } else {
 
-	}catch(tf::TransformException& ex){
-	  ROS_ERROR_STREAM( "Transform error for ground plane filter: " << ex.what() << ", quitting callback.\n"
-						"You need to set the base_frame_id or disable filter_ground.");
-	}
-	Eigen::Matrix4f sensorToBase, baseToWorld;
-	pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
-	pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
+    // directly transform to map frame:
+    pcl::transformPointCloud(pc, pc, sensorToWorld);
 
-	// transform pointcloud from sensor frame to fixed robot frame
-	pcl::transformPointCloud(pc, pc, sensorToBase);
-	pass_x.setInputCloud(pc.makeShared());
-	pass_x.filter(pc);
-	pass_y.setInputCloud(pc.makeShared());
-	pass_y.filter(pc);
-	pass_z.setInputCloud(pc.makeShared());
-	pass_z.filter(pc);
-	filterGroundPlane(pc, pc_ground, pc_nonground);
+    // just filter height range:
+    pass_x.setInputCloud(pc.makeShared());
+    pass_x.filter(pc);
+    pass_y.setInputCloud(pc.makeShared());
+    pass_y.filter(pc);
+    pass_z.setInputCloud(pc.makeShared());
+    pass_z.filter(pc);
 
-	// transform clouds to world frame for insertion
-	pcl::transformPointCloud(pc_ground, pc_ground, baseToWorld);
-	pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
-	} else if(m_simpleGroundFilter) {
-	// iterate through all the points in world frame
-	// if a point's Z value lies in the floor plane envelope, it goes in pc_ground
+    pc_nonground = pc;
+    // pc_nonground is empty without ground segmentation
+    pc_ground.header = pc.header;
+    pc_nonground.header = pc.header;
+  }
 
-	// directly transform to map frame:
-	pcl::transformPointCloud(pc, pc, sensorToWorld);
+  insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
 
-	// just filter height range:
-	pass_x.setInputCloud(pc.makeShared());
-	pass_x.filter(pc);
-	pass_y.setInputCloud(pc.makeShared());
-	pass_y.filter(pc);
-	pass_z.setInputCloud(pc.makeShared());
-	pass_z.filter(pc);
+  double total_elapsed = (ros::WallTime::now() - startTime).toSec();
+  ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
 
-	for (PCLPointCloud::const_iterator it = pc.begin(); it != pc.end(); ++it){
-	if(it->z < m_groundFilterDistance && it->z > -m_groundFilterDistance) {
-	pc_ground.push_back(*it);
-	} else {
-	  pc_nonground.push_back(*it);
-	}
-	}
-	pc_ground.header = pc.header;
-	pc_nonground.header = pc.header;
-	} else {
-
-	// directly transform to map frame:
-	pcl::transformPointCloud(pc, pc, sensorToWorld);
-
-	// just filter height range:
-	pass_x.setInputCloud(pc.makeShared());
-	pass_x.filter(pc);
-	pass_y.setInputCloud(pc.makeShared());
-	pass_y.filter(pc);
-	pass_z.setInputCloud(pc.makeShared());
-	pass_z.filter(pc);
-
-	pc_nonground = pc;
-	// pc_nonground is empty without ground segmentation
-	pc_ground.header = pc.header;
-	pc_nonground.header = pc.header;
-	}
-
-
-	insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
-
-	double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-	ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
-
-	publishAll(cloud->header.stamp);
+  publishAll(cloud->header.stamp);
 
 }
 
@@ -760,14 +755,14 @@ void OctomapServer::publishAll(const ros::Time& rostime){
     publishFullOctoMap(rostime);
 
   if (m_publish2DCrossSectionMap){
-	nav_msgs::OccupancyGrid gridmap;
-	gridmap.header.frame_id=m_worldFrameId;
-	gridmap.info.resolution = m_res;
-	if(getCrossSection(m_zCrossSectionLocation,m_crossSectionWidth, gridmap)){
-	  m_crossSectional2DMapPub.publish(gridmap);
-	}else{
-	  ROS_ERROR("Something went wrong while trying to make cross section");
-	}
+    nav_msgs::OccupancyGrid gridmap;
+    gridmap.header.frame_id=m_worldFrameId;
+    gridmap.info.resolution = m_res;
+    if(getCrossSection(m_zCrossSectionLocation,m_crossSectionWidth, gridmap)){
+      m_crossSectional2DMapPub.publish(gridmap);
+    }else{
+      ROS_ERROR("Something went wrong while trying to make cross section");
+    }
   }
 
 
@@ -813,7 +808,7 @@ bool OctomapServer::clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp){
       end=m_octree->end_leafs_bbx(); it!= end; ++it){
 
     it->setLogOdds(octomap::logodds(thresMin));
-    //			m_octree->updateNode(it.getKey(), -6.0f);
+    //            m_octree->updateNode(it.getKey(), -6.0f);
   }
   // TODO: eval which is faster (setLogOdds+updateInner or updateNode)
   m_octree->updateInnerOccupancy();
@@ -1192,13 +1187,13 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
   minPt = octomap::point3d(minX, minY, minZ);
   maxPt = octomap::point3d(maxX, maxY, maxZ);
   if (!m_octree->coordToKeyChecked(minPt, m_maxTreeDepth, m_paddedMinKey)) {
-	ROS_ERROR("Could not create padded min OcTree key at %f %f %f", minPt.x(), minPt.y(), minPt.z());
-	return false;
+    ROS_ERROR("Could not create padded min OcTree key at %f %f %f", minPt.x(), minPt.y(), minPt.z());
+    return false;
   }
   octomap::OcTreeKey paddedMaxKey;
   if (!m_octree->coordToKeyChecked(maxPt, m_maxTreeDepth, paddedMaxKey)) {
-	ROS_ERROR("Could not create padded max OcTree key at %f %f %f", maxPt.x(), maxPt.y(), maxPt.z());
-	return false;
+    ROS_ERROR("Could not create padded max OcTree key at %f %f %f", maxPt.x(), maxPt.y(), maxPt.z());
+    return false;
   }
   m_multires2DScale = 1 << (m_treeDepth - m_maxTreeDepth);
 
@@ -1213,31 +1208,31 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
 
   double cross_section_half_width=cross_section_width/2.0;
   for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it) {
-	if (std::fabs(it.getZ() - z) < cross_section_half_width) {
-	  if (it.getDepth() == m_maxTreeDepth) {
-		unsigned idx = mapIdx(it.getKey());
-		if (m_octree->isNodeOccupied(*it))
-		  gridmap.data[mapIdx(it.getKey())] = 100;
-		else if (gridmap.data[idx] == -1) {
-		  gridmap.data[idx] = 0;
-		}
+    if (std::fabs(it.getZ() - z) < cross_section_half_width) {
+      if (it.getDepth() == m_maxTreeDepth) {
+        unsigned idx = mapIdx(it.getKey());
+        if (m_octree->isNodeOccupied(*it))
+          gridmap.data[mapIdx(it.getKey())] = 100;
+        else if (gridmap.data[idx] == -1) {
+          gridmap.data[idx] = 0;
+        }
 
-	  } else {
-		int intSize = 1 << (m_maxTreeDepth - it.getDepth());
-		octomap::OcTreeKey minKey = it.getIndexKey();
-		for (int dx = 0; dx < intSize; dx++) {
-		  int i = (minKey[0] + dx - m_paddedMinKey[0]) / m_multires2DScale;
-		  for (int dy = 0; dy < intSize; dy++) {
-			unsigned idx = mapIdx(i, (minKey[1] + dy - m_paddedMinKey[1]) / m_multires2DScale);
-			if (m_octree->isNodeOccupied(*it))
-			  gridmap.data[idx] = 100;
-			else if (gridmap.data[idx] == -1) {
-			  gridmap.data[idx] = 0;
-			}
-		  }
-		}
-	  }
-	}
+      } else {
+        int intSize = 1 << (m_maxTreeDepth - it.getDepth());
+        octomap::OcTreeKey minKey = it.getIndexKey();
+        for (int dx = 0; dx < intSize; dx++) {
+          int i = (minKey[0] + dx - m_paddedMinKey[0]) / m_multires2DScale;
+          for (int dy = 0; dy < intSize; dy++) {
+            unsigned idx = mapIdx(i, (minKey[1] + dy - m_paddedMinKey[1]) / m_multires2DScale);
+            if (m_octree->isNodeOccupied(*it))
+              gridmap.data[idx] = 100;
+            else if (gridmap.data[idx] == -1) {
+              gridmap.data[idx] = 0;
+            }
+          }
+        }
+      }
+    }
   }
   return true;
 }
@@ -1278,12 +1273,12 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
     // Parameters with a namespace require an special treatment at the beginning, as dynamic reconfigure
     // will overwrite them because the server is not able to match parameters' names.
     if (m_initConfig){
-		// If parameters do not have the default value, dynamic reconfigure server should be updated.
-		if(!is_equal(m_groundFilterDistance, 0.04))
+        // If parameters do not have the default value, dynamic reconfigure server should be updated.
+        if(!is_equal(m_groundFilterDistance, 0.04))
           config.ground_filter_distance = m_groundFilterDistance;
-		if(!is_equal(m_groundFilterAngle, 0.15))
+        if(!is_equal(m_groundFilterAngle, 0.15))
           config.ground_filter_angle = m_groundFilterAngle;
-	    if(!is_equal( m_groundFilterPlaneDistance, 0.07))
+        if(!is_equal( m_groundFilterPlaneDistance, 0.07))
           config.ground_filter_plane_distance = m_groundFilterPlaneDistance;
         if(!is_equal(m_maxRange, -1.0))
           config.sensor_model_max_range = m_maxRange;
@@ -1291,19 +1286,19 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
 	  config.sensor_model_min_range = m_minRange;
         if(!is_equal(m_octree->getProbHit(), 0.7))
           config.sensor_model_hit = m_octree->getProbHit();
-	    if(!is_equal(m_octree->getProbMiss(), 0.4))
+        if(!is_equal(m_octree->getProbMiss(), 0.4))
           config.sensor_model_miss = m_octree->getProbMiss();
-		if(!is_equal(m_octree->getClampingThresMin(), 0.12))
+        if(!is_equal(m_octree->getClampingThresMin(), 0.12))
           config.sensor_model_min = m_octree->getClampingThresMin();
-		if(!is_equal(m_octree->getClampingThresMax(), 0.97))
+        if(!is_equal(m_octree->getClampingThresMax(), 0.97))
           config.sensor_model_max = m_octree->getClampingThresMax();
         m_initConfig = false;
 
-	    boost::recursive_mutex::scoped_lock reconf_lock(m_config_mutex);
+        boost::recursive_mutex::scoped_lock reconf_lock(m_config_mutex);
         m_reconfigureServer.updateConfig(config);
     }
     else{
-	  m_groundFilterDistance      = config.ground_filter_distance;
+      m_groundFilterDistance      = config.ground_filter_distance;
       m_groundFilterAngle         = config.ground_filter_angle;
       m_groundFilterPlaneDistance = config.ground_filter_plane_distance;
       m_maxRange                  = config.sensor_model_max_range;
@@ -1312,12 +1307,12 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
 
      // Checking values that might create unexpected behaviors.
       if (is_equal(config.sensor_model_hit, 1.0))
-		config.sensor_model_hit -= 1.0e-6;
+        config.sensor_model_hit -= 1.0e-6;
       m_octree->setProbHit(config.sensor_model_hit);
-	  if (is_equal(config.sensor_model_miss, 0.0))
-		config.sensor_model_miss += 1.0e-6;
+      if (is_equal(config.sensor_model_miss, 0.0))
+        config.sensor_model_miss += 1.0e-6;
       m_octree->setProbMiss(config.sensor_model_miss);
-	}
+    }
   }
   publishAll();
 }
