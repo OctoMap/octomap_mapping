@@ -256,6 +256,10 @@ protected:
   double m_occupancyMaxZ;
   double m_minSizeX;
   double m_minSizeY;
+  double m_fixedOriginX;
+  double m_fixedOriginY;
+  double m_fixedSizeX;
+  double m_fixedSizeY;
   bool m_filterSpeckles;
 
   bool m_simpleGroundFilter;

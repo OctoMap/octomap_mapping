@@ -69,6 +69,8 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_occupancyMinZ(-std::numeric_limits<double>::max()),
   m_occupancyMaxZ(std::numeric_limits<double>::max()),
   m_minSizeX(0.0), m_minSizeY(0.0),
+  m_fixedOriginX(0.0), m_fixedOriginY(0.0),
+  m_fixedSizeX(0.0), m_fixedSizeY(0.0),
   m_filterSpeckles(false), m_filterGroundPlane(false), m_simpleGroundFilter(false),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
   m_compressMap(true),
@@ -195,7 +197,6 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
 
   m_crossSectional2DMapRequestSub = m_nh.subscribe<std_msgs::Float32>("cross_section_request", 1, &OctomapServer::OnCrossSectionRequest, this);
 
-
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
   m_clearBBXService = m_nh_private.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
@@ -277,7 +278,6 @@ bool OctomapServer::openFile(const std::string& filename){
   return true;
 
 }
-
 
 void OctomapServer::OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& request){
   nav_msgs::OccupancyGrid gridmap;
@@ -1174,26 +1174,30 @@ void OctomapServer::update2DMap(const OcTreeT::iterator& it, bool occupied){
 }
 
 bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_msgs::OccupancyGrid &gridmap){
-  // TODO: move most of this stuff into c'tor and init map only once (adjust if size changes)
   double minX, minY, minZ, maxX, maxY, maxZ;
   m_octree->getMetricMin(minX, minY, minZ);
   m_octree->getMetricMax(maxX, maxY, maxZ);
-  octomap::point3d minPt(minX, minY, minZ);
-  octomap::point3d maxPt(maxX, maxY, maxZ);
-  octomap::OcTreeKey minKey = m_octree->coordToKey(minPt, m_maxTreeDepth);
-  octomap::OcTreeKey maxKey = m_octree->coordToKey(maxPt, m_maxTreeDepth);
-
-  ROS_DEBUG("MinKey: %d %d %d / MaxKey: %d %d %d", minKey[0], minKey[1], minKey[2], maxKey[0], maxKey[1], maxKey[2]);
-  // add padding if requested (= new min/maxPts in x&y):
+  
+  ROS_DEBUG( "Original min %f,%f,%f -- max %f,%f,%f", minX, minY, minZ, maxX, maxY, maxZ );
   double halfPaddedX = 0.5 * m_minSizeX;
   double halfPaddedY = 0.5 * m_minSizeY;
   minX = std::min(minX, -halfPaddedX);
   maxX = std::max(maxX, halfPaddedX);
   minY = std::min(minY, -halfPaddedY);
   maxY = std::max(maxY, halfPaddedY);
-  minPt = octomap::point3d(minX, minY, minZ);
-  maxPt = octomap::point3d(maxX, maxY, maxZ);
-  if (!m_octree->coordToKeyChecked(minPt, m_maxTreeDepth, m_paddedMinKey)) {
+  
+  if( m_fixedSizeX > 0 && m_fixedSizeY > 0 ) {
+    minX = m_fixedOriginX;
+    minY = m_fixedOriginY;
+    maxX = minX + m_fixedSizeX;
+    maxY = minY + m_fixedSizeY;
+  }
+  
+  octomap::point3d minPt(minX, minY, minZ);
+  octomap::point3d maxPt(maxX, maxY, maxZ);
+  
+  octomap::OcTreeKey paddedMinKey;
+  if (!m_octree->coordToKeyChecked(minPt, m_maxTreeDepth, paddedMinKey)) {
     ROS_ERROR("Could not create padded min OcTree key at %f %f %f", minPt.x(), minPt.y(), minPt.z());
     return false;
   }
@@ -1202,13 +1206,14 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
     ROS_ERROR("Could not create padded max OcTree key at %f %f %f", maxPt.x(), maxPt.y(), maxPt.z());
     return false;
   }
-  m_multires2DScale = 1 << (m_treeDepth - m_maxTreeDepth);
+  unsigned multires2DScale = 1 << (m_treeDepth - m_maxTreeDepth);
 
   gridmap.info.origin.position.x = minX;
   gridmap.info.origin.position.y = minY;
 
-  gridmap.info.width = (paddedMaxKey[0] - m_paddedMinKey[0]) / m_multires2DScale + 1;
-  gridmap.info.height = (paddedMaxKey[1] - m_paddedMinKey[1]) / m_multires2DScale + 1;
+  gridmap.info.width = (paddedMaxKey[0] - paddedMinKey[0]) / multires2DScale + 1;
+  gridmap.info.height = (paddedMaxKey[1] - paddedMinKey[1]) / multires2DScale + 1;
+  ROS_DEBUG( "Cross min: %f,%f,%f max: %f,%f,%f width %u height %u res %u", minX, minY, minZ, maxX, maxY, maxZ, gridmap.info.width, gridmap.info.height, multires2DScale );
   gridmap.data.clear();
   // init to unknown:
   gridmap.data.resize(gridmap.info.width * gridmap.info.height, -1);
@@ -1216,10 +1221,17 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
   double cross_section_half_width=cross_section_width/2.0;
   for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it) {
     if (std::fabs(it.getZ() - z) < cross_section_half_width) {
+      
       if (it.getDepth() == m_maxTreeDepth) {
-        unsigned idx = mapIdx(it.getKey());
+        int i = (it.getKey()[0] - paddedMinKey[0])/ m_multires2DScale;
+        int j = (it.getKey()[1] - paddedMinKey[1])/ m_multires2DScale;
+
+        if( i < 0 || j < 0 ) {
+          continue;
+        }
+        unsigned idx = gridmap.info.width * j + i;
         if (m_octree->isNodeOccupied(*it))
-          gridmap.data[mapIdx(it.getKey())] = 100;
+          gridmap.data[idx] = 100;
         else if (gridmap.data[idx] == -1) {
           gridmap.data[idx] = 0;
         }
@@ -1228,9 +1240,16 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
         int intSize = 1 << (m_maxTreeDepth - it.getDepth());
         octomap::OcTreeKey minKey = it.getIndexKey();
         for (int dx = 0; dx < intSize; dx++) {
-          int i = (minKey[0] + dx - m_paddedMinKey[0]) / m_multires2DScale;
+          int i = (minKey[0] + dx - paddedMinKey[0]) / multires2DScale;
+          if( i < 0 ) {
+            continue;
+          }
           for (int dy = 0; dy < intSize; dy++) {
-            unsigned idx = mapIdx(i, (minKey[1] + dy - m_paddedMinKey[1]) / m_multires2DScale);
+            int j = (minKey[1] + dy - paddedMinKey[1]) / multires2DScale;
+            if( j < 0 ) {
+              continue;
+            }
+            unsigned idx = gridmap.info.width * j + i;
             if (m_octree->isNodeOccupied(*it))
               gridmap.data[idx] = 100;
             else if (gridmap.data[idx] == -1) {
@@ -1265,6 +1284,14 @@ bool OctomapServer::isSpeckleNode(const OcTreeKey&nKey) const {
 }
 
 void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level){
+  ROS_DEBUG( "OCTO reconfig -- level = %u", level );
+  if( level == 0x0F ) {
+    m_fixedSizeX = config.map_fixed_x_size;
+    m_fixedSizeY = config.map_fixed_y_size;
+    m_fixedOriginX = config.map_fixed_x_origin;
+    m_fixedOriginY = config.map_fixed_x_origin;
+    return; //Don't mess with the rest since level matched the fixed map bitmask
+  }
   if (m_maxTreeDepth != unsigned(config.max_depth))
     m_maxTreeDepth = unsigned(config.max_depth);
   else{
@@ -1321,7 +1348,9 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
       m_octree->setProbMiss(config.sensor_model_miss);
     }
   }
-  publishAll();
+  if( level == 0 ) { //Skip initial call (level is big)
+    publishAll();
+  }
 }
 
 void OctomapServer::adjustMapData(nav_msgs::OccupancyGrid& map, const nav_msgs::MapMetaData& oldMapInfo) const{
