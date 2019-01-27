@@ -7,8 +7,8 @@ The `master` branch tracks the latest (stable) releases. Please send pull reques
 
 Indigo: [![Build Status](https://travis-ci.org/OctoMap/octomap_mapping.svg?branch=indigo-devel)](https://travis-ci.org/OctoMap/octomap_mapping)
 
-Kinetic: [![Build Status](https://travis-ci.org/OctoMap/octomap_mapping.svg?branch=kinetic-devel)](https://travis-ci.org/OctoMap/octomap_mapping)
+Kinetic/Melodic: [![Build Status](https://travis-ci.org/OctoMap/octomap_mapping.svg?branch=kinetic-devel)](https://travis-ci.org/OctoMap/octomap_mapping)
 
-Melodic: [![Build Status](https://travis-ci.org/OctoMap/octomap_mapping.svg?branch=melodic-devel)](https://travis-ci.org/OctoMap/octomap_mapping)
+<!--- Melodic: [![Build Status](https://travis-ci.org/OctoMap/octomap_mapping.svg?branch=melodic-devel)](https://travis-ci.org/OctoMap/octomap_mapping)-->
 
 Imported from SVN, see https://code.google.com/p/alufr-ros-pkg/ for the previous versions.
