@@ -31,14 +31,13 @@ include_directories(
   ${OCTOMAP_INCLUDE_DIRS}
 )
 
-
 generate_dynamic_reconfigure_options(cfg/OctomapServer.cfg)
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
-  DEPENDS octomap PCL
+  DEPENDS OCTOMAP PCL
 )
 
 set(LINK_LIBS
