@@ -2,6 +2,15 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.2 (2019-01-27)
+------------------
+* Update maintainer email (Wolfgang Merkt)
+* Change catkin_package `DEPENDS` to `OCTOMAP` to avoid CMake warning
+* Update maintainer email (Arming Hornung)
+* Update to use non deprecated pluginlib macro
+* Fixed memory leak of colors pointer if COLOR_OCTOMAP_SERVER defined
+* Contributors: Armin Hornung, Mikael Arguedas, Ronky, Wolfgang Merkt
+
 0.6.1 (2016-10-19)
 ------------------
 * Fix for Colored Octomap: Use PCLPoint everywhere
