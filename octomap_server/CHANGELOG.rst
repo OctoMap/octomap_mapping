@@ -2,6 +2,12 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix compilation on Debian Stretch
+* Get rgb from point cloud iterator without byte shift
+* Contributors: Kentaro Wada, Wolfgang Merkt
+
 0.6.2 (2019-01-27)
 ------------------
 * Update maintainer email (Wolfgang Merkt)
