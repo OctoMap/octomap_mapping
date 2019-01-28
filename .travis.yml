@@ -12,6 +12,7 @@ env:
     - ROS_DISTRO="melodic" CATKIN_CONFIG='-DCMAKE_BUILD_TYPE=Debug'
     - ROS_DISTRO="melodic" CATKIN_CONFIG='-DCMAKE_BUILD_TYPE=Release'
     - ROS_DISTRO="melodic" PRERELEASE=true
+    - ROS_DISTRO="melodic" OS_NAME="debian" OS_CODE_NAME="stretch"
 matrix:
   allow_failures:
     - env: ROS_DISTRO="kinetic" PRERELEASE=true
