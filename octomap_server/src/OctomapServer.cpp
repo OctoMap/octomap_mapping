@@ -1223,7 +1223,6 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
   double cross_section_half_width=cross_section_width/2.0;
   for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it) {
     if (std::fabs(it.getZ() - z) < cross_section_half_width) {
-      
       if (it.getDepth() == m_maxTreeDepth) {
         int i = (it.getKey()[0] - paddedMinKey[0])/ multires2DScale;
         int j = (it.getKey()[1] - paddedMinKey[1])/ multires2DScale;
@@ -1237,7 +1236,6 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
         else if (gridmap.data[idx] == -1) {
           gridmap.data[idx] = 0;
         }
-
       } else {
         int intSize = 1 << (m_maxTreeDepth - it.getDepth());
         octomap::OcTreeKey minKey = it.getIndexKey();
