@@ -1192,6 +1192,8 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
     maxX = minX + m_fixedSizeX;
     maxY = minY + m_fixedSizeY;
   }
+
+  ROS_DEBUG( "Adjusted min %f,%f,%f -- max %f,%f,%f", minX, minY, minZ, maxX, maxY, maxZ );
   
   octomap::point3d minPt(minX, minY, minZ);
   octomap::point3d maxPt(maxX, maxY, maxZ);
@@ -1223,8 +1225,8 @@ bool OctomapServer::getCrossSection(double z, double cross_section_width, nav_ms
     if (std::fabs(it.getZ() - z) < cross_section_half_width) {
       
       if (it.getDepth() == m_maxTreeDepth) {
-        int i = (it.getKey()[0] - paddedMinKey[0])/ m_multires2DScale;
-        int j = (it.getKey()[1] - paddedMinKey[1])/ m_multires2DScale;
+        int i = (it.getKey()[0] - paddedMinKey[0])/ multires2DScale;
+        int j = (it.getKey()[1] - paddedMinKey[1])/ multires2DScale;
 
         if( i < 0 || j < 0 ) {
           continue;
