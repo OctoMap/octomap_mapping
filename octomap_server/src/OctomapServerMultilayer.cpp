@@ -36,69 +36,48 @@ namespace octomap_server{
 
 
 OctomapServerMultilayer::OctomapServerMultilayer(ros::NodeHandle private_nh_)
-: OctomapServer(private_nh_)
+: OctomapServer(private_nh_), m_planeHeight(0.5), m_numberOfPlanes(10), m_minimumGroundPlane( -0.25 ),m_maximumGroundPlane( 0.5 )
 {
-
-  // TODO: callback for arm_navigation attached objects was removed, is
-  // there a replacement functionality?
-
-  // TODO: param maps, limits
-  // right now 0: base, 1: spine, 2: arms
+  private_nh_.param("plane_height", m_planeHeight, m_planeHeight);
+  private_nh_.param("number_of_planes", m_numberOfPlanes, m_numberOfPlanes );
+  private_nh_.param("minimum_ground_plane", m_minimumGroundPlane, m_minimumGroundPlane);
+  private_nh_.param("maximum_ground_plane", m_maximumGroundPlane, m_maximumGroundPlane );
+  
+  double half_height = m_planeHeight/2.0;
   ProjectedMap m;
-  m.name = "projected_base_map";
-  m.minZ = 0.0;
-  m.maxZ = 0.3;
+  m.name = "ground_plane";
+  m.minZ = m_minimumGroundPlane;
+  m.maxZ = m_maximumGroundPlane;
   m.z = 0.0;
   m_multiGridmap.push_back(m);
 
-  m.name = "projected_spine_map";
-  m.minZ = 0.25;
-  m.maxZ = 1.4;
-  m.z = 0.6;
+  m.name = "current_vehicle_plane";
+  m.minZ = -half_height;
+  m.maxZ = half_height;
+  m.z = 0.0;
   m_multiGridmap.push_back(m);
 
-  m.name = "projected_arm_map";
-  m.minZ = 0.7;
-  m.maxZ = 0.9;
-  m.z = 0.8;
-  m_multiGridmap.push_back(m);
-
-
+  for( unsigned int i = 0; i < m_numberOfPlanes; ++i ) {
+    m.minZ += m_planeHeight;
+    m.maxZ += m_planeHeight;
+    m.z += m_planeHeight;
+    std::stringstream ss;
+    ss << "cross_section_level_" << (i+1);
+    m.name = ss.str();
+    m_multiGridmap.push_back(m);
+  }
+  
   for (unsigned i = 0; i < m_multiGridmap.size(); ++i){
     ros::Publisher* pub = new ros::Publisher(m_nh.advertise<nav_msgs::OccupancyGrid>(m_multiGridmap.at(i).name, 5, m_latchedTopics));
     m_multiMapPub.push_back(pub);
   }
-
-  // init arm links (could be params as well)
-  m_armLinks.push_back("l_elbow_flex_link");
-  m_armLinkOffsets.push_back(0.10);
-  m_armLinks.push_back("l_gripper_l_finger_tip_link");
-  m_armLinkOffsets.push_back(0.03);
-  m_armLinks.push_back("l_gripper_r_finger_tip_link");
-  m_armLinkOffsets.push_back(0.03);
-  m_armLinks.push_back("l_upper_arm_roll_link");
-  m_armLinkOffsets.push_back(0.16);
-  m_armLinks.push_back("l_wrist_flex_link");
-  m_armLinkOffsets.push_back(0.05);
-  m_armLinks.push_back("r_elbow_flex_link");
-  m_armLinkOffsets.push_back(0.10);
-  m_armLinks.push_back("r_gripper_l_finger_tip_link");
-  m_armLinkOffsets.push_back(0.03);
-  m_armLinks.push_back("r_gripper_r_finger_tip_link");
-  m_armLinkOffsets.push_back(0.03);
-  m_armLinks.push_back("r_upper_arm_roll_link");
-  m_armLinkOffsets.push_back(0.16);
-  m_armLinks.push_back("r_wrist_flex_link");
-  m_armLinkOffsets.push_back(0.05);
-
-
+  
 }
 
 OctomapServerMultilayer::~OctomapServerMultilayer(){
   for (unsigned i = 0; i < m_multiMapPub.size(); ++i){
     delete m_multiMapPub[i];
   }
-
 }
 
 void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
@@ -115,31 +94,25 @@ void OctomapServerMultilayer::handlePreNodeTraversal(const ros::Time& rostime){
   vin.point.y = 0;
   vin.point.z = 0;
   vin.header.stamp = rostime;
-  double link_padding = 0.03;
+  double padding = 0.05;
 
-  double minArmHeight = 2.0;
-  double maxArmHeight = 0.0;
-
-  for (unsigned i = 0; i < m_armLinks.size(); ++i){
-    vin.header.frame_id = m_armLinks[i];
-    geometry_msgs::PointStamped vout;
-    const bool found_trans =
-        m_tfListener.waitForTransform("base_footprint", m_armLinks.at(i),
-                                      ros::Time(0), ros::Duration(1.0));
-    ROS_ASSERT_MSG(found_trans, "Timed out waiting for transform to %s",
-                   m_armLinks[i].c_str());
-    m_tfListener.transformPoint("base_footprint",vin,vout);
-    maxArmHeight = std::max(maxArmHeight, vout.point.z + (m_armLinkOffsets.at(i) + link_padding));
-    minArmHeight = std::min(minArmHeight, vout.point.z - (m_armLinkOffsets.at(i) + link_padding));
+  vin.header.frame_id = "body";
+  geometry_msgs::PointStamped vout;
+  const bool found_trans = m_tfListener.canTransform( "world", "body", rostime );
+  if( found_trans ) {
+    m_tfListener.transformPoint("world",vin,vout);
+    if( vout.point.z > ( m_multiGridmap.at(1).maxZ + padding ) ||
+        vout.point.z < ( m_multiGridmap.at(1).minZ - padding ) ) {
+        ROS_INFO("Vehicle layer interval adjusted to %f", vout.point.z);
+      double half_height = m_planeHeight/2.0;
+      m_multiGridmap.at(1).minZ = vout.point.z - half_height;
+      m_multiGridmap.at(1).maxZ = vout.point.z + half_height;
+      m_multiGridmap.at(1).z = vout.point.z;
+      m_multiGridmap.at(1).map.data.clear();
+      // init to unknown:
+      m_multiGridmap.at(1).map.data.resize(m_multiGridmap.at(1).map.info.width * m_multiGridmap.at(1).map.info.height, -1);
+    }
   }
-  ROS_INFO("Arm layer interval adjusted to (%f,%f)", minArmHeight, maxArmHeight);
-  m_multiGridmap.at(2).minZ = minArmHeight;
-  m_multiGridmap.at(2).maxZ = maxArmHeight;
-  m_multiGridmap.at(2).z = (maxArmHeight+minArmHeight)/2.0;
-
-
-
-
 
   // TODO: also clear multilevel maps in BBX region (see OctomapServer.cpp)?
 
@@ -218,7 +191,10 @@ void OctomapServerMultilayer::update2DMap(const OcTreeT::iterator& it, bool occu
   }
 
   if (it.getDepth() == m_maxTreeDepth){
-    unsigned idx = mapIdx(it.getKey());
+    int idx = mapIdx(it.getKey());
+    if( idx < 0 ) {
+      return;
+    } 
     if (occupied)
       m_gridmap.data[idx] = 100;
     else if (m_gridmap.data[idx] == -1){
@@ -240,7 +216,10 @@ void OctomapServerMultilayer::update2DMap(const OcTreeT::iterator& it, bool occu
     for(int dx=0; dx < intSize; dx++){
       int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
       for(int dy=0; dy < intSize; dy++){
-        unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
+        int idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
+        if( idx < 0 ) {
+          continue;
+        }
         if (occupied)
           m_gridmap.data[idx] = 100;
         else if (m_gridmap.data[idx] == -1){

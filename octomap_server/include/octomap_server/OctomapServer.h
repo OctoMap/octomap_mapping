@@ -184,11 +184,18 @@ protected:
 
   bool getCrossSection(double z, double cross_section_width, nav_msgs::OccupancyGrid &gridmap);
 
-  inline unsigned mapIdx(int i, int j) const {
+  inline int mapIdx(int i, int j) const {
+    if( j < 0 || j > m_gridmap.info.height ) {
+      return -1;
+    } 
+    if( i < 0 || i > m_gridmap.info.width ) {
+      return -1;
+    } 
+
     return m_gridmap.info.width * j + i;
   }
 
-  inline unsigned mapIdx(const octomap::OcTreeKey& key) const {
+  inline int mapIdx(const octomap::OcTreeKey& key) const {
     return mapIdx((key[0] - m_paddedMinKey[0]) / m_multires2DScale,
                   (key[1] - m_paddedMinKey[1]) / m_multires2DScale);
 

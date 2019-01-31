@@ -54,6 +54,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_colorFactor(0.8),
   m_latchedTopics(true),
   m_publishFreeSpace(false),
+  m_publish2DMap( false ),
   m_publish2DCrossSectionMap(false),
   m_res(0.05),
   m_treeDepth(0),
@@ -122,7 +123,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_nh_private.param("incremental_2D_projection", m_incrementalUpdate, m_incrementalUpdate);
 
   double publishRate = 0.1; 
-  private_nh.param("publish_all_rate", publishRate, publishRate );
+  m_nh_private.param("publish_all_rate", publishRate, publishRate );
   m_publishAllRate = ros::WallDuration( publishRate );
   m_lastPublishTime = ros::WallTime::now();
 
@@ -175,6 +176,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_colorFree.a = a;
 
   m_nh_private.param("publish_free_space", m_publishFreeSpace, m_publishFreeSpace);
+  m_nh_private.param("publish_2d_map",m_publish2DMap,m_publish2DMap);
   m_nh_private.param("publish_2d_cross_section_map",m_publish2DCrossSectionMap,m_publish2DCrossSectionMap);
 
   m_nh_private.param("latch", m_latchedTopics, m_latchedTopics);
@@ -540,6 +542,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 #endif
 }
 
+
 void OctomapServer::publishProjected2DMap(const ros::Time& rostime) {
   m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
   if (m_publish2DMap) {
@@ -563,6 +566,10 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
   bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
 
+  if( !m_publish2DMap ) {
+    m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
+  }
+  
   // init markers for free space:
   visualization_msgs::MarkerArray freeNodesVis;
   // each array stores all cubes of a different size, one for each depth level:
@@ -1017,6 +1024,13 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
     m_octree->getMetricMin(minX, minY, minZ);
     m_octree->getMetricMax(maxX, maxY, maxZ);
 
+    if( m_fixedSizeX > 0 && m_fixedSizeY > 0 ) {
+      minX = m_fixedOriginX;
+      minY = m_fixedOriginY;
+      maxX = minX + m_fixedSizeX;
+      maxY = minY + m_fixedSizeY;
+    }
+    
     octomap::point3d minPt(minX, minY, minZ);
     octomap::point3d maxPt(maxX, maxY, maxZ);
     octomap::OcTreeKey minKey = m_octree->coordToKey(minPt, m_maxTreeDepth);
@@ -1147,9 +1161,12 @@ void OctomapServer::update2DMap(const OcTreeT::iterator& it, bool occupied){
   // update 2D map (occupied always overrides):
 
   if (it.getDepth() == m_maxTreeDepth){
-    unsigned idx = mapIdx(it.getKey());
+    int idx = mapIdx(it.getKey());
+    if( idx < 0 ) {
+      return;
+    } 
     if (occupied)
-      m_gridmap.data[mapIdx(it.getKey())] = 100;
+      m_gridmap.data[idx] = 100;
     else if (m_gridmap.data[idx] == -1){
       m_gridmap.data[idx] = 0;
     }
@@ -1160,7 +1177,10 @@ void OctomapServer::update2DMap(const OcTreeT::iterator& it, bool occupied){
     for(int dx=0; dx < intSize; dx++){
       int i = (minKey[0]+dx - m_paddedMinKey[0])/m_multires2DScale;
       for(int dy=0; dy < intSize; dy++){
-        unsigned idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
+        int idx = mapIdx(i, (minKey[1]+dy - m_paddedMinKey[1])/m_multires2DScale);
+        if( idx < 0 ) {
+          continue;
+        }
         if (occupied)
           m_gridmap.data[idx] = 100;
         else if (m_gridmap.data[idx] == -1){

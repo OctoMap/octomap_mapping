@@ -58,14 +58,14 @@ protected:
   virtual void handlePostNodeTraversal(const ros::Time& rostime);
 
   std::vector<ros::Publisher*> m_multiMapPub;
-  ros::Subscriber m_attachedObjectsSub;
-
-  std::vector<std::string> m_armLinks;
-  std::vector<double> m_armLinkOffsets;
 
   MultilevelGrid m_multiGridmap;
 
-
+private:
+  double m_planeHeight;
+  double m_numberOfPlanes;
+  double m_minimumGroundPlane;
+  double m_maximumGroundPlane;
 };
 }
 
