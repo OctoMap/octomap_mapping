@@ -1099,7 +1099,8 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
           ROS_DEBUG("2D grid map size changed to %dx%d", m_gridmap.info.width, m_gridmap.info.height);
           adjustMapData(m_gridmap, oldMapInfo);
        }
-       nav_msgs::OccupancyGrid::_data_type::iterator startIt;
+       //TODO Not sure what this is doing.  With the default BBXMax of 0, it breaks on the assert.  commenting out for now
+       /*nav_msgs::OccupancyGrid::_data_type::iterator startIt;
        size_t mapUpdateBBXMinX = std::max(0, (int(m_updateBBXMin[0]) - int(m_paddedMinKey[0]))/int(m_multires2DScale));
        size_t mapUpdateBBXMinY = std::max(0, (int(m_updateBBXMin[1]) - int(m_paddedMinKey[1]))/int(m_multires2DScale));
        size_t mapUpdateBBXMaxX = std::min(int(m_gridmap.info.width-1), (int(m_updateBBXMax[0]) - int(m_paddedMinKey[0]))/int(m_multires2DScale));
@@ -1119,7 +1120,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
        for (unsigned int j = mapUpdateBBXMinY; j <= mapUpdateBBXMaxY; ++j){
           std::fill_n(m_gridmap.data.begin() + m_gridmap.info.width*j+mapUpdateBBXMinX,
                       numCols, -1);
-       }
+       }*/
 
     }
 

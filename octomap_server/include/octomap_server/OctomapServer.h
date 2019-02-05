@@ -185,10 +185,10 @@ protected:
   bool getCrossSection(double z, double cross_section_width, nav_msgs::OccupancyGrid &gridmap);
 
   inline int mapIdx(int i, int j) const {
-    if( j < 0 || j > m_gridmap.info.height ) {
+    if( j < 0 || j >= m_gridmap.info.height ) {
       return -1;
     } 
-    if( i < 0 || i > m_gridmap.info.width ) {
+    if( i < 0 || i >= m_gridmap.info.width ) {
       return -1;
     } 
 
