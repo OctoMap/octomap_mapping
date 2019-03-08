@@ -36,12 +36,14 @@ namespace octomap_server{
 
 
 OctomapServerMultilayer::OctomapServerMultilayer(ros::NodeHandle private_nh_)
-: OctomapServer(private_nh_), m_planeHeight(0.5), m_numberOfPlanes(10), m_minimumGroundPlane( -0.25 ),m_maximumGroundPlane( 0.5 )
+: OctomapServer(private_nh_), m_planeHeight(0.5), m_numberOfPlanes(10), m_minimumGroundPlane( -0.25 ),m_maximumGroundPlane( 0.5 ), m_minimumBathyPlane( -0.25 ), m_maximumBathyPlane( 0.04 )
 {
   private_nh_.param("plane_height", m_planeHeight, m_planeHeight);
   private_nh_.param("number_of_planes", m_numberOfPlanes, m_numberOfPlanes );
   private_nh_.param("minimum_ground_plane", m_minimumGroundPlane, m_minimumGroundPlane);
   private_nh_.param("maximum_ground_plane", m_maximumGroundPlane, m_maximumGroundPlane );
+  private_nh_.param("minimum_bathmetry_plane", m_minimumBathyPlane, m_minimumBathyPlane);
+  private_nh_.param("maximum_bathmetry_plane", m_maximumBathyPlane, m_maximumBathyPlane );
   
   double half_height = m_planeHeight/2.0;
   ProjectedMap m;
@@ -54,6 +56,12 @@ OctomapServerMultilayer::OctomapServerMultilayer(ros::NodeHandle private_nh_)
   m.name = "current_vehicle_plane";
   m.minZ = -half_height;
   m.maxZ = half_height;
+  m.z = 0.0;
+  m_multiGridmap.push_back(m);
+
+  m.name = "bathmetry_plane";
+  m.minZ = -m_minimumBathyPlane;
+  m.maxZ = -m_minimumBathyPlane;
   m.z = 0.0;
   m_multiGridmap.push_back(m);
 

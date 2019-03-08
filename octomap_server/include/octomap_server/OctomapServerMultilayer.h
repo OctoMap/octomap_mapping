@@ -66,6 +66,8 @@ private:
   double m_numberOfPlanes;
   double m_minimumGroundPlane;
   double m_maximumGroundPlane;
+  double m_minimumBathyPlane;
+  double m_maximumBathyPlane;
 };
 }
 
