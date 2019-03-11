@@ -61,9 +61,14 @@ OctomapServerMultilayer::OctomapServerMultilayer(ros::NodeHandle private_nh_)
 
   m.name = "bathmetry_plane";
   m.minZ = -m_minimumBathyPlane;
-  m.maxZ = -m_minimumBathyPlane;
+  m.maxZ = m_maximumBathyPlane;
   m.z = 0.0;
   m_multiGridmap.push_back(m);
+
+  //Reset start to min/max half height around zero z
+  m.minZ = -half_height;
+  m.maxZ = half_height;
+  m.z = 0.0;
 
   for( unsigned int i = 0; i < m_numberOfPlanes; ++i ) {
     m.minZ += m_planeHeight;
