@@ -529,7 +529,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
     if (m_octree->isNodeOccupied(*it)){
       double z = it.getZ();
-      if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
+      double half_size = it.getSize() / 2.0;
+      if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ)
       {
         double size = it.getSize();
         double x = it.getX();
@@ -594,7 +595,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       }
     } else{ // node not occupied => mark as free in 2D map if unknown so far
       double z = it.getZ();
-      if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
+      double half_size = it.getSize() / 2.0;
+      if (z + half_size > m_occupancyMinZ && z - half_size < m_occupancyMaxZ)
       {
         handleFreeNode(it);
         if (inUpdateBBX)
