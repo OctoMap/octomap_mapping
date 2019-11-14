@@ -78,6 +78,13 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("height_map", m_useHeightMap, m_useHeightMap);
   private_nh.param("colored_map", m_useColoredMap, m_useColoredMap);
   private_nh.param("color_factor", m_colorFactor, m_colorFactor);
+	 
+  private_nh.param<std::string>("topic_occupied_cells_vis_array", m_topic_occupied_cells_vis_array, "occupied_cells_vis_array");
+  private_nh.param<std::string>("topic_octomap_binary", m_topic_octomap_binary, "octomap_binary");
+  private_nh.param<std::string>("topic_octomap_full", m_topic_octomap_full, "octomap_full");
+  private_nh.param<std::string>("topic_octomap_point_cloud_centers", m_topic_octomap_point_cloud_centers, "octomap_point_cloud_centers");
+  private_nh.param<std::string>("topic_projected_map", m_topic_projected_map, "projected_map");
+  private_nh.param<std::string>("topic_free_cells_vis_array", m_topic_free_cells_vis_array, "free_cells_vis_array");
 
   private_nh.param("pointcloud_min_x", m_pointcloudMinX,m_pointcloudMinX);
   private_nh.param("pointcloud_max_x", m_pointcloudMaxX,m_pointcloudMaxX);
@@ -166,19 +173,19 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   } else
     ROS_INFO("Publishing non-latched (topics are only prepared as needed, will only be re-published on map change");
 
-  m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
-  m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
-  m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
-  m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
-  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
-  m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
+  m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>(m_occupied_cells_vis_array, 1, m_latchedTopics);
+  m_binaryMapPub = m_nh.advertise<Octomap>(m_octomap_binary, 1, m_latchedTopics);
+  m_fullMapPub = m_nh.advertise<Octomap>(m_octomap_full, 1, m_latchedTopics);
+  m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>(m_octomap_point_cloud_centers, 1, m_latchedTopics);
+  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>(m_projected_map, 5, m_latchedTopics);
+  m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>(m_free_cells_vis_array, 1, m_latchedTopics);
 
   m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
   m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
   m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
 
-  m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
-  m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
+  m_octomapBinaryService = m_nh.advertiseService(m_octomap_binary, &OctomapServer::octomapBinarySrv, this);
+  m_octomapFullService = m_nh.advertiseService(m_octomap_full, &OctomapServer::octomapFullSrv, this);
   m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
 
