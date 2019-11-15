@@ -219,6 +219,13 @@ protected:
   std_msgs::ColorRGBA m_color;
   std_msgs::ColorRGBA m_colorFree;
   double m_colorFactor;
+  
+  std::string m_topic_occupied_cells_vis_array;
+  std::string m_topic_octomap_binary;
+  std::string m_topic_octomap_full;
+  std::string m_topic_octomap_point_cloud_centers;
+  std::string m_topic_projected_map;
+  std::string m_topic_free_cells_vis_array;
 
   bool m_latchedTopics;
   bool m_publishFreeSpace;
