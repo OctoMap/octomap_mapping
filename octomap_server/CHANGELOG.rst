@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.4 (2020-01-08)
+------------------
 * Add private node handle to fix nodelet support (`#61 <https://github.com/OctoMap/octomap_mapping/issues/61>`_), fixes `#39 <https://github.com/OctoMap/octomap_mapping/issues/39>`_
 * Add octomap_server_color library by default (`#60 <https://github.com/OctoMap/octomap_mapping/issues/60>`_) - by Matthew Powelson
 * Check if part of a voxel is in occupancy range (`#59 <https://github.com/OctoMap/octomap_mapping/issues/59>`_) - by Jasper v. B.
