@@ -74,6 +74,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_fixedSizeX(0.0), m_fixedSizeY(0.0),
   m_filterSpeckles(false), m_filterGroundPlane(false), m_simpleGroundFilter(false),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
+  m_time_thresh( 120 ),
   m_compressMap(true),
   m_incrementalUpdate(false),
   m_initConfig(true)
@@ -113,6 +114,13 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
 
   m_nh_private.param("sensor_model/max_range", m_maxRange, m_maxRange);
   m_nh_private.param("sensor_model/min_range", m_minRange, m_minRange);
+  //param doesn't seem to like unsigned int, so use a temporary int and check for negatives
+  int temp_thresh = m_time_thresh;
+  m_nh_private.param("time_thres", temp_thresh, temp_thresh);
+  m_time_thresh = temp_thresh;
+  if( temp_thresh < 0 ) {
+    m_time_thresh = 0;
+  }
 
   m_nh_private.param("resolution", m_res, m_res);
   m_nh_private.param("sensor_model/hit", probHit, 0.7);
@@ -400,6 +408,12 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   }
 
   insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
+#ifdef STAMPED_OCTOMAP_SERVER
+  if( m_time_thresh > 0 ) {
+    // Temporarily disable octree stamped functionality
+    // m_octree->degradeOutdatedNodes( m_time_thresh );
+  }
+#endif
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
