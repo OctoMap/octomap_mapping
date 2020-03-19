@@ -114,6 +114,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
 
   m_nh_private.param("sensor_model/max_range", m_maxRange, m_maxRange);
   m_nh_private.param("sensor_model/min_range", m_minRange, m_minRange);
+
   //param doesn't seem to like unsigned int, so use a temporary int and check for negatives
   int temp_thresh = m_time_thresh;
   m_nh_private.param("time_thres", temp_thresh, temp_thresh);
@@ -209,8 +210,12 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
 
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
+
   m_clearBBXService = m_nh_private.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = m_nh_private.advertiseService("reset", &OctomapServer::resetSrv, this);
+#ifdef STAMPED_OCTOMAP_SERVER
+  m_setEpochService = m_nh_private.advertiseService("set_epoch", &OctomapServer::setEpochSrv, this);
+#endif
 
   dynamic_reconfigure::Server<OctomapServerConfig>::CallbackType f;
   f = boost::bind(&OctomapServer::reconfigureCallback, this, boost::placeholders::_1, boost::placeholders::_2);
@@ -303,6 +308,9 @@ void OctomapServer::OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& req
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
   ros::WallTime startTime = ros::WallTime::now();
+#ifdef STAMPED_OCTOMAP_SERVER
+  m_octree->updateTime(static_cast<unsigned int>(ros::Time::now().toSec()));
+#endif
 
   //
   // ground filtering in base frame
@@ -411,7 +419,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 #ifdef STAMPED_OCTOMAP_SERVER
   if( m_time_thresh > 0 ) {
     // Temporarily disable octree stamped functionality
-    // m_octree->degradeOutdatedNodes( m_time_thresh );
+    // m_octree->degradeOutdatedNodes( m_time_thresh, static_cast<unsigned int>(ros::Time::now().toSec()));
   }
 #endif
 
@@ -890,6 +898,13 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
 
   return true;
 }
+
+#ifdef STAMPED_OCTOMAP_SERVER
+  bool OctomapServer::setEpochSrv(SetEpoch::Request& req, SetEpoch::Response& resp) {
+    m_octree->removeStaleNodes(req.epoch);
+    return true;
+  }
+#endif
 
 void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const{
 

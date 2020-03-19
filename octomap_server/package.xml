@@ -31,7 +31,9 @@
   <build_depend>octomap_ros</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>nodelet</build_depend>
-
+  <build_depend>libpcl-all-dev</build_depend>
+  <build_depend>message_generation</build_depend>
+  
   <exec_depend>roscpp</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
@@ -45,4 +47,8 @@
   <exec_depend>octomap_ros</exec_depend>
   <exec_depend>dynamic_reconfigure</exec_depend>
   <exec_depend>nodelet</exec_depend>
+  <exec_depend>libpcl-all</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>message_generation</exec_depend>
+ 
 </package>
