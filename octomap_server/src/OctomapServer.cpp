@@ -310,7 +310,7 @@ void OctomapServer::OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& req
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
   ros::WallTime startTime = ros::WallTime::now();
 #ifdef STAMPED_OCTOMAP_SERVER
-  m_octree->updateTime(static_cast<unsigned int>(ros::Time::now().toSec()));
+  m_octree->updateTime(static_cast<uint32_t>(ros::Time::now().toSec()));
 #endif
 
   //
@@ -419,8 +419,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
 #ifdef STAMPED_OCTOMAP_SERVER
   if( m_time_thresh > 0 ) {
-    // Temporarily disable octree stamped functionality
-    m_octree->degradeOutdatedNodes( m_time_thresh, static_cast<unsigned int>(ros::Time::now().toSec()));
+    m_octree->degradeOutdatedNodes( m_time_thresh, static_cast<uint32_t>(ros::Time::now().toSec()));
   }
 #endif
 
