@@ -78,9 +78,11 @@
 
 #ifdef COLOR_OCTOMAP_SERVER
 #include <octomap/ColorOcTree.h>
+shitass
 #elif defined(STAMPED_OCTOMAP_SERVER)
 #include <octomap_server/SquareOcTreeStamped.h>
-#include <octomap_server/SetEpoch.h>
+#include <std_msgs/Time.h>
+#include <std_msgs/Duration.h>
 #endif
 
 namespace octomap_server {
@@ -110,7 +112,8 @@ public:
   bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 #ifdef STAMPED_OCTOMAP_SERVER
-  bool setEpochSrv(SetEpoch::Request& req, SetEpoch::Response& resp); 
+  void onSetEpoch(const std_msgs::Time::ConstPtr& epoch);
+  void onSetDegradeThresh(const std_msgs::Duration::ConstPtr& thresh);
 #endif
 
   void OnCrossSectionRequest(const std_msgs::Float32::ConstPtr& request);
@@ -235,7 +238,7 @@ protected:
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
 #ifdef STAMPED_OCTOMAP_SERVER
-  ros::ServiceServer m_setEpochService;
+  ros::Subscriber m_setEpochSub, m_setDegradeThreshSub;
 #endif
   tf::TransformListener m_tfListener;
   boost::recursive_mutex m_config_mutex;
@@ -284,7 +287,7 @@ protected:
   bool m_filterSpeckles;
 
   bool m_simpleGroundFilter;
-  unsigned int m_time_thresh;
+  uint32_t m_time_thresh;
 
   bool m_filterGroundPlane;
   double m_groundFilterDistance;

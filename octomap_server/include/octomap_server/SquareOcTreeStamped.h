@@ -60,20 +60,20 @@ public:
   }
 
   // timestamp
-  inline unsigned int getTimestamp() const {
+  inline uint32_t getTimestamp() const {
     return timestamp;
   }
 
   inline void updateTimestamp() {
-    timestamp = *time;
+    timestamp = time;
   }
 
-  inline void setTimestamp(unsigned int t) {
+  inline void setTimestamp(uint32_t t) {
     timestamp = t;
   }
 
-  inline void setTime(unsigned int t) {
-    *time = t;
+  inline void setTime(uint32_t t) {
+    time = t;
   }
 
   inline void updateOccupancyChildren() {
@@ -82,14 +82,14 @@ public:
   }
 
 protected:
-  unsigned int timestamp;
-  static std::shared_ptr<unsigned int> time;
+  uint32_t timestamp;
+  static uint32_t time;
 };
 
 // tree definition
 class SquareOcTreeStamped : public OccupancyOcTreeBase<SquareOcTreeNodeStamped> {
 private:
-  unsigned int time_last_updated;
+  uint32_t time_last_updated;
 
 public:
   // Default Constructor
@@ -104,13 +104,13 @@ public:
     return "SquareOcTreeStamped";
   }
 
-  unsigned int getLastUpdateTime();
-  void updateTime(unsigned int t);
+  uint32_t getLastUpdateTime();
+  void updateTime(uint32_t t);
 
   // Probabilistically degrades all occupied nodes last updated more than time_thresh seconds ago
-  void degradeOutdatedNodes(unsigned int time_thresh, unsigned int current_time);
+  void degradeOutdatedNodes(uint32_t time_thresh, uint32_t current_time);
   // Removes all nodes last updated before the given epoch
-  void removeStaleNodes(unsigned int epoch);
+  void removeStaleNodes(uint32_t epoch);
   // Updates the log odds of a node by update
   void updateNodeLogOdds(SquareOcTreeNodeStamped* node, const float& update) const override;
 

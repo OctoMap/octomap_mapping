@@ -13,8 +13,7 @@ set(PACKAGE_DEPENDENCIES
   octomap_ros
   octomap_msgs
   dynamic_reconfigure
-  nodelet
-  message_generation
+  nodelet  
 )
 
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
@@ -28,23 +27,12 @@ include_directories(
   ${OCTOMAP_INCLUDE_DIRS}
 )
 
-## Generate services
-add_service_files(
-  FILES
-  SetEpoch.srv
-)
-
-generate_messages(
-   DEPENDENCIES
-   std_msgs
-)
-
 generate_dynamic_reconfigure_options(cfg/OctomapServer.cfg)
 
 catkin_package(
   INCLUDE_DIRS include ${OCTOMAP_INCLUDE_DIRS}
   LIBRARIES ${PROJECT_NAME} ${OCTOMAP_LIBRARIES}
-  CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES} message_runtime
+  CATKIN_DEPENDS ${PACKAGE_DEPENDENCIES}
   DEPENDS PCL
 )
 
@@ -60,7 +48,7 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 add_library(${PROJECT_NAME}_color src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp)
 target_link_libraries(${PROJECT_NAME}_color ${LINK_LIBS})
 add_dependencies(${PROJECT_NAME}_color ${PROJECT_NAME}_gencfg)
-target_compile_definitions(${PROJECT_NAME}_color PUBLIC COLOR_OCTOMAP_SERVER)
+#target_compile_definitions(${PROJECT_NAME}_color PUBLIC COLOR_OCTOMAP_SERVER)
 
 add_executable(octomap_server_node src/octomap_server_node.cpp)
 target_link_libraries(octomap_server_node ${PROJECT_NAME} ${LINK_LIBS})

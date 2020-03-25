@@ -34,25 +34,25 @@
 #include "octomap_server/SquareOcTreeStamped.h"
 
 namespace octomap {
-std::shared_ptr<unsigned int> SquareOcTreeNodeStamped::time = std::make_shared<unsigned int>(0);
+uint32_t SquareOcTreeNodeStamped::time = 0;
 
 SquareOcTreeStamped::SquareOcTreeStamped(double in_resolution)
   : OccupancyOcTreeBase<SquareOcTreeNodeStamped>(in_resolution) {
   SquareOcTreeStampedMemberInit.ensureLinking();
 }
 
-unsigned int SquareOcTreeStamped::getLastUpdateTime() {
+uint32_t SquareOcTreeStamped::getLastUpdateTime() {
   return time_last_updated;
 }
 
-void SquareOcTreeStamped::updateTime(unsigned int t) {
+void SquareOcTreeStamped::updateTime(uint32_t t) {
   time_last_updated = t;
   if (this->root) {
     root->setTime(t);
   }
 }
 
-void SquareOcTreeStamped::degradeOutdatedNodes(unsigned int time_thres, unsigned int current_time) {
+void SquareOcTreeStamped::degradeOutdatedNodes(uint32_t time_thres, uint32_t current_time) {
   for (leaf_iterator it = this->begin_leafs(), end = this->end_leafs(); it != end; ++it) {
     if (this->isNodeOccupied(*it) && ((current_time - it->getTimestamp()) > time_thres)) {
       OccupancyOcTreeBase<SquareOcTreeNodeStamped>::updateNodeLogOdds(&*it, prob_miss_log);
@@ -60,7 +60,7 @@ void SquareOcTreeStamped::degradeOutdatedNodes(unsigned int time_thres, unsigned
   }
 }
 
-void SquareOcTreeStamped::removeStaleNodes(unsigned int epoch) {
+void SquareOcTreeStamped::removeStaleNodes(uint32_t epoch) {
   std::deque<OcTreeKey> keys_to_remove;
   for (leaf_iterator it = this->begin_leafs(); it != this->end_leafs(); ++it) {
     if (it->getTimestamp() < epoch) {

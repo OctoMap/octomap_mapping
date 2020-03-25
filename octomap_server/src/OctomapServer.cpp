@@ -74,7 +74,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_fixedSizeX(0.0), m_fixedSizeY(0.0),
   m_filterSpeckles(false), m_filterGroundPlane(false), m_simpleGroundFilter(false),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
-  m_time_thresh( 120 ),
+  m_time_thresh( 0 ),
   m_compressMap(true),
   m_incrementalUpdate(false),
   m_initConfig(true)
@@ -214,7 +214,8 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_clearBBXService = m_nh_private.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = m_nh_private.advertiseService("reset", &OctomapServer::resetSrv, this);
 #ifdef STAMPED_OCTOMAP_SERVER
-  m_setEpochService = m_nh_private.advertiseService("set_epoch", &OctomapServer::setEpochSrv, this);
+  m_setEpochSub = m_nh_private.subscribe<std_msgs::Time>("set_map_epoch", 1, &OctomapServer::onSetEpoch, this);
+  m_setDegradeThreshSub = m_nh_private.subscribe<std_msgs::Duration>("set_degrade_thresh", 1, &OctomapServer::onSetDegradeThresh, this);
 #endif
 
   dynamic_reconfigure::Server<OctomapServerConfig>::CallbackType f;
@@ -419,7 +420,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 #ifdef STAMPED_OCTOMAP_SERVER
   if( m_time_thresh > 0 ) {
     // Temporarily disable octree stamped functionality
-    // m_octree->degradeOutdatedNodes( m_time_thresh, static_cast<unsigned int>(ros::Time::now().toSec()));
+    m_octree->degradeOutdatedNodes( m_time_thresh, static_cast<unsigned int>(ros::Time::now().toSec()));
   }
 #endif
 
@@ -900,10 +901,14 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
 }
 
 #ifdef STAMPED_OCTOMAP_SERVER
-  bool OctomapServer::setEpochSrv(SetEpoch::Request& req, SetEpoch::Response& resp) {
-    m_octree->removeStaleNodes(req.epoch);
-    return true;
-  }
+void OctomapServer::onSetEpoch(const std_msgs::Time::ConstPtr& epoch) {
+  m_octree->removeStaleNodes(static_cast<uint32_t>(epoch->data.toSec()));
+}
+
+void OctomapServer::onSetDegradeThresh(const std_msgs::Duration::ConstPtr& thresh) {
+  m_octree->degradeOutdatedNodes(static_cast<uint32_t>(thresh->data.toSec()),
+                                 static_cast<uint32_t>(ros::Time::now().toSec()));
+}
 #endif
 
 void OctomapServer::publishBinaryOctoMap(const ros::Time& rostime) const{
