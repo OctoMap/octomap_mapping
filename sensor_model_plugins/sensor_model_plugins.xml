@@ -1,0 +1,10 @@
+<class_libraries>
+  <library path="lib/libsensor_model_plugins">
+    <class type="square_robot::GeminiModelPlugin" base_class_type="square_robot::SensorModelBase">
+      <description>Gemini sensor model for use with OctomapServer.</description>
+    </class>
+    <class type="square_robot::Isa500ModelPlugin" base_class_type="square_robot::SensorModelBase">
+      <description>ISA 500 sensor model for use with OctomapServer.</description>
+    </class>
+  </library>
+</class_libraries>

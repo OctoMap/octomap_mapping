@@ -46,8 +46,6 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_tfPointCloudSub(NULL),
   m_reconfigureServer(m_config_mutex, private_nh_),
   m_octree(NULL),
-  m_maxRange(-1.0),
-  m_minRange(-1.0),
   m_worldFrameId("/map"), m_baseFrameId("base_footprint"),
   m_useHeightMap(true),
   m_useColoredMap(false),
@@ -77,9 +75,10 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_timeThresh( 0 ),
   m_compressMap(true),
   m_incrementalUpdate(false),
-  m_initConfig(true)
+  m_initConfig(true),
+  m_plugin_loader("sensor_model_plugins", "square_robot::SensorModelBase")
 {
-  double probHit, probMiss, thresMin, thresMax;
+  double thresMin, thresMax, occThresh;
 
   m_nh_private.param("frame_id", m_worldFrameId, m_worldFrameId);
   m_nh_private.param("base_frame_id", m_baseFrameId, m_baseFrameId);
@@ -111,10 +110,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_nh_private.param("ground_filter/angle", m_groundFilterAngle, m_groundFilterAngle);
   // distance of found plane from z=0 to be detected as ground (e.g. to exclude tables)
   m_nh_private.param("ground_filter/plane_distance", m_groundFilterPlaneDistance, m_groundFilterPlaneDistance);
-
-  m_nh_private.param("sensor_model/max_range", m_maxRange, m_maxRange);
-  m_nh_private.param("sensor_model/min_range", m_minRange, m_minRange);
-
+  
   //param doesn't seem to like unsigned int, so use a temporary int and check for negatives
   int temp_thresh = m_timeThresh;
   m_nh_private.param("time_thres", temp_thresh, temp_thresh);
@@ -124,10 +120,9 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   }
 
   m_nh_private.param("resolution", m_res, m_res);
-  m_nh_private.param("sensor_model/hit", probHit, 0.7);
-  m_nh_private.param("sensor_model/miss", probMiss, 0.4);
   m_nh_private.param("sensor_model/min", thresMin, 0.12);
   m_nh_private.param("sensor_model/max", thresMax, 0.97);
+  m_nh_private.param("sensor_model/occupancy_thresh", occThresh, 0.5);
   m_nh_private.param("compress_map", m_compressMap, m_compressMap);
   m_nh_private.param("incremental_2D_projection", m_incrementalUpdate, m_incrementalUpdate);
 
@@ -157,10 +152,9 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
 
   // initialize octomap object & params
   m_octree = new OcTreeT(m_res);
-  m_octree->setProbHit(probHit);
-  m_octree->setProbMiss(probMiss);
   m_octree->setClampingThresMin(thresMin);
   m_octree->setClampingThresMax(thresMax);
+  m_octree->setOccupancyThres(occThresh);
   m_treeDepth = m_octree->getTreeDepth();
   m_maxTreeDepth = m_treeDepth;
   m_gridmap.info.resolution = m_res;
@@ -193,6 +187,21 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
     ROS_INFO("Publishing latched (single publish will take longer, all topics are prepared)");
   } else
     ROS_INFO("Publishing non-latched (topics are only prepared as needed, will only be re-published on map change");
+
+  if (private_nh.hasParam("plugins")) {
+    XmlRpc::XmlRpcValue plugin_list;
+    private_nh.getParam("plugins", plugin_list);
+    for (int32_t i = 0; i < plugin_list.size(); ++i) {
+      std::string pname = static_cast<std::string>(plugin_list[i]["name"]);
+      std::string type = static_cast<std::string>(plugin_list[i]["type"]);
+      std::string frame_id = static_cast<std::string>(plugin_list[i]["frame_id"]);
+      boost::shared_ptr<square_robot::SensorModelBase> plugin = m_plugin_loader.createInstance(type);
+      if (plugin->initialize(pname)) {
+        m_sensor_model_map.insert(
+            std::pair<std::string, boost::shared_ptr<square_robot::SensorModelBase>>(frame_id, plugin));
+      }
+    }
+  }
 
   m_markerPub = m_nh.advertise<visualization_msgs::MarkerArray>("occupied_cells_vis_array", 1, m_latchedTopics);
   m_binaryMapPub = m_nh.advertise<Octomap>("octomap_binary", 1, m_latchedTopics);
@@ -416,7 +425,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
     pc_nonground.header = pc.header;
   }
 
-  insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
+  insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground, cloud->header.frame_id);
 #ifdef STAMPED_OCTOMAP_SERVER
   if( m_timeThresh > 0 ) {
     m_octree->degradeOutdatedNodes( m_timeThresh, static_cast<uint32_t>(ros::Time::now().toSec()));
@@ -432,8 +441,17 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   }
 }
 
-void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground){
+void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground, std::string frame_id){
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
+
+  boost::shared_ptr<square_robot::SensorModelBase> sensor_model;
+  if (m_sensor_model_map.count(frame_id)) {
+    sensor_model = m_sensor_model_map[frame_id];
+  } else {
+    ROS_ERROR("No SensorModel registered for sensor sensor frame %s. Cannot add scan.", frame_id.c_str());
+    return;
+  }
+  double max_range = sensor_model->max_range_;
 
   if (!m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMin)
     || !m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMax))
@@ -447,20 +465,24 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 
   // instead of direct scan insertion, compute update to filter ground:
   KeySet free_cells, occupied_cells;
+  std::unordered_map<OcTreeKey, double, OcTreeKey::KeyHash> free_cell_probs, occ_cell_probs;
   // insert ground points only as free:
   for (PCLPointCloud::const_iterator it = ground.begin(); it != ground.end(); ++it){
     point3d point(it->x, it->y, it->z);
 
-    if ((m_minRange > 0) && (point - sensorOrigin).norm() < m_minRange) continue;
-
     // maxrange check
-    if ((m_maxRange > 0.0) && ((point - sensorOrigin).norm() > m_maxRange) ) {
-      point = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
+    if ((max_range > 0.0) && ((point - sensorOrigin).norm() > max_range) ) {
+      point = sensorOrigin + (point - sensorOrigin).normalized() * max_range;
     }
+
+    std::pair<double, double> point_probs = sensor_model->getRayProbs(it->x, it->y, it->z);
 
     // only clear space (ground points)
     if (m_octree->computeRayKeys(sensorOrigin, point, m_keyRay)){
       free_cells.insert(m_keyRay.begin(), m_keyRay.end());
+      std::for_each(m_keyRay.begin(), m_keyRay.end(), [&free_cell_probs, point_probs](OcTreeKey k) {
+        free_cell_probs.insert({ k, point_probs.second });
+      });
     }
 
     octomap::OcTreeKey endKey;
@@ -475,21 +497,21 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // all other points: free on ray, occupied on endpoint:
   for (PCLPointCloud::const_iterator it = nonground.begin(); it != nonground.end(); ++it){
     point3d point(it->x, it->y, it->z);
-    
-    if ((m_minRange > 0) && (point - sensorOrigin).norm() < m_minRange) continue;
-    
+    std::pair<double, double> point_probs = sensor_model->getRayProbs(it->x, it->y, it->z);
     // maxrange check
-    if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange) ) {
-
+    if ((max_range < 0.0) || ((point - sensorOrigin).norm() <= max_range) ) {
       // free cells
       if (m_octree->computeRayKeys(sensorOrigin, point, m_keyRay)){
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
+        std::for_each(m_keyRay.begin(), m_keyRay.end(), [&free_cell_probs, point_probs](OcTreeKey k) {
+          free_cell_probs.insert({ k, point_probs.second });
+        });
       }
       // occupied endpoint
       OcTreeKey key;
       if (m_octree->coordToKeyChecked(point, key)){
         occupied_cells.insert(key);
-
+        occ_cell_probs.insert({ key, point_probs.first });
         updateMinKey(key, m_updateBBXMin);
         updateMaxKey(key, m_updateBBXMax);
 
@@ -498,10 +520,12 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 #endif
       }
     } else {// ray longer than maxrange:;
-      point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * m_maxRange;
+      point3d new_end = sensorOrigin + (point - sensorOrigin).normalized() * max_range;
       if (m_octree->computeRayKeys(sensorOrigin, new_end, m_keyRay)){
         free_cells.insert(m_keyRay.begin(), m_keyRay.end());
-
+        std::for_each(m_keyRay.begin(), m_keyRay.end(), [&free_cell_probs, point_probs](OcTreeKey k) {
+          free_cell_probs.insert({ k, point_probs.second });
+        });
         octomap::OcTreeKey endKey;
         if (m_octree->coordToKeyChecked(new_end, endKey)){
           free_cells.insert(endKey);
@@ -519,13 +543,13 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // mark free cells only if not seen occupied in this cloud
   for(KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
     if (occupied_cells.find(*it) == occupied_cells.end()){
-      m_octree->updateNode(*it, false);
+      m_octree->updateNode(*it, logodds(free_cell_probs.at(*it)), false);
     }
   }
 
   // now mark all occupied cells:
   for (KeySet::iterator it = occupied_cells.begin(), end=occupied_cells.end(); it!= end; it++) {
-    m_octree->updateNode(*it, true);
+    m_octree->updateNode(*it, logodds(occ_cell_probs.at(*it)), false);
   }
 
   // TODO: eval lazy+updateInner vs. proper insertion
@@ -1367,10 +1391,6 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
           config.ground_filter_angle = m_groundFilterAngle;
         if(!is_equal( m_groundFilterPlaneDistance, 0.07))
           config.ground_filter_plane_distance = m_groundFilterPlaneDistance;
-        if(!is_equal(m_maxRange, -1.0))
-          config.sensor_model_max_range = m_maxRange;
-	if(!is_equal(m_minRange, -1.0))
-	  config.sensor_model_min_range = m_minRange;
         if(!is_equal(m_octree->getProbHit(), 0.7))
           config.sensor_model_hit = m_octree->getProbHit();
         if(!is_equal(m_octree->getProbMiss(), 0.4))
@@ -1388,7 +1408,6 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
       m_groundFilterDistance      = config.ground_filter_distance;
       m_groundFilterAngle         = config.ground_filter_angle;
       m_groundFilterPlaneDistance = config.ground_filter_plane_distance;
-      m_maxRange                  = config.sensor_model_max_range;
       m_octree->setClampingThresMin(config.sensor_model_min);
       m_octree->setClampingThresMax(config.sensor_model_max);
 
