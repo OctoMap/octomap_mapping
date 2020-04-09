@@ -62,13 +62,21 @@ void SquareOcTreeStamped::degradeOutdatedNodes(uint32_t time_thres, uint32_t cur
 
 void SquareOcTreeStamped::removeStaleNodes(uint32_t epoch) {
   std::deque<OcTreeKey> keys_to_remove;
+  bool remove_all = true;
   for (leaf_iterator it = this->begin_leafs(); it != this->end_leafs(); ++it) {
     if (it->getTimestamp() < epoch) {
       keys_to_remove.push_back(it.getKey());
+    } else {
+      remove_all = false;
     }
   }
-  for (auto k : keys_to_remove) {
-    this->deleteNode(k);
+  // If we remove all the leafs, reset the tree to avoid undefined behavior
+  if (remove_all) {
+    this->clear();
+  } else {
+    for (auto k : keys_to_remove) {
+      this->deleteNode(k);
+    }
   }
 }
 
