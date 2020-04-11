@@ -85,6 +85,7 @@ install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_color
   octomap_saver
   octomap_tracking_server_node
   octomap_server_nodelet
+  octomap_color_server_nodelet
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
