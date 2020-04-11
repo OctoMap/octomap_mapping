@@ -13,6 +13,7 @@
   
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
+    <nodelet plugin="${prefix}/color_nodelet_plugins.xml" />
   </export>
 
   <buildtool_depend>catkin</buildtool_depend>
