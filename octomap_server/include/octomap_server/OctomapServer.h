@@ -287,7 +287,7 @@ protected:
   bool m_filterSpeckles;
 
   bool m_simpleGroundFilter;
-  uint32_t m_time_thresh;
+  uint32_t m_timeThresh;
 
   bool m_filterGroundPlane;
   double m_groundFilterDistance;
