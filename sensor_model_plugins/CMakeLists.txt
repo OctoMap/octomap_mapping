@@ -22,6 +22,7 @@ include_directories(
 add_library(sensor_model_plugins
   plugins/gemini_model_plugin.cpp
   plugins/isa500_model_plugin.cpp
+  plugins/me1512_model_plugin.cpp
 )
 
 add_dependencies(sensor_model_plugins
