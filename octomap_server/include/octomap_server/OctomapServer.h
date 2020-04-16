@@ -316,9 +316,9 @@ protected:
   bool m_useColoredMap;
 
   // sensor models
-  bool m_use_sensor_plugins;
-  pluginlib::ClassLoader<square_robot::SensorModelBase> m_plugin_loader;
-  std::map<std::string, boost::shared_ptr<square_robot::SensorModelBase>> m_sensor_model_map;
+  bool m_useSensorPlugins;
+  pluginlib::ClassLoader<square_robot::SensorModelBase> m_pluginLoader;
+  std::map<std::string, boost::shared_ptr<square_robot::SensorModelBase>> m_sensorModelMap;
 };
 }
 

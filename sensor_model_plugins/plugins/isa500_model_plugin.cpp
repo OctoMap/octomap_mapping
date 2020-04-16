@@ -9,7 +9,7 @@
 PLUGINLIB_EXPORT_CLASS(square_robot::Isa500ModelPlugin, square_robot::SensorModelBase)
 
 namespace square_robot {
-Isa500ModelPlugin::Isa500ModelPlugin() : SensorModelBase(0.58, 0.4, 40) {
+Isa500ModelPlugin::Isa500ModelPlugin() : SensorModelBase(0.58, 0.4, 60) {
 }
 
 bool Isa500ModelPlugin::initialize(std::string name) {

@@ -77,7 +77,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_compressMap(true),
   m_incrementalUpdate(false),
   m_initConfig(true),
-  m_plugin_loader("sensor_model_plugins", "square_robot::SensorModelBase")
+  m_pluginLoader("sensor_model_plugins", "square_robot::SensorModelBase")
 {
   double probHit, probMiss, thresMin, thresMax, occThresh;
 
@@ -121,7 +121,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   }
 
   m_nh_private.param("resolution", m_res, m_res);
-  m_nh_private.param("sensor_model/use_sensor_plugins", m_use_sensor_plugins, false);
+  m_nh_private.param("sensor_model/use_sensor_plugins", m_useSensorPlugins, false);
   m_nh_private.param("sensor_model/max_range", m_maxRange, m_maxRange);
   m_nh_private.param("sensor_model/hit", probHit, 0.7);
   m_nh_private.param("sensor_model/miss", probMiss, 0.4);
@@ -202,9 +202,9 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
       std::string pname = static_cast<std::string>(plugin_list[i]["name"]);
       std::string type = static_cast<std::string>(plugin_list[i]["type"]);
       std::string frame_id = static_cast<std::string>(plugin_list[i]["frame_id"]);
-      boost::shared_ptr<square_robot::SensorModelBase> plugin = m_plugin_loader.createInstance(type);
+      boost::shared_ptr<square_robot::SensorModelBase> plugin = m_pluginLoader.createInstance(type);
       if (plugin->initialize(pname)) {
-        m_sensor_model_map.insert(
+        m_sensorModelMap.insert(
             std::pair<std::string, boost::shared_ptr<square_robot::SensorModelBase>>(frame_id, plugin));
       }
     }
@@ -453,9 +453,9 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 
   double max_range = m_maxRange;
   boost::shared_ptr<square_robot::SensorModelBase> sensor_model;
-  if (m_use_sensor_plugins) {
-    if (m_sensor_model_map.count(frame_id)) {
-      sensor_model = m_sensor_model_map[frame_id];
+  if (m_useSensorPlugins) {
+    if (m_sensorModelMap.count(frame_id)) {
+      sensor_model = m_sensorModelMap[frame_id];
       max_range = sensor_model->max_range_;
     } else {
       ROS_ERROR("No SensorModel registered for sensor sensor frame %s. Cannot add scan.", frame_id.c_str());
@@ -486,7 +486,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
       point = sensorOrigin + (point - sensorOrigin).normalized() * max_range;
     }
     
-    if (m_use_sensor_plugins) {
+    if (m_useSensorPlugins) {
      point_probs = sensor_model->getRayProbs(it->x, it->y, it->z);
     }
 
@@ -510,7 +510,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // all other points: free on ray, occupied on endpoint:
   for (PCLPointCloud::const_iterator it = nonground.begin(); it != nonground.end(); ++it){
     point3d point(it->x, it->y, it->z);
-    if (m_use_sensor_plugins) {
+    if (m_useSensorPlugins) {
       point_probs = sensor_model->getRayProbs(it->x, it->y, it->z);
     }
     // maxrange check
@@ -558,13 +558,13 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // mark free cells only if not seen occupied in this cloud
   for(KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
     if (occupied_cells.find(*it) == occupied_cells.end()){
-      m_octree->updateNode(*it, logodds(free_cell_probs.at(*it)), false);
+      m_octree->updateNode(*it, logodds(free_cell_probs.at(*it)));
     }
   }
 
   // now mark all occupied cells:
   for (KeySet::iterator it = occupied_cells.begin(), end=occupied_cells.end(); it!= end; it++) {
-    m_octree->updateNode(*it, logodds(occ_cell_probs.at(*it)), false);
+    m_octree->updateNode(*it, logodds(occ_cell_probs.at(*it)));
   }
 
   // TODO: eval lazy+updateInner vs. proper insertion
