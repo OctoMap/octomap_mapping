@@ -2,8 +2,8 @@
 Changelog for package octomap_mapping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.5 (2020-04-23)
+------------------
 * Update maintainer email
 * Contributors: Wolfgang Merkt
 
