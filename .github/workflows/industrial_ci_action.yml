@@ -17,6 +17,7 @@ jobs:
           - {ROS_DISTRO: melodic, PRERELEASE: true}
           - {ROS_DISTRO: noetic}
           - {ROS_DISTRO: noetic, PRERELEASE: true}
+          - {ROS_DISTRO: noetic, OS_NAME:debian, OS_CODE_NAME:buster}
     env:
       CCACHE_DIR: /github/home/.ccache # Enable ccache
       PARALLEL_BUILDS: 4
