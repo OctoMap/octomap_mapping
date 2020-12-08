@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.6 (2020-12-08)
+------------------
 * Update CI, package format, dependencies to address dependency issue on Debian Buster (`#79 <https://github.com/OctoMap/octomap_mapping/issues/79>`_)
 * Contributors: Wolfgang Merkt
 
