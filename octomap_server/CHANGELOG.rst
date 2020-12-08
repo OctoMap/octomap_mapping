@@ -2,6 +2,11 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update CI, package format, dependencies to address dependency issue on Debian Buster (`#79 <https://github.com/OctoMap/octomap_mapping/issues/79>`_)
+* Contributors: Wolfgang Merkt
+
 0.6.5 (2020-04-23)
 ------------------
 * Add color server nodelet (`#68 <https://github.com/OctoMap/octomap_mapping/issues/68>`_, `#67 <https://github.com/OctoMap/octomap_mapping/issues/67>`_)
