@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0.2)
 project(octomap_server)
 
 set(PACKAGE_DEPENDENCIES
@@ -15,7 +15,6 @@ set(PACKAGE_DEPENDENCIES
   dynamic_reconfigure
   nodelet
 )
-
 
 find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 
@@ -93,13 +92,10 @@ install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_color
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
-  PATTERN ".svn" EXCLUDE
 )
 
 install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-  PATTERN ".svn" EXCLUDE
 )
 
 install(FILES 
