@@ -305,17 +305,17 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
   pass_x.filter(pc);
   pass_y.setInputCloud(pc.makeShared());
   pass_y.filter(pc);
-  pass_z.setInputCloud(pc.makeShared());
-  pass_z.filter(pc);
-
+  
   if (m_filterGroundPlane){
+    pass_z.setInputCloud(pc.makeShared());
+    pass_z.filter(pc);
     filterGroundPlane(pc, pc_ground, pc_nonground);
   } 
   else {
-    pc_nonground = pc;
-    // pc_nonground is empty without ground segmentation
-    pc_ground.header = pc.header;
-    pc_nonground.header = pc.header;
+    pass_z.setInputCloud(pc.makeShared());
+    pass_z.filter(pc_nonground);
+    pass_z.setFilterLimitsNegative(true);
+    pass_z.filter(pc_ground);
   }
 
   // transform clouds to world frame for insertion
