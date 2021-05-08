@@ -2,8 +2,12 @@
 
 
 	<param name="use_sim_time" value="true"/>
+
+	<!--place bag file-->
+
+	<arg name="bag_file" value="$(find auto_chaser4)/map/forest/chasingOneTreeWithImage.bag"/>
 	<node name="play_flight" pkg="rosbag" type="play" output="log" args="--clock -r 1.0 --loop
-        $(find auto_chaser4)/map/forest/chasingOneTreeWithImage.bag">
+        $(arg bag_file)">
 		<remap from = "/airsim_node/SimpleFlight/pose_local_enu" to = "/auto_chaser/planner_ol/chaser_pose"/>
 	</node>
 

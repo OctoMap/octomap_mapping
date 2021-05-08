@@ -1,6 +1,6 @@
-octomap_mapping ![CI](https://github.com/OctoMap/octomap_mapping/workflows/CI/badge.svg)
+octomap_edt_server ![CI](https://github.com/OctoMap/octomap_mapping/workflows/CI/badge.svg)
 ===============
-
+Written by JBS.
 ## Installation 
 
 * Require my git fork of dynamicEDT3D
@@ -8,6 +8,19 @@ octomap_mapping ![CI](https://github.com/OctoMap/octomap_mapping/workflows/CI/ba
 git clone https://github.com/icsl-Jeon/octomap.git
 cd dynamicEDT3D && mkdir build && cd build && cmake ..
 sudo make install
+```
+
+## Out-of-box launch for [octomap_edt_server](octomap_server/launch/octomap_edt_server.launch)
+
+Download [bag_file](https://drive.google.com/file/d/1AwMVekkpmsFcpDjmPqnEeNCCN2xaXQPk/view?usp=sharing) (2.9GB) and
+set correct path to it here:
+```
+<arg name="bag_file" value=""/>
+```
+Then launch the file:
+
+```
+roslaunch octomap_server octomap_edt_server.launch
 ```
 
 ## Features 
