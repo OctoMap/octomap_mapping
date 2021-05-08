@@ -221,10 +221,14 @@ protected:
   double m_maxRange;
   std::string m_worldFrameId; // the map frame
   std::string m_baseFrameId; // base of the robot for ground plane filtering
+  std::string m_curSensorFrameId; // last pcl incoming frame
+
   bool m_useHeightMap;
   std_msgs::ColorRGBA m_color;
   std_msgs::ColorRGBA m_colorFree;
   double m_colorFactor;
+
+  Eigen::Matrix4f m_sensorToWorldTf; // T_{ws} ?
 
   bool m_latchedTopics;
   bool m_publishFreeSpace;

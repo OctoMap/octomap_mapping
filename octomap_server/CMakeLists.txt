@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(octomap_server)
 
+set(CMAKE_BUILD_TYPE release)
 set(PACKAGE_DEPENDENCIES
   roscpp
   visualization_msgs
@@ -20,6 +21,12 @@ find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 
 find_package(octomap REQUIRED)
 add_definitions(-DOCTOMAP_NODEBUGOUT)
+
+
+find_package(dynamicEDT3D REQUIRED)
+include_directories(${DYNAMICEDT3D_INCLUDE_DIRS})
+link_libraries(${DYNAMICEDT3D_LIBRARIES})
+
 
 include_directories(
   include
@@ -41,11 +48,11 @@ set(LINK_LIBS
   ${catkin_LIBRARIES}
 )
 
-add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp)
+add_library(${PROJECT_NAME} src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp src/EdtOctomapServer.cpp)
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
-add_library(${PROJECT_NAME}_color src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp)
+add_library(${PROJECT_NAME}_color src/OctomapServer.cpp src/OctomapServerMultilayer.cpp src/TrackingOctomapServer.cpp src/EdtOctomapServer.cpp)
 target_link_libraries(${PROJECT_NAME}_color ${LINK_LIBS})
 add_dependencies(${PROJECT_NAME}_color ${PROJECT_NAME}_gencfg)
 target_compile_definitions(${PROJECT_NAME}_color PUBLIC COLOR_OCTOMAP_SERVER)
@@ -68,6 +75,8 @@ target_link_libraries(octomap_saver ${PROJECT_NAME} ${LINK_LIBS})
 add_executable(octomap_tracking_server_node src/octomap_tracking_server_node.cpp)
 target_link_libraries(octomap_tracking_server_node ${PROJECT_NAME} ${LINK_LIBS})
 
+add_executable(octomap_edt_server_node src/octomap_edt_server_node.cpp)
+target_link_libraries(octomap_edt_server_node ${PROJECT_NAME} ${LINK_LIBS})
 # Nodelet
 add_library(octomap_server_nodelet src/octomap_server_nodelet.cpp)
 target_link_libraries(octomap_server_nodelet ${PROJECT_NAME} ${LINK_LIBS})
