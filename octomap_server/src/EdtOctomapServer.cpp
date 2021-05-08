@@ -8,9 +8,8 @@
 using namespace octomap;
 
 namespace octomap_server {
-    EdtOctomapServer::EdtOctomapServer(const std::string &filename)   {
 
-
+    void EdtOctomapServer::init() {
 
         m_nh_private.getParam("max_distance",param.maxDist);
         m_nh_private.getParam("verbose",param.verbose);
@@ -58,6 +57,15 @@ namespace octomap_server {
                                        param.minBound,param.maxBound,
                                        param.unknownAsOccupied);
 
+    }
+
+    EdtOctomapServer::EdtOctomapServer(const ros::NodeHandle &nh_private) : OctomapServer(nh_private) {
+        init();
+    }
+
+    EdtOctomapServer::EdtOctomapServer(const std::string &filename)   {
+
+        init();
 
         if (filename != "") {
             if (m_octree->readBinary(filename)) {

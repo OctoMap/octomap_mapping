@@ -37,12 +37,13 @@ namespace octomap_server{
     class EdtOctomapServer: public OctomapServer{
     public:
         EdtOctomapServer(const std::string& filename = "");
-        EdtOctomapServer(const ros::NodeHandle& nh_private) : OctomapServer(nh_private) {};
+        EdtOctomapServer(const ros::NodeHandle& nh_private);
         virtual ~EdtOctomapServer() {};
 
         void publish();
 
     protected:
+        void init();
         Param param;
         DynamicEDTOctomap* edtPtr;
         ros::Publisher pubSlice;
