@@ -44,7 +44,6 @@
 		<param name="window_bound/min/z" value="-3"/>
 		<param name="safe_margin" value="1.2"/>
 
-		<!-- analyze elapse  -->
 
 		<!--octomap visualization -->
 		<param name="height_map" value="true"/>
