@@ -3,11 +3,17 @@ octomap_edt_server ![CI](https://github.com/OctoMap/octomap_mapping/workflows/CI
 Written by JBS.
 ## Installation 
 
-* Require my git fork of dynamicEDT3D
+### Depends on my git fork of dynamicEDT3D
 ```
 git clone https://github.com/icsl-Jeon/octomap.git
 cd dynamicEDT3D && mkdir build && cd build && cmake ..
 sudo make install
+```
+
+### Build this package 
+```
+https://github.com/icsl-Jeon/octomap_mapping.git
+catkin build octomap_server 
 ```
 
 ## Out-of-box launch for [octomap_edt_server](octomap_server/launch/octomap_edt_server.launch)
@@ -28,6 +34,7 @@ roslaunch octomap_server octomap_edt_server.launch
 using [dynamicEDT3D](https://github.com/OctoMap/octomap/tree/devel/dynamicEDT3D
   )
  * Real-time analysis on your terminal  as below pretty table: 
+ * All parameterization to cater your usages.
 ```
 **********************************************************************
 cloud callback                                                        
