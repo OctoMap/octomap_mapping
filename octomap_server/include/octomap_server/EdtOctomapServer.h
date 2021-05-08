@@ -42,6 +42,15 @@ namespace octomap_server{
 
         void publish();
 
+        //! Update visualization for entire boundary
+        void updateSliceGlobal(float height);
+        //! Update visualization for entire boundary
+        void updateSliceWindow(octomap::point3d minWinBound, octomap::point3d maxWinBound, int* numQuery = NULL);
+        //! Include edt update on pcl callback routine
+        void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud) override;
+
+        float getDistance(octomap::point3d pnt);
+
     protected:
         void init();
         Param param;
@@ -54,12 +63,6 @@ namespace octomap_server{
         //! For local visualization at a bounding volume
         pcl::PointCloud<pcl::PointXYZI> sliceLocal;
 
-        //! Update visualization for entire boundary
-        void updateSliceGlobal(float height);
-        //! Update visualization for entire boundary
-        void updateSliceWindow(octomap::point3d minWinBound, octomap::point3d maxWinBound, int* numQuery = NULL);
-        //! Include edt update on pcl callback routine
-        void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud) override;
 
     };
 }

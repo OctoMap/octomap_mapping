@@ -222,6 +222,10 @@ namespace octomap_server {
 
         publish();
     }
+    float EdtOctomapServer::getDistance(octomap::point3d pnt) {
+        return edtPtr->getDistance(pnt);
+    }
+
 
 
 
