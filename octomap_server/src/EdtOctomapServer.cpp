@@ -35,7 +35,7 @@ namespace octomap_server {
         param.minBound = point3d(minX,minY,minZ);
         param.maxBound = point3d(maxX,maxY,maxZ);
         m_nh_private.getParam("publish_global_edf",param.publishGlobal);
-        m_nh_private.getParam("slice_level",param.sliceLevel);
+        m_nh_private.getParam("slice_height",param.sliceLevel);
 
 
         m_nh_private.getParam("window_bound/max/x",maxX);

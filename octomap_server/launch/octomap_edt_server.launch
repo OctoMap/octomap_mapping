@@ -22,7 +22,7 @@
 		<param name="sensor_model/max_range" value="10.0" />
 		<param name="max_distance" value="5" /> <!--EDF calculation-->
 		<param name="unknown_is_occupied" value="false"/>
-		<param name = "verbose" value="true"/>
+		<param name ="verbose" value="true"/>
 
 		<!--initial sizing of edf-->
 		<param name = "publish_global_edf" value="false"/>
@@ -32,7 +32,7 @@
 		<param name="init_bound/min/x" value="-100"/>
 		<param name="init_bound/min/y" value="-100"/>
 		<param name="init_bound/min/z" value="-20"/>
-		<param name="slice_level" value="2.0"/>
+		<param name="slice_height" value="2.0"/>
 
 		<!--visualization window volume of edf around sensor local frame -->
 		<param name = "publish_local_edf" value="true"/>
