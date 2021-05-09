@@ -60,4 +60,9 @@
 
 		<remap from="cloud_in" to="/airsim_node/pointcloud" />
 	</node>
+
+
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/rviz/rviz.rviz" output="log"/>
+
+
 </launch>

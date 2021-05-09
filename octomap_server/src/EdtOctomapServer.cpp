@@ -177,7 +177,15 @@ namespace octomap_server {
         OctomapServer::insertCloudCallback(cloud);
         short  t0 = timer.stop();
         int numUpdatePnt;
-        edtPtr->update(true,false,&numUpdatePnt);
+
+        if (edtLocker.try_lock()){
+            edtPtr->update(true, false, &numUpdatePnt);
+            edtLocker.unlock();
+        }else{
+            ROS_WARN_STREAM("edt locked by other thread. not updating edf");
+        }
+
+
         short t1 = timer.stop();
         short t2; int numQuery;
         if (param.publishGlobal)

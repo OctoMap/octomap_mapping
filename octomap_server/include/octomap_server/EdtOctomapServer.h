@@ -9,6 +9,7 @@
 #include <dynamicEDT3D/dynamicEDTOctomap.h>
 #include <pcl_ros/point_cloud.h>
 #include <octomap_server/Utils.h>
+#include <mutex>
 
 #define MAX_SCALE 10
 #define MIN_SCALE (-10)
@@ -50,8 +51,9 @@ namespace octomap_server{
         void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud) override;
 
         float getDistance(octomap::point3d pnt);
-
+        std::mutex& getLocker() {return edtLocker;}
     protected:
+        std::mutex edtLocker;
         void init();
         Param param;
         DynamicEDTOctomap* edtPtr;
