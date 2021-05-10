@@ -22,19 +22,20 @@
 #define NEW_LINE std::cout << std::endl;
 
 using namespace std::chrono;
+namespace octomap_server {
+    class Timer {
+        steady_clock::time_point t0;
+        double measuredTime;
+    public:
+        Timer() { t0 = steady_clock::now(); }
 
-class Timer{
-    steady_clock::time_point t0;
-    double measuredTime;
-public:
-    Timer(){t0 = steady_clock::now();}
-    double stop(bool isMillisecond = true) {
-        if (isMillisecond)
-            measuredTime =  duration_cast<milliseconds>(steady_clock::now() - t0).count();
-        else
-            measuredTime =  duration_cast<microseconds>(steady_clock::now() - t0).count();
-        return measuredTime;}
-};
-
-
+        double stop(bool isMillisecond = true) {
+            if (isMillisecond)
+                measuredTime = duration_cast<milliseconds>(steady_clock::now() - t0).count();
+            else
+                measuredTime = duration_cast<microseconds>(steady_clock::now() - t0).count();
+            return measuredTime;
+        }
+    };
+}
 #endif //OCTOMAP_SERVER_UTILS_H
