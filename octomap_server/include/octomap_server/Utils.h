@@ -4,6 +4,7 @@
 
 #ifndef OCTOMAP_SERVER_UTILS_H
 #define OCTOMAP_SERVER_UTILS_H
+#include <chrono>
 
 /**
  * For formatting table on cmd
