@@ -5,6 +5,7 @@ Written by JBS.
 
 ### Depends on my git fork of dynamicEDT3D
 ```
+sudo apt-get install ros-melodic-octomap-ros
 git clone https://github.com/icsl-Jeon/octomap.git
 cd dynamicEDT3D && mkdir build && cd build && cmake ..
 sudo make install
