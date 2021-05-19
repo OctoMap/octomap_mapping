@@ -102,6 +102,8 @@ public:
 
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
   virtual bool openFile(const std::string& filename);
+  inline float getResolution() {return m_res;}
+
 
 protected:
   inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min) {
@@ -186,6 +188,7 @@ protected:
                   (key[1] - m_paddedMinKey[1]) / m_multires2DScale);
 
   }
+
 
   /**
    * Adjust data of map due to a change in its info properties (origin or size,

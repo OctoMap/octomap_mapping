@@ -183,6 +183,7 @@ namespace octomap_server {
             edtLocker.unlock();
         }else{
             ROS_WARN_STREAM("edt locked by other thread. not updating edf");
+            return;
         }
 
 
@@ -225,8 +226,6 @@ namespace octomap_server {
 
             BOTTOM_RULE_EQ(tableWidth);
         }
-
-
 
         publish();
     }
