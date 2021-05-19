@@ -179,7 +179,7 @@ namespace octomap_server {
         int numUpdatePnt;
 
         if (edtLocker.try_lock()){
-            edtPtr->update(true, false, &numUpdatePnt);
+            numUpdatePnt = edtPtr->update(true, false);
             edtLocker.unlock();
         }else{
             ROS_WARN_STREAM("edt locked by other thread. not updating edf");
