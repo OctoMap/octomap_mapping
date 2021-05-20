@@ -1,0 +1,70 @@
+<launch>
+
+
+	<param name="use_sim_time" value="true"/>
+
+	<!--place bag file-->
+
+	<arg name="bag_file" value="/media/jbs/ssd/bag_zed/300_5f/2021-05-20-15-10-25.bag"/>
+
+	<node name="play_flight" pkg="rosbag" type="play" output="log" args="--clock -r 1.0 --loop
+        $(arg bag_file)">
+<!--		<remap from = "/airsim_node/SimpleFlight/pose_local_enu" to = "/auto_chaser/planner_ol/chaser_pose"/>-->
+	</node>
+
+
+<!--	<arg name="path" default="$(find octomap_server)/bt/factoryMapping.bt"/>-->
+	<arg name="path" default=""/>
+
+	<!-- you can load an exisiting tree with <node ... args="tree.bt"> !-->
+	<node pkg="octomap_server" type="octomap_edt_server_node" name="octomap_talker" output="screen" args="">
+		<param name="bt_file" value="$(arg path)"/> <!--if empty, just online mode from incoming pcl -->
+		<param name="resolution" value="0.2" />
+		<param name="frame_id" type="string" value="map" />
+		<param name="sensor_model/max_range" value="5.0" />
+		<param name="max_distance" value="2" /> <!--EDF calculation-->
+		<param name="unknown_is_occupied" value="false"/>
+		<param name ="verbose" value="true"/>
+
+		<!--initial sizing of edf-->
+		<param name = "publish_global_edf" value="false"/>
+		<param name="init_bound/max/x" value="100"/>
+		<param name="init_bound/max/y" value="100"/>
+		<param name="init_bound/max/z" value="0.5"/>
+		<param name="init_bound/min/x" value="-100"/>
+		<param name="init_bound/min/y" value="-100"/>
+		<param name="init_bound/min/z" value="-0.6"/>
+		<param name="slice_height" value="2.0"/>
+
+		<!--visualization window volume of edf around sensor local frame -->
+		<param name = "publish_local_edf" value="true"/>
+		<param name="window_bound/max/x" value="10"/>
+		<param name="window_bound/max/y" value="10"/>
+		<param name="window_bound/max/z" value="5"/>
+		<param name="window_bound/min/x" value="-10"/>
+		<param name="window_bound/min/y" value="-10"/>
+		<param name="window_bound/min/z" value="-3"/>
+		<param name="safe_margin" value="0.3"/> <!--This should be larger than resolution-->
+
+
+		<!--octomap visualization -->
+		<param name="height_map" value="true"/>
+		<param name="color/r" value="0.9"/>
+		<param name="color/g" value="0.9"/>
+		<param name="color/b" value="0.9"/>
+		<param name="color/a" value="1.0"/>
+
+		<!-- ground filtering (turning on too slow)-->
+		<param name="filter_ground" value="false"/>
+		<param name="ground_filter/distance" value="0.04"/>
+		<param name="ground_filter/plane_distance" value="-0.4"/>
+		<param name = "base_frame_id" value="Actor_3"/>
+
+		<remap from="cloud_in" to="/zed2/zed_node/point_cloud/cloud_registered" />
+	</node>
+
+
+<!--	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/rviz/rviz.rviz" output="log"/>-->
+
+
+</launch>

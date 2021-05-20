@@ -145,6 +145,9 @@ namespace octomap_server {
         for (int nx = 0; nx <= bbx_nx; nx++)
             for (int ny = 0; ny <= bbx_ny; ny++)
                 for (int nz = 0; nz <= bbx_nz; nz++) {
+
+                    n++;
+
                     float x = minWinBound.x() + resolution * nx + m_sensorToWorldTf.coeffRef(0,3);
                     float y = minWinBound.y() + resolution * ny + m_sensorToWorldTf.coeffRef(1,3);
                     float z = minWinBound.z() + resolution * nz + m_sensorToWorldTf.coeffRef(2,3);
@@ -153,7 +156,6 @@ namespace octomap_server {
                     double dist =edtPtr->getDistance(pnt);
                     pclPnt.intensity = dist;
                     if (dist > 0 and dist < param.safeMargin ) { //! for only in bound points and whose dist < safeMargin
-                        n++;
                         sliceLocal.push_back(pclPnt);
                     }
                 }
@@ -212,13 +214,13 @@ namespace octomap_server {
             NEW_LINE
 
             FILL_CELL_LEFT("edt")
-            FILL_CELL_RIGHT(std::to_string(numQuery) + " (upd.)")
+            FILL_CELL_RIGHT(std::to_string(numUpdatePnt) + " (upd.)")
             FILL_CELL_RIGHT(std::to_string(t1-t0) + " ms")
             NEW_LINE
 
             if (param.publishLocal) {
                 FILL_CELL_LEFT("edt. vis")
-                FILL_CELL_RIGHT(std::to_string(numUpdatePnt) + " (query)")
+                FILL_CELL_RIGHT(std::to_string(numQuery) + " (query)")
                 FILL_CELL_RIGHT(std::to_string(t2) + " ms")
                 NEW_LINE
             }
