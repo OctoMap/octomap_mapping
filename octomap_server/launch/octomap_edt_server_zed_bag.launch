@@ -5,7 +5,7 @@
 
 	<!--place bag file-->
 
-	<arg name="bag_file" value="/media/jbs/ssd/bag_zed/300_5f/2021-05-20-15-10-25.bag"/>
+	<arg name="bag_file" value="/media/jbs/ssd/bag_zed/300_5f/move1.bag"/>
 
 	<node name="play_flight" pkg="rosbag" type="play" output="log" args="--clock -r 1.0 --loop
         $(arg bag_file)">
@@ -23,6 +23,8 @@
 		<param name="frame_id" type="string" value="map" />
 		<param name="sensor_model/max_range" value="5.0" />
 		<param name="max_distance" value="2" /> <!--EDF calculation-->
+		<param name="sensor_model/hit" value="0.7" /> <!--EDF calculation-->
+		<param name="sensor_model/miss" value="0.1" /> <!--EDF calculation-->
 		<param name="unknown_is_occupied" value="false"/>
 		<param name ="verbose" value="true"/>
 
@@ -64,7 +66,7 @@
 	</node>
 
 
-<!--	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/rviz/rviz.rviz" output="log"/>-->
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find octomap_server)/rviz/rviz.rviz" output="log"/>
 
 
 </launch>
