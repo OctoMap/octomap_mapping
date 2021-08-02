@@ -478,7 +478,13 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 #endif
 }
 
-
+void OctomapServer::publishProjected2DMap(const ros::Time& rostime) {
+  m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
+  if (m_publish2DMap) {
+    m_gridmap.header.stamp = rostime;
+    m_mapPub.publish(m_gridmap);
+  }
+}
 
 void OctomapServer::publishAll(const ros::Time& rostime){
   ros::WallTime startTime = ros::WallTime::now();
@@ -494,7 +500,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   bool publishPointCloud = (m_latchedTopics || m_pointCloudPub.getNumSubscribers() > 0);
   bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
   bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
-  m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
 
   // init markers for free space:
   visualization_msgs::MarkerArray freeNodesVis;
@@ -697,7 +702,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
-
 }
 
 
@@ -763,7 +767,9 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   m_gridmap.info.origin.position.y = 0.0;
 
   ROS_INFO("Cleared octomap");
-  publishAll(rostime);
+  publishAll(rostime);  // Note: This will return as the octree is empty
+
+  publishProjected2DMap(rostime);
 
   publishBinaryOctoMap(rostime);
   for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
@@ -1041,9 +1047,7 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
 }
 
 void OctomapServer::handlePostNodeTraversal(const ros::Time& rostime){
-
-  if (m_publish2DMap)
-    m_mapPub.publish(m_gridmap);
+  publishProjected2DMap(rostime);
 }
 
 void OctomapServer::handleOccupiedNode(const OcTreeT::iterator& it){
