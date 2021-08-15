@@ -485,8 +485,8 @@ void OctomapServer::cropOutsideBBX(const ros::Time& rostime){
   double max_x = 10;
   double min_y = -10;
   double max_y = 10;
-  double min_z = -10;
-  double max_z = 10;
+  double min_z = -5;
+  double max_z = 5;
   std::string body_frame_id = "body"; //(Spot) TODO: use base_frame_id instead
 
   tf::StampedTransform sensorToWorldTf;
