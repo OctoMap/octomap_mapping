@@ -128,6 +128,8 @@ protected:
   void reconfigureCallback(octomap_server::OctomapServerConfig& config, uint32_t level);
   void publishBinaryOctoMap(const ros::Time& rostime = ros::Time::now()) const;
   void publishFullOctoMap(const ros::Time& rostime = ros::Time::now()) const;
+  /// Filter out the occupied and free cells outside the bounding box
+  virtual void cropOutsideBBX(const ros::Time& rostime = ros::Time::now());
   virtual void publishAll(const ros::Time& rostime = ros::Time::now());
 
   /**

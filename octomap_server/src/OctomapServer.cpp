@@ -479,9 +479,62 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 }
 
 
+void OctomapServer::cropOutsideBBX(const ros::Time& rostime){
+  // TODO read from file. The crop box is access aligned
+  double min_x = -10;
+  double max_x = 10;
+  double min_y = -10;
+  double max_y = 10;
+  double min_z = -10;
+  double max_z = 10;
+  std::string body_frame_id = "body"; //(Spot) TODO: use base_frame_id instead
+
+  tf::StampedTransform sensorToWorldTf;
+  try {
+    m_tfListener.lookupTransform(m_worldFrameId, body_frame_id, rostime, sensorToWorldTf);
+  } catch(tf::TransformException& ex){
+    ROS_ERROR_STREAM( "Transform error of in cropOutsideBBX: " << ex.what() << " quitting callback");
+    return;
+  }
+
+  // TODO use m_treeDepth? Need to check what TreeDepth means (is it the "max lowest", or the "current lowest")
+  unsigned int treeDepth = m_octree->getTreeDepth();
+  double center_x = sensorToWorldTf.getOrigin().x();
+  double center_y = sensorToWorldTf.getOrigin().y();
+  double center_z = sensorToWorldTf.getOrigin().z();
+
+  std::vector<std::pair<octomap::OcTreeKey, unsigned int>> keys;
+
+  // Go through each leaf node and set to 0.5 prob if outside a box around the robot
+  for (OcTreeT::iterator it = m_octree->begin(treeDepth),
+    end = m_octree->end(); it != end; ++it){
+
+    octomap::OcTreeKey k = it.getKey();
+    if(it.getX() >= center_x + max_x || it.getX() <= center_x + min_x){
+      //it->setLogOdds(octomap::logodds(0.0f));
+      keys.push_back(std::make_pair(k, it.getDepth()));
+    } else if(it.getY() >= center_y + max_y || it.getY() <= center_y + min_y){
+      //it->setLogOdds(octomap::logodds(0.0f));
+      keys.push_back(std::make_pair(k, it.getDepth()));
+    } else if(it.getZ() >= center_z + max_z || it.getZ() <= center_z + min_z){
+      //it->setLogOdds(octomap::logodds(0.0f));
+      keys.push_back(std::make_pair(k, it.getDepth()));
+    }
+  }
+
+  //std::cout << keys.size() << " keys to remove\n";
+  for(auto k:keys)
+    m_octree->deleteNode(k.first, k.second);
+
+}
+
 
 void OctomapServer::publishAll(const ros::Time& rostime){
   ros::WallTime startTime = ros::WallTime::now();
+
+  // TODO: make this crop optional
+  cropOutsideBBX(rostime);
+
   size_t octomapSize = m_octree->size();
   // TODO: estimate num occ. voxels for size of arrays (reserve)
   if (octomapSize <= 1){
