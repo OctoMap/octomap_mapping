@@ -3,4 +3,4 @@ octomap_mapping ![CI](https://github.com/OctoMap/octomap_mapping/workflows/CI/ba
 
 ROS stack for mapping with OctoMap, contains the `octomap_server` package.
 
-The main branch for ROS Kinetic and newer is `kinetic-devel`.
+The main branch for ROS2 and newer is `ros2`.
