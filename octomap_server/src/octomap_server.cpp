@@ -1182,7 +1182,7 @@ void OctomapServer::handlePreNodeTraversal(const rclcpp::Time & rostime)
       "Padded MinKey: %d %d %d / padded MaxKey: %d %d %d", padded_min_key_[0],
       padded_min_key_[1], padded_min_key_[2], padded_max_key[0], padded_max_key[1],
       padded_max_key[2]);
-    assert(padded_max_key[0] >= maxKey[0] && padded_max_key[1] >= maxKey[1]);
+    assert(padded_max_key[0] >= max_key[0] && padded_max_key[1] >= max_key[1]);
 
     multires_2d_scale_ = 1 << (tree_depth_ - max_tree_depth_);
     gridmap_.info.width = (padded_max_key[0] - padded_min_key_[0]) / multires_2d_scale_ + 1;
