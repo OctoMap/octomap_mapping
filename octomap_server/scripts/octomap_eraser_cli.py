@@ -46,10 +46,10 @@ class OctomapEraserCli(Node):
         while not self.cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
         self.req = BoundingBoxQuery.Request()
-        min = Point(*[float(x) for x in sys.argv[1:4]])
-        max = Point(*[float(x) for x in sys.argv[4:7]])
-        self.req.min = min
-        self.req.max = max
+        min_point = Point(*[float(x) for x in sys.argv[1:4]])
+        max_point = Point(*[float(x) for x in sys.argv[4:7]])
+        self.req.min = min_point
+        self.req.max = max_point
         self.future = self.cli.call_async(self.req)
 
 
@@ -61,12 +61,12 @@ def main(args=None):
     while rclpy.ok():
         rclpy.spin_once(cli)
         if cli.future.done():
-            try:
-                cli.future.result()
-            except Exception as e:
-                cli.get_logger().info('Service call failed %r' % (e,))
-            else:
+            if cli.future.result() is not None:
                 cli.get_logger().info('Connect to service')
+            else:
+                cli.get_logger().error(
+                    'Exception while calling service'
+                )
             break
 
     cli.destroy_node()
