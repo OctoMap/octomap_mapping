@@ -92,7 +92,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
   {
     rcl_interfaces::msg::ParameterDescriptor occupancy_min_z_desc;
     occupancy_min_z_desc.description =
-    "Minimum height of occupied cells to consider in the final map";
+      "Minimum height of occupied cells to consider in the final map";
     rcl_interfaces::msg::FloatingPointRange occupancy_min_z_range;
     occupancy_min_z_range.from_value = -100.0;
     occupancy_min_z_range.to_value = 100.0;
@@ -102,7 +102,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
   {
     rcl_interfaces::msg::ParameterDescriptor occupancy_max_z_desc;
     occupancy_max_z_desc.description =
-    "Maximum height of occupied cells to consider in the final map";
+      "Maximum height of occupied cells to consider in the final map";
     rcl_interfaces::msg::FloatingPointRange occupancy_max_z_range;
     occupancy_max_z_range.from_value = -100.0;
     occupancy_max_z_range.to_value = 100.0;
@@ -121,25 +121,25 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
     rcl_interfaces::msg::ParameterDescriptor filter_ground_plane_desc;
     filter_ground_plane_desc.description = "Filter ground plane";
     filter_ground_plane_ =
-    declare_parameter("filter_ground_plane", false, filter_ground_plane_desc);
+      declare_parameter("filter_ground_plane", false, filter_ground_plane_desc);
   }
   {
     // distance of points from plane for RANSAC
     rcl_interfaces::msg::ParameterDescriptor ground_filter_distance_desc;
     ground_filter_distance_desc.description =
-    "Distance threshold to consider a point as ground";
+      "Distance threshold to consider a point as ground";
     rcl_interfaces::msg::FloatingPointRange ground_filter_distance_range;
     ground_filter_distance_range.from_value = 0.001;
     ground_filter_distance_range.to_value = 1.0;
     ground_filter_distance_desc.floating_point_range.push_back(ground_filter_distance_range);
     ground_filter_distance_ =
-    declare_parameter("ground_filter.distance", 0.04, ground_filter_distance_desc);
+      declare_parameter("ground_filter.distance", 0.04, ground_filter_distance_desc);
   }
   {
     // angular derivation of found plane:
     rcl_interfaces::msg::ParameterDescriptor ground_filter_angle_desc;
     ground_filter_angle_desc.description =
-    "Angular threshold of the detected plane from the horizontal plane to be detected as ground";
+      "Angular threshold of the detected plane from the horizontal plane to be detected as ground";
     rcl_interfaces::msg::FloatingPointRange ground_filter_angle_range;
     ground_filter_angle_range.from_value = 0.001;
     ground_filter_angle_range.to_value = 15.0;
@@ -150,7 +150,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
     // distance of found plane from z=0 to be detected as ground (e.g. to exclude tables)
     rcl_interfaces::msg::ParameterDescriptor ground_filter_plane_distance_desc;
     ground_filter_plane_distance_desc.description =
-    "Distance threshold from z=0 for a plane to be detected as ground";
+      "Distance threshold from z=0 for a plane to be detected as ground";
     rcl_interfaces::msg::FloatingPointRange ground_filter_plane_distance_range;
     ground_filter_plane_distance_range.from_value = 0.001;
     ground_filter_plane_distance_range.to_value = 1.0;
@@ -158,7 +158,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
       ground_filter_plane_distance_range
     );
     ground_filter_plane_distance_ =
-    declare_parameter("ground_filter.plane_distance", 0.07, ground_filter_plane_distance_desc);
+      declare_parameter("ground_filter.plane_distance", 0.07, ground_filter_plane_distance_desc);
   }
   {
     rcl_interfaces::msg::ParameterDescriptor max_range_desc;
@@ -174,7 +174,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
 
   rcl_interfaces::msg::ParameterDescriptor prob_hit_desc;
   prob_hit_desc.description =
-  "Probabilities for hits in the sensor model when dynamically building a map";
+    "Probabilities for hits in the sensor model when dynamically building a map";
   rcl_interfaces::msg::FloatingPointRange prob_hit_range;
   prob_hit_range.from_value = 0.5;
   prob_hit_range.to_value = 1.0;
@@ -183,7 +183,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
 
   rcl_interfaces::msg::ParameterDescriptor prob_miss_desc;
   prob_miss_desc.description =
-  "Probabilities for misses in the sensor model when dynamically building a map";
+    "Probabilities for misses in the sensor model when dynamically building a map";
   rcl_interfaces::msg::FloatingPointRange prob_miss_range;
   prob_miss_range.from_value = 0.0;
   prob_miss_range.to_value = 0.5;
@@ -192,7 +192,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
 
   rcl_interfaces::msg::ParameterDescriptor prob_min_desc;
   prob_min_desc.description =
-  "Minimum probability for clamping when dynamically building a map";
+    "Minimum probability for clamping when dynamically building a map";
   rcl_interfaces::msg::FloatingPointRange prob_min_range;
   prob_min_range.from_value = 0.0;
   prob_min_range.to_value = 1.0;
@@ -201,7 +201,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
 
   rcl_interfaces::msg::ParameterDescriptor prob_max_desc;
   prob_max_desc.description =
-  "Maximum probability for clamping when dynamically building a map";
+    "Maximum probability for clamping when dynamically building a map";
   rcl_interfaces::msg::FloatingPointRange prob_max_range;
   prob_max_range.from_value = 0.0;
   prob_max_range.to_value = 1.0;
@@ -217,7 +217,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
     rcl_interfaces::msg::ParameterDescriptor incremental_2D_projection_desc;
     incremental_2D_projection_desc.description = "Incremental 2D projection";
     incremental_2D_projection_ =
-    declare_parameter("incremental_2D_projection", false, incremental_2D_projection_desc);
+      declare_parameter("incremental_2D_projection", false, incremental_2D_projection_desc);
   }
 
   if (filter_ground_plane_ && (point_cloud_min_z_ > 0.0 || point_cloud_max_z_ < 0.0)) {
@@ -258,8 +258,8 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
   {
     rcl_interfaces::msg::ParameterDescriptor max_depth_desc;
     max_depth_desc.description =
-    "Maximum depth when traversing the octree to send out markers."
-    "16: full depth / max. resolution";
+      "Maximum depth when traversing the octree to send out markers."
+      "16: full depth / max. resolution";
     rcl_interfaces::msg::IntegerRange max_depth_range;
     max_depth_range.from_value = 1;
     max_depth_range.to_value = 16;
