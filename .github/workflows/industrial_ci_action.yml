@@ -1,0 +1,29 @@
+name: Industrial-CI
+on: [push, pull_request] # on all pushes and PRs
+
+jobs:
+  CI:
+    strategy:
+      matrix:
+        env:
+          - {ROS_DISTRO: foxy}
+          - {ROS_DISTRO: galactic}
+          - {ROS_DISTRO: rolling}
+          - {ROS_DISTRO: foxy, PRERELEASE: true}
+          - {ROS_DISTRO: galactic, PRERELEASE: true}
+          - {ROS_DISTRO: rolling, PRERELEASE: true}
+    env:
+      CCACHE_DIR: /github/home/.ccache             # Enable ccache
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      # This step will fetch/store the directory used by ccache before/after the ci run
+      - uses: actions/cache@v2
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ matrix.env.ROS_DISTRO }}-${{ matrix.env.ROS_REPO }}
+      # Run industrial_ci
+      - uses: 'ros-industrial/industrial_ci@master'
+        env: ${{ matrix.env }}
