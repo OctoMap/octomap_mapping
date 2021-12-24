@@ -2,6 +2,11 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* ROS2 Migration (`#95 <https://github.com/octomap/octomap_mapping/issues/95>`_)
+* Contributors: Daisuke Nishimatsu, Wolfgang Merkt
+
 0.6.7 (2021-12-24)
 ------------------
 * Address warnings on Noetic (`#81 <https://github.com/octomap/octomap_mapping/issues/81>`_)
