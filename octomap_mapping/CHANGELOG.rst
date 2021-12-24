@@ -2,6 +2,11 @@
 Changelog for package octomap_mapping
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Address warnings on Noetic (`#81 <https://github.com/octomap/octomap_mapping/issues/81>`_)
+* Contributors: Wolfgang Merkt
+
 0.6.6 (2020-12-08)
 ------------------
 
