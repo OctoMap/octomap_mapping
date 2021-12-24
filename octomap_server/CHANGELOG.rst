@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.7 (2021-12-24)
+------------------
 * Address warnings on Noetic (`#81 <https://github.com/octomap/octomap_mapping/issues/81>`_)
 * Contributors: Wolfgang Merkt
 
