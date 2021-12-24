@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.0 (2021-12-24)
+------------------
 * ROS2 Migration (`#95 <https://github.com/octomap/octomap_mapping/issues/95>`_)
 * Contributors: Daisuke Nishimatsu, Wolfgang Merkt
 
