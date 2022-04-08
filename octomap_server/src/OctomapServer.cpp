@@ -373,7 +373,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   for (PCLPointCloud::const_iterator it = ground.begin(); it != ground.end(); ++it){
     point3d point(it->x, it->y, it->z);
 
-    if ((point - sensorOrigin).norm() < m_minRange) continue;
+    if ((m_minRange > 0) && (point - sensorOrigin).norm() < m_minRange) continue;
 
     // maxrange check
     if ((m_maxRange > 0.0) && ((point - sensorOrigin).norm() > m_maxRange) ) {
@@ -398,7 +398,7 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   for (PCLPointCloud::const_iterator it = nonground.begin(); it != nonground.end(); ++it){
     point3d point(it->x, it->y, it->z);
     
-    if ((point - sensorOrigin).norm() < m_minRange) continue;
+    if ((m_minRange > 0) && (point - sensorOrigin).norm() < m_minRange) continue;
     
     // maxrange check
     if ((m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= m_maxRange) ) {
