@@ -486,7 +486,13 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
 #endif
 }
 
-
+void OctomapServer::publishProjected2DMap(const ros::Time& rostime) {
+  m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
+  if (m_publish2DMap) {
+    m_gridmap.header.stamp = rostime;
+    m_mapPub.publish(m_gridmap);
+  }
+}
 
 void OctomapServer::publishAll(const ros::Time& rostime){
   ros::WallTime startTime = ros::WallTime::now();
@@ -502,7 +508,6 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   bool publishPointCloud = (m_latchedTopics || m_pointCloudPub.getNumSubscribers() > 0);
   bool publishBinaryMap = (m_latchedTopics || m_binaryMapPub.getNumSubscribers() > 0);
   bool publishFullMap = (m_latchedTopics || m_fullMapPub.getNumSubscribers() > 0);
-  m_publish2DMap = (m_latchedTopics || m_mapPub.getNumSubscribers() > 0);
 
   // init markers for free space:
   visualization_msgs::MarkerArray freeNodesVis;
@@ -705,9 +710,7 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Map publishing in OctomapServer took %f sec", total_elapsed);
-
 }
-
 
 bool OctomapServer::octomapBinarySrv(OctomapSrv::Request  &req,
                                     OctomapSrv::Response &res)
@@ -771,11 +774,13 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   m_gridmap.info.origin.position.y = 0.0;
 
   ROS_INFO("Cleared octomap");
-  publishAll(rostime);
+  publishAll(rostime);  // Note: This will return as the octree is empty
+
+  publishProjected2DMap(rostime);
 
   publishBinaryOctoMap(rostime);
-  for (unsigned i= 0; i < occupiedNodesVis.markers.size(); ++i){
 
+  for (std::size_t i = 0; i < occupiedNodesVis.markers.size(); ++i){
     occupiedNodesVis.markers[i].header.frame_id = m_worldFrameId;
     occupiedNodesVis.markers[i].header.stamp = rostime;
     occupiedNodesVis.markers[i].ns = "map";
@@ -783,14 +788,11 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
     occupiedNodesVis.markers[i].type = visualization_msgs::Marker::CUBE_LIST;
     occupiedNodesVis.markers[i].action = visualization_msgs::Marker::DELETE;
   }
-
   m_markerPub.publish(occupiedNodesVis);
 
   visualization_msgs::MarkerArray freeNodesVis;
   freeNodesVis.markers.resize(m_treeDepth +1);
-
-  for (unsigned i= 0; i < freeNodesVis.markers.size(); ++i){
-
+  for (std::size_t i = 0; i < freeNodesVis.markers.size(); ++i){
     freeNodesVis.markers[i].header.frame_id = m_worldFrameId;
     freeNodesVis.markers[i].header.stamp = rostime;
     freeNodesVis.markers[i].ns = "map";
@@ -1049,41 +1051,34 @@ void OctomapServer::handlePreNodeTraversal(const ros::Time& rostime){
 }
 
 void OctomapServer::handlePostNodeTraversal(const ros::Time& rostime){
-
-  if (m_publish2DMap)
-    m_mapPub.publish(m_gridmap);
+  publishProjected2DMap(rostime);
 }
 
 void OctomapServer::handleOccupiedNode(const OcTreeT::iterator& it){
-
   if (m_publish2DMap && m_projectCompleteMap){
     update2DMap(it, true);
   }
 }
 
 void OctomapServer::handleFreeNode(const OcTreeT::iterator& it){
-
   if (m_publish2DMap && m_projectCompleteMap){
     update2DMap(it, false);
   }
 }
 
 void OctomapServer::handleOccupiedNodeInBBX(const OcTreeT::iterator& it){
-
   if (m_publish2DMap && !m_projectCompleteMap){
     update2DMap(it, true);
   }
 }
 
 void OctomapServer::handleFreeNodeInBBX(const OcTreeT::iterator& it){
-
   if (m_publish2DMap && !m_projectCompleteMap){
     update2DMap(it, false);
   }
 }
 
 void OctomapServer::update2DMap(const OcTreeT::iterator& it, bool occupied){
-
   // update 2D map (occupied always overrides):
 
   if (it.getDepth() == m_maxTreeDepth){
