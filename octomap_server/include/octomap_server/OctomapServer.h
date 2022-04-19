@@ -218,6 +218,7 @@ protected:
   octomap::OcTreeKey m_updateBBXMin;
   octomap::OcTreeKey m_updateBBXMax;
 
+  double m_minRange;
   double m_maxRange;
   std::string m_worldFrameId; // the map frame
   std::string m_baseFrameId; // base of the robot for ground plane filtering
