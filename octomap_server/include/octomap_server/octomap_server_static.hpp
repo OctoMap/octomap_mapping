@@ -29,13 +29,13 @@
 #ifndef OCTOMAP_SERVER__OCTOMAP_SERVER_STATIC_HPP_
 #define OCTOMAP_SERVER__OCTOMAP_SERVER_STATIC_HPP_
 
-#include <rclcpp/rclcpp.hpp>
-
 #include <octomap/octomap.h>
-#include <octomap_msgs/srv/get_octomap.hpp>
 
 #include <memory>
 #include <string>
+
+#include "rclcpp/rclcpp.hpp"
+#include "octomap_msgs/srv/get_octomap.hpp"
 
 namespace octomap_server
 {

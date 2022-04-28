@@ -29,9 +29,9 @@
 #ifndef OCTOMAP_SERVER__TRACKING_OCTOMAP_SERVER_HPP_
 #define OCTOMAP_SERVER__TRACKING_OCTOMAP_SERVER_HPP_
 
-#include <octomap_server/octomap_server.hpp>
-
 #include <string>
+
+#include "octomap_server/octomap_server.hpp"
 
 namespace octomap_server
 {
