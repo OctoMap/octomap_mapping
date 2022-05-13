@@ -15,6 +15,7 @@ include_directories(${PCL_INCLUDE_DIRS})
 
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
+find_package(OCTOMAP REQUIRED)
 
 ament_auto_add_library(octomap_server_static SHARED
   src/octomap_server_static.cpp
@@ -23,6 +24,11 @@ ament_auto_add_library(octomap_server_static SHARED
 target_link_libraries(octomap_server_static
   ${OCTOMAP_LIBRARIES}
   ${PCL_LIBRARIES}
+)
+
+target_include_directories(octomap_server_static
+  PUBLIC
+    ${OCTOMAP_INCLUDE_DIRS}
 )
 
 rclcpp_components_register_node(octomap_server_static

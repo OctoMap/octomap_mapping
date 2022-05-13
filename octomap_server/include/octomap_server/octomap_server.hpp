@@ -29,18 +29,8 @@
 #ifndef OCTOMAP_SERVER__OCTOMAP_SERVER_HPP_
 #define OCTOMAP_SERVER__OCTOMAP_SERVER_HPP_
 
-#include <rclcpp/rclcpp.hpp>
-#include <visualization_msgs/msg/marker_array.hpp>
-#include <nav_msgs/msg/occupancy_grid.hpp>
-#include <std_msgs/msg/color_rgba.hpp>
-
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <std_srvs/srv/empty.hpp>
-
-#include <pcl/point_types.h>
-#include <pcl/conversions.h>
-#include <pcl_ros/transforms.hpp>
-#include <pcl/sample_consensus/method_types.h>
+#include <octomap/octomap.h>
+#include <octomap/OcTreeKey.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"  // pcl::SAC_SAMPLE_SIZE is protected since PCL 1.8.0 // NOLINT
@@ -51,21 +41,30 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/passthrough.h>
-#include <pcl_conversions/pcl_conversions.h>
 
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/create_timer_ros.h>
-#include <tf2_ros/message_filter.h>
-#include <tf2_ros/transform_listener.h>
-#include <message_filters/subscriber.h>
-#include <octomap_msgs/msg/octomap.hpp>
-#include <octomap_msgs/srv/get_octomap.hpp>
-#include <octomap_msgs/srv/bounding_box_query.hpp>
-#include <octomap_msgs/conversions.h>
+#include "rclcpp/rclcpp.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
+#include "std_msgs/msg/color_rgba.hpp"
 
-#include <octomap_ros/conversions.hpp>
-#include <octomap/octomap.h>
-#include <octomap/OcTreeKey.h>
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include "std_srvs/srv/empty.hpp"
+
+#include "pcl_conversions/pcl_conversions.h"
+#include "pcl_ros/transforms.hpp"
+
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/create_timer_ros.h"
+#include "tf2_ros/message_filter.h"
+#include "tf2_ros/transform_listener.h"
+#include "message_filters/subscriber.h"
+#include "octomap_msgs/msg/octomap.hpp"
+#include "octomap_msgs/srv/get_octomap.hpp"
+#include "octomap_msgs/srv/bounding_box_query.hpp"
+#include "octomap_msgs/conversions.h"
+
+#include "octomap_ros/conversions.hpp"
+
 
 // switch color here - easier maintenance, only maintain OctomapServer.
 // Two targets are defined in the cmake, octomap_server_color and octomap_server.
