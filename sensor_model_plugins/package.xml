@@ -8,6 +8,7 @@
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <depend>utbot_msgs</depend>
 
   <export>
     <sensor_model_plugins plugin="${prefix}/sensor_model_plugins.xml" />
