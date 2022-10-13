@@ -20,6 +20,7 @@ protected:
   
 public:
   double max_range_;
+  double min_range_{0};
 
   SensorModelBase();
 

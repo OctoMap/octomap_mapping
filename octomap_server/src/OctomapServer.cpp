@@ -47,6 +47,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_reconfigureServer(m_config_mutex, private_nh_),
   m_octree(NULL),
   m_maxRange(-1.0),
+  m_minRange(-1.0),
   m_worldFrameId("/map"), m_baseFrameId("base_footprint"),
   m_useHeightMap(true),
   m_useColoredMap(false),
@@ -123,6 +124,7 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_nh_private.param("resolution", m_res, m_res);
   m_nh_private.param("sensor_model/use_sensor_plugins", m_useSensorPlugins, false);
   m_nh_private.param("sensor_model/max_range", m_maxRange, m_maxRange);
+  m_nh_private.param("sensor_model/min_range", m_minRange, m_minRange);
   m_nh_private.param("sensor_model/hit", probHit, 0.7);
   m_nh_private.param("sensor_model/miss", probMiss, 0.4);
   m_nh_private.param("sensor_model/min", thresMin, 0.12);
@@ -195,9 +197,9 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   } else
     ROS_INFO("Publishing non-latched (topics are only prepared as needed, will only be re-published on map change");
 
-  if (private_nh.hasParam("plugins")) {
+  if (m_nh_private.hasParam("plugins")) {
     XmlRpc::XmlRpcValue plugin_list;
-    private_nh.getParam("plugins", plugin_list);
+    m_nh_private.getParam("plugins", plugin_list);
     for (int32_t i = 0; i < plugin_list.size(); ++i) {
       std::string pname = static_cast<std::string>(plugin_list[i]["name"]);
       std::string type = static_cast<std::string>(plugin_list[i]["type"]);
@@ -452,11 +454,13 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   point3d sensorOrigin = pointTfToOctomap(sensorOriginTf);
 
   double max_range = m_maxRange;
+  double min_range = m_minRange;
   boost::shared_ptr<square_robot::SensorModelBase> sensor_model;
   if (m_useSensorPlugins) {
     if (m_sensorModelMap.count(frame_id)) {
       sensor_model = m_sensorModelMap[frame_id];
       max_range = sensor_model->max_range_;
+      min_range = sensor_model->min_range_;
     } else {
       ROS_ERROR("No SensorModel registered for sensor sensor frame %s. Cannot add scan.", frame_id.c_str());
       return;
@@ -480,6 +484,8 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
   // insert ground points only as free:
   for (PCLPointCloud::const_iterator it = ground.begin(); it != ground.end(); ++it){
     point3d point(it->x, it->y, it->z);
+
+    if ((min_range > 0) && (point - sensorOrigin).norm() < min_range) continue;
 
     // maxrange check
     if ((max_range > 0.0) && ((point - sensorOrigin).norm() > max_range) ) {
@@ -513,6 +519,9 @@ void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCl
     if (m_useSensorPlugins) {
       point_probs = sensor_model->getRayProbs(it->x, it->y, it->z);
     }
+    
+    if ((m_minRange > 0) && (point - sensorOrigin).norm() < m_minRange) continue;
+    
     // maxrange check
     if ((max_range < 0.0) || ((point - sensorOrigin).norm() <= max_range) ) {
       // free cells
