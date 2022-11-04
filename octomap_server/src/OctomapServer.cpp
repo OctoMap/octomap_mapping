@@ -1397,6 +1397,10 @@ void OctomapServer::reconfigureCallback(octomap_server::OctomapServerConfig& con
   if (m_maxTreeDepth != unsigned(config.max_depth))
     m_maxTreeDepth = unsigned(config.max_depth);
   else{
+    m_pointcloudMinX            = config.pointcloud_min_x;
+    m_pointcloudMaxX            = config.pointcloud_max_x;
+    m_pointcloudMinY            = config.pointcloud_min_y;
+    m_pointcloudMaxY            = config.pointcloud_max_y;
     m_pointcloudMinZ            = config.pointcloud_min_z;
     m_pointcloudMaxZ            = config.pointcloud_max_z;
     m_occupancyMinZ             = config.occupancy_min_z;
