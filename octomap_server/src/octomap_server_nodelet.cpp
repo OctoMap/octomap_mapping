@@ -36,7 +36,7 @@
 
 #include <ros/ros.h>
 #include <octomap_server/OctomapServer.h>
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 #include <nodelet/nodelet.h>
 
 
