@@ -17,20 +17,20 @@ bool GeminiModelPlugin::initialize(std::string name) {
   nh.param("prob_hit", prob_hit_, prob_hit_);
   nh.param("prob_miss", prob_miss_, prob_miss_);
   nh.param("max_range", max_range_, max_range_);
-  std::string tank_info_topic = "tank_info";
-  nh.param("tank_info_topic", tank_info_topic, tank_info_topic);
+  std::string fluid_level_topic = "fluid_level";
+  nh.param("fluid_level_topic", fluid_level_topic, fluid_level_topic);
 
   ros::NodeHandle base_nh;
-  tank_info_sub_ = base_nh.subscribe(tank_info_topic, 1, &GeminiModelPlugin::onTankInfo, this);
+  fluid_level_sub_ = base_nh.subscribe(fluid_level_topic, 1, &GeminiModelPlugin::onFluidLevel, this);
   return true;
 }
 
-void GeminiModelPlugin::onTankInfo(const utbot_msgs::TankInfo::ConstPtr& tank_info) {
-  tank_info_ = *tank_info;
+void GeminiModelPlugin::onFluidLevel(const std_msgs::Float32::ConstPtr& fluid_level) {
+  fluid_level_ = *fluid_level;
 }
 
 bool GeminiModelPlugin::shouldIncludeRay(double x, double y, double z, double intensity) const {
-  return z < tank_info_.product_depth;
+  return z < fluid_level_.data;
 }
 
 std::pair<double, double> GeminiModelPlugin::getRayProbs(double x, double y, double z, double intensity) const {

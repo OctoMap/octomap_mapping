@@ -8,14 +8,14 @@
 #define SENSOR_MODEL_PLUGINS_INCLUDE_SENSOR_MODEL_PLUGINS_GEMINI_MODEL_PLUGIN_H_
 
 #include <sensor_model_plugins/sensor_model_base.h>
-#include <utbot_msgs/TankInfo.h>
+#include <std_msgs/Float32.h>
 
 namespace square_robot {
 
 class GeminiModelPlugin : public SensorModelBase {
 private:
-  ros::Subscriber tank_info_sub_;
-  utbot_msgs::TankInfo tank_info_;
+  ros::Subscriber fluid_level_sub_;
+  std_msgs::Float32 fluid_level_;
 
 public:
   GeminiModelPlugin();
@@ -23,7 +23,7 @@ public:
   bool shouldIncludeRay(double x, double y, double z, double intensity = 0) const override;
   std::pair<double, double> getRayProbs(double x, double y, double z, double intensity) const override;
 
-  void onTankInfo(const utbot_msgs::TankInfo::ConstPtr& tank_info);
+  void onFluidLevel(const std_msgs::Float32::ConstPtr& fluid_level);
 };
 
 }  // namespace square_robot
