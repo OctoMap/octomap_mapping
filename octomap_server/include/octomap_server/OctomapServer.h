@@ -250,9 +250,6 @@ protected:
 
   ros::Subscriber m_crossSectional2DMapRequestSub;
 
-  ros::WallDuration m_publishAllRate;
-  ros::WallTime m_lastPublishTime;
-
   OcTreeT* m_octree;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
   octomap::OcTreeKey m_updateBBXMin;

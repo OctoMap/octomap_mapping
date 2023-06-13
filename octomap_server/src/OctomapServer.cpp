@@ -133,11 +133,6 @@ OctomapServer::OctomapServer(const ros::NodeHandle private_nh_, const ros::NodeH
   m_nh_private.param("compress_map", m_compressMap, m_compressMap);
   m_nh_private.param("incremental_2D_projection", m_incrementalUpdate, m_incrementalUpdate);
 
-  double publishRate = 0.1; 
-  m_nh_private.param("publish_all_rate", publishRate, publishRate );
-  m_publishAllRate = ros::WallDuration( publishRate );
-  m_lastPublishTime = ros::WallTime::now();
-
   if (m_filterGroundPlane && (m_pointcloudMinZ > 0.0 || m_pointcloudMaxZ < 0.0)){
     ROS_WARN_STREAM("You enabled ground filtering but incoming pointclouds will be pre-filtered in ["
               <<m_pointcloudMinZ <<", "<< m_pointcloudMaxZ << "], excluding the ground level z=0. "
@@ -392,27 +387,40 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
     pcl::transformPointCloud(pc_nonground, pc_nonground, baseToWorld);
   } else if(m_simpleGroundFilter) {
     // iterate through all the points in world frame
-    // if a point's Z value lies in the floor plane envelope, it goes in pc_ground
+    // if a point's Z value lies below the cutoff level, it goes in pc_ground
 
     // directly transform to map frame:
-    pcl::transformPointCloud(pc, pc, sensorToWorld);
+	tf::StampedTransform sensorToBaseTf, baseToWorldTf;
+	try{
+	  m_tfListener.waitForTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, ros::Duration(0.2));
+	  m_tfListener.lookupTransform(m_baseFrameId, cloud->header.frame_id, cloud->header.stamp, sensorToBaseTf);
+	  m_tfListener.lookupTransform(m_worldFrameId, m_baseFrameId, cloud->header.stamp, baseToWorldTf);
+	} catch(tf::TransformException& ex){
+	  ROS_ERROR_STREAM( "Transform error for ground plane filter: " << ex.what() << ", quitting callback.\n"
+						"You need to set the base_frame_id or disable filter_ground.");
+	}
+	Eigen::Matrix4f sensorToBase, baseToWorld;
+	pcl_ros::transformAsMatrix(sensorToBaseTf, sensorToBase);
+	pcl_ros::transformAsMatrix(baseToWorldTf, baseToWorld);
+
+	// transform pointcloud from sensor frame to fixed robot frame
+	pcl::transformPointCloud(pc, pc, sensorToBase);
+	pass_x.setInputCloud(pc.makeShared());
+	pass_x.filter(pc);
+	pass_y.setInputCloud(pc.makeShared());
+	pass_y.filter(pc);
+
+	// transform clouds to world frame, so we are referenced to ground origin
+    pcl::transformPointCloud(pc, pc, baseToWorld);
 
     // just filter height range:
-    pass_x.setInputCloud(pc.makeShared());
-    pass_x.filter(pc);
-    pass_y.setInputCloud(pc.makeShared());
-    pass_y.filter(pc);
+    pass_z.setFilterLimits(m_groundFilterDistance, m_pointcloudMaxZ);
     pass_z.setInputCloud(pc.makeShared());
-    pass_z.filter(pc);
+    pass_z.filter(pc_nonground);
+    pass_z.setFilterLimitsNegative(true);
+    pass_z.filter(pc_ground);
 
-    for (PCLPointCloud::const_iterator it = pc.begin(); it != pc.end(); ++it){
-      if(it->z < m_groundFilterDistance && it->z > -m_groundFilterDistance) {
-        pc_ground.push_back(*it);
-      } else {
-        pc_nonground.push_back(*it);
-      }
-    }
-  
+    // add header information
     pc_ground.header = pc.header;
     pc_nonground.header = pc.header;
   } else {
@@ -443,11 +451,6 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
-
-  if( ( ros::WallTime::now() - m_lastPublishTime ) > m_publishAllRate ) {
-    publishAll(cloud->header.stamp);
-    m_lastPublishTime = ros::WallTime::now();
-  }
 }
 
 void OctomapServer::insertScan(const tf::Point& sensorOriginTf, const PCLPointCloud& ground, const PCLPointCloud& nonground, std::string frame_id){
