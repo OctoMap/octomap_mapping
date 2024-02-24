@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.1.0 (2024-02-24)
+------------------
 * Fix header include order error (`#125 <https://github.com/octomap/octomap_mapping/issues/125>`_)
 * Removed geometry2 deprecated headers (`#125 <https://github.com/octomap/octomap_mapping/issues/125>`_)
 * Fix errors when path name is invalid (`#108 <https://github.com/octomap/octomap_mapping/issues/108>`_)
