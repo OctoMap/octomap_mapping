@@ -28,14 +28,14 @@
 
 #include <octomap_server/octomap_server.hpp>
 
-#include <tf2_eigen/tf2_eigen.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-
 #include <algorithm>
 #include <limits>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <tf2_eigen/tf2_eigen.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace
 {
