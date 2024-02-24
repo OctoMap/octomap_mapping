@@ -2,6 +2,14 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix header include order error (`#125 <https://github.com/octomap/octomap_mapping/issues/125>`_)
+* Removed geometry2 deprecated headers (`#125 <https://github.com/octomap/octomap_mapping/issues/125>`_)
+* Fix errors when path name is invalid (`#108 <https://github.com/octomap/octomap_mapping/issues/108>`_)
+* Fix header include order (`#102 <https://github.com/octomap/octomap_mapping/issues/102>`_)
+* Contributors: Alejandro Hernández Cordero, Daisuke Nishimatsu, Wolfgang Merkt
+
 2.0.0 (2021-12-24)
 ------------------
 * ROS2 Migration (`#95 <https://github.com/octomap/octomap_mapping/issues/95>`_)
