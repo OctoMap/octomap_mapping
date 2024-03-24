@@ -2,6 +2,17 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Change frame id "/map" to "map" to prevent RViz visualization warnings in ROS Noetic caused by tf (`#124 <https://github.com/octomap/octomap_mapping/issues/124>`_
+* Initialize quaternion to avoid RViz warning (`#112 <https://github.com/octomap/octomap_mapping/issues/112>`_)
+* Update for PCL deprecated and removed API (`#118 <https://github.com/octomap/octomap_mapping/issues/118>`_)
+* Update pluginlib headers (`https://github.com/OctoMap/octomap_mapping/pull/114`_)
+* Update boost::placeholders (`#105 <https://github.com/octomap/octomap_mapping/issues/105>`_)
+* Fix publishing of projected map on reset (`#92 <https://github.com/octomap/octomap_mapping/issues/92>`_)
+* Add a min range parameter (`#100 <https://github.com/octomap/octomap_mapping/issues/100>`_)
+* Contributors: Lovro Markovic, Lucas Walter, Wolfgang Merkt, Zhefan-Xu, yuri-r
+
 0.6.7 (2021-12-24)
 ------------------
 * Address warnings on Noetic (`#81 <https://github.com/octomap/octomap_mapping/issues/81>`_)
