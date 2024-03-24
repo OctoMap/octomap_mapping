@@ -652,6 +652,10 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       occupiedNodesVis.markers[i].scale.x = size;
       occupiedNodesVis.markers[i].scale.y = size;
       occupiedNodesVis.markers[i].scale.z = size;
+      occupiedNodesVis.markers[i].pose.orientation.x=0;
+      occupiedNodesVis.markers[i].pose.orientation.y=0;
+      occupiedNodesVis.markers[i].pose.orientation.z=0;
+      occupiedNodesVis.markers[i].pose.orientation.w=1;
       if (!m_useColoredMap)
         occupiedNodesVis.markers[i].color = m_color;
 
