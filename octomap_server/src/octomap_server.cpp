@@ -1110,7 +1110,7 @@ void OctomapServer::filterGroundPlane(
       second_pass.setFilterLimits(-ground_filter_plane_distance_, ground_filter_plane_distance_);
       second_pass.setInputCloud(pc.makeShared());
       second_pass.filter(ground);
-      second_pass.setFilterLimitsNegative(true);
+      second_pass.setNegative(true);
       second_pass.filter(nonground);
     }
     // debug:

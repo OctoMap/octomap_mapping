@@ -7,19 +7,10 @@ jobs:
       matrix:
         env:
           - {ROS_DISTRO: rolling}
-          - {ROS_DISTRO: rolling, PRERELEASE: true}
           - {ROS_DISTRO: humble, PRERELEASE: true}
           - {ROS_DISTRO: iron, PRERELEASE: true}
-    # env:
-    #   CCACHE_DIR: /github/home/.ccache             # Enable ccache
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      # # This step will fetch/store the directory used by ccache before/after the ci run
-      # - uses: actions/cache@v3
-      #   with:
-      #     path: ${{ env.CCACHE_DIR }}
-      #     key: ccache-${{ matrix.env.ROS_DISTRO }}-${{ matrix.env.ROS_REPO }}
-      # Run industrial_ci
       - uses: 'ros-industrial/industrial_ci@master'
         env: ${{ matrix.env }}
