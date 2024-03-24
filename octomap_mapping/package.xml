@@ -1,6 +1,6 @@
 <package>
   <name>octomap_mapping</name>
-  <version>0.6.7</version>
+  <version>0.6.8</version>
   <description>
     Mapping tools to be used with the <a href="https://octomap.github.io/">OctoMap library</a>, implementing a 3D occupancy grid mapping.
   </description>

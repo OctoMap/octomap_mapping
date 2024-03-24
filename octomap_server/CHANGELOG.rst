@@ -2,8 +2,8 @@
 Changelog for package octomap_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.8 (2024-03-24)
+------------------
 * Change frame id "/map" to "map" to prevent RViz visualization warnings in ROS Noetic caused by tf (`#124 <https://github.com/octomap/octomap_mapping/issues/124>`_
 * Initialize quaternion to avoid RViz warning (`#112 <https://github.com/octomap/octomap_mapping/issues/112>`_)
 * Update for PCL deprecated and removed API (`#118 <https://github.com/octomap/octomap_mapping/issues/118>`_)
