@@ -44,7 +44,7 @@ using namespace octomap;
 class OctomapServerStatic{
 public:
   OctomapServerStatic(const std::string& filename)
-    : m_octree(NULL), m_worldFrameId("/map")
+    : m_octree(NULL), m_worldFrameId("map")
   {
 
     ros::NodeHandle private_nh("~");
