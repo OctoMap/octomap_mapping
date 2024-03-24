@@ -143,6 +143,7 @@ int main(int argc, char** argv){
   }
 
   try{
+    ROS_INFO("Started");
     OctomapServerStatic ms(mapFilename);
     ros::spin();
   }catch(std::runtime_error& e){
