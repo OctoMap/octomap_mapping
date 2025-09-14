@@ -7,9 +7,9 @@ jobs:
       matrix:
         env:
           - {ROS_DISTRO: rolling}
-          - {ROS_DISTRO: humble, PRERELEASE: true}
-          - {ROS_DISTRO: iron, PRERELEASE: true}
+          - {ROS_DISTRO: humble}
           - {ROS_DISTRO: jazzy}
+          - {ROS_DISTRO: kilted}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
