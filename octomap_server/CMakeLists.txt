@@ -16,6 +16,8 @@ include_directories(${PCL_INCLUDE_DIRS})
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 find_package(OCTOMAP REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
 
 ament_auto_add_library(octomap_server_static SHARED
   src/octomap_server_static.cpp
@@ -48,6 +50,31 @@ target_link_libraries(octomap_server
 rclcpp_components_register_node(octomap_server
   PLUGIN "octomap_server::OctomapServer"
   EXECUTABLE octomap_server_node
+)
+
+ament_auto_add_library(octomap_server_lifecycle SHARED
+  src/octomap_server_lifecycle.cpp
+)
+
+target_link_libraries(octomap_server_lifecycle
+  ${OCTOMAP_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_include_directories(octomap_server_lifecycle
+  PUBLIC
+    ${OCTOMAP_INCLUDE_DIRS}
+)
+
+# Add lifecycle-specific dependencies
+ament_target_dependencies(octomap_server_lifecycle
+  rclcpp_lifecycle
+  lifecycle_msgs
+)
+
+rclcpp_components_register_node(octomap_server_lifecycle
+  PLUGIN "octomap_server::OctomapServerLifecycle"
+  EXECUTABLE octomap_server_lifecycle_node
 )
 
 ament_auto_add_library(octomap_server_multilayer SHARED
