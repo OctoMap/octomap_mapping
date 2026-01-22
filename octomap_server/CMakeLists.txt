@@ -45,6 +45,14 @@ target_link_libraries(octomap_server
   ${PCL_LIBRARIES}
 )
 
+if(message_filters_VERSION VERSION_LESS 5.0.0)
+  # Jazzy and older
+  target_compile_definitions(octomap_server
+    PRIVATE
+      USE_OLD_RMW_QOS_MESSAGE_FILTERS=1
+  )
+endif()
+
 rclcpp_components_register_node(octomap_server
   PLUGIN "octomap_server::OctomapServer"
   EXECUTABLE octomap_server_node
