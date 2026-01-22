@@ -7,25 +7,29 @@ on:
 
 jobs:
   test_environment:
-    runs-on: [ubuntu-latest]
     strategy:
       fail-fast: false
       matrix:
         ros_distribution:
           - humble
-          - iron
+          - jazzy
+          - kilted
           - rolling
         include:
           # Humble Hawksbill (May 2022 - May 2027)
           - os: ubuntu-22.04
             ros_distribution: humble
             ros_version: 2
-          # Iron Irwini (May 2023 - November 2024)
-          - os: ubuntu-22.04
-            ros_distribution: iron
+          # Jazzy Jalisco (May 2024 - May 2029)
+          - os: ubuntu-24.04
+            ros_distribution: jazzy
+            ros_version: 2
+          # Kilted Kaiju (May 2025 - December 2026)
+          - os: ubuntu-24.04
+            ros_distribution: kilted
             ros_version: 2
           # Rolling Ridley  (June 2020 - Present)
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             ros_distribution: rolling
             ros_version: 2
     runs-on: ${{ matrix.os }}
