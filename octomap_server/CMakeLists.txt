@@ -45,6 +45,7 @@ target_link_libraries(octomap_server
   ${PCL_LIBRARIES}
 )
 
+message(WARNING "version: ${message_filters_VERSION}")
 if(message_filters_VERSION VERSION_LESS 5.0.0)
   # Jazzy and older
   target_compile_definitions(octomap_server
