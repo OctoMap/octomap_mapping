@@ -46,7 +46,7 @@ jobs:
           echo ::set-output name=package_list::$(colcon list --names-only)
 
       - name: build and test
-        uses: ros-tooling/action-ros-ci@v0.3.6
+        uses: ros-tooling/action-ros-ci@v0.4
         with:
           package-name: ${{ steps.list_packages.outputs.package_list }}
           target-ros2-distro: ${{ matrix.ros_distribution }}
