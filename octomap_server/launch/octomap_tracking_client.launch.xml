@@ -4,6 +4,7 @@
 		<param name="resolution" value="0.02" />
 		<param name="frame_id" value="dev0" />
 		<param name="sensor_model.max_range" value="4.0" />
+		<param name="sensor_model.min_range" value="0.0" />
 		<param name="save_directory" value="$(env OCTOMAP_SAVE_DIR2 ./)" />
 		<param name="track_changes" value="false"/>
 		<param name="listen_changes" value="true"/>

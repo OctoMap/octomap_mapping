@@ -13,8 +13,9 @@
 		<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
 		<param name="frame_id" value="odom_combined" />
 
-		<!-- maximum range to integrate (speedup!) -->
+		<!-- Range to integrate (speedup!) -->
 		<param name="sensor_model.max_range" value="5.0" />
+		<param name="sensor_model.min_range" value="0.0" />
 
 		<!-- data source to integrate (PointCloud2) -->
 		<remap from="cloud_in" to="/narrow_stereo/points_filtered2" />
