@@ -169,6 +169,15 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
     max_range_desc.floating_point_range.push_back(max_range_range);
     max_range_ = declare_parameter("sensor_model.max_range", -1.0, max_range_desc);
   }
+  {
+    rcl_interfaces::msg::ParameterDescriptor min_range_desc;
+    min_range_desc.description = "Sensor minimum range";
+    rcl_interfaces::msg::FloatingPointRange min_range_range;
+    min_range_range.from_value = 0.0;
+    min_range_range.to_value = 100.0;
+    min_range_desc.floating_point_range.push_back(min_range_range);
+    min_range_ = declare_parameter("sensor_model.min_range", 0.0, min_range_desc);
+  }
 
   res_ = declare_parameter("resolution", 0.05);
 
@@ -512,8 +521,14 @@ void OctomapServer::insertScan(
   // insert ground points only as free:
   for (PCLPointCloud::const_iterator it = ground.begin(); it != ground.end(); ++it) {
     octomap::point3d point(it->x, it->y, it->z);
+    double dist = (point - sensor_origin).norm();
+
+    if (dist < min_range_) {
+      continue;
+    }
+
     // maxrange check
-    if ((max_range_ > 0.0) && ((point - sensor_origin).norm() > max_range_) ) {
+    if ((max_range_ > 0.0) && (dist > max_range_) ) {
       point = sensor_origin + (point - sensor_origin).normalized() * max_range_;
     }
 
@@ -534,8 +549,14 @@ void OctomapServer::insertScan(
   // all other points: free on ray, occupied on endpoint:
   for (PCLPointCloud::const_iterator it = nonground.begin(); it != nonground.end(); ++it) {
     octomap::point3d point(it->x, it->y, it->z);
+    double dist = (point - sensor_origin).norm();
+
+    if (dist < min_range_) {
+      continue;
+    }
+
     // maxrange check
-    if ((max_range_ < 0.0) || ((point - sensor_origin).norm() <= max_range_) ) {
+    if ((max_range_ < 0.0) || (dist <= max_range_ )) {
       // free cells
       if (octree_->computeRayKeys(sensor_origin, point, key_ray_)) {
         free_cells.insert(key_ray_.begin(), key_ray_.end());
