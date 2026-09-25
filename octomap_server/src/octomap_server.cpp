@@ -301,9 +301,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
   fmarker_pub_ = create_publisher<MarkerArray>("free_cells_vis_array", qos);
 
   tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
-  auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
-    this->get_node_base_interface(),
-    this->get_node_timers_interface());
+  auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(*this);
   tf2_buffer_->setCreateTimerInterface(timer_interface);
   tf2_listener_ =
     std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
@@ -315,8 +313,7 @@ OctomapServer::OctomapServer(const rclcpp::NodeOptions & node_options)
   point_cloud_sub_.subscribe(this, "cloud_in", rclcpp::SensorDataQoS());
 #endif
   tf_point_cloud_sub_ = std::make_shared<tf2_ros::MessageFilter<PointCloud2>>(
-    point_cloud_sub_, *tf2_buffer_, world_frame_id_, 5, this->get_node_logging_interface(),
-    this->get_node_clock_interface(), 5s);
+    point_cloud_sub_, *tf2_buffer_, world_frame_id_, 5, *this, 5s);
 
   tf_point_cloud_sub_->registerCallback(&OctomapServer::insertCloudCallback, this);
 
